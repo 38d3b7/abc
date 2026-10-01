@@ -340,6 +340,21 @@ export class PgStore implements Store {
     await this.pool.query('UPDATE automations SET last_fired_at = now() WHERE id = $1', [id])
   }
 
+  /** Worker-side scan: every active automation, with the agent's hook for
+   *  fee_accrued evaluation. Due-ness is computed by the caller (and
+   *  re-checked by the fire handler — re-validated at fire time). */
+  async listActiveAutomations (): Promise<Array<{
+    id: string; agent_id: string; kind: string; spec: { intervalSeconds?: number; thresholdUsdc?: number };
+    intent_template: unknown; last_fired_at: string | null; created_at: string; hook_address: string | null
+  }>> {
+    const res = await this.pool.query(
+      `SELECT a.id, a.agent_id, a.kind, a.spec, a.intent_template, a.last_fired_at, a.created_at, g.hook_address
+       FROM automations a JOIN agents g ON g.id = a.agent_id
+       WHERE a.active = true`
+    )
+    return res.rows as never
+  }
+
   async registerWallet (agentId: string, address: string, provider: 'circle_sca' | 'local_dev' | 'agent_stack', providerRef: string): Promise<void> {
     await this.pool.query(
       `INSERT INTO wallets (agent_id, address, provider, provider_ref) VALUES ($1, $2, $3, $4)

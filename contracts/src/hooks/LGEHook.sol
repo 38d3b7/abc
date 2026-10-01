@@ -39,18 +39,40 @@ import {SafeNativeSender} from "../utils/SafeNativeSender.sol";
 ///
 /// Fees: the pool LP fee is 0; the hook takes `feeBps` on the USDC leg of every
 /// swap, booked 25% to LGE participants / 50% to the agent / 25% to the
-/// protocol. Claims are pull-based. Once participant-booked fees equal the total
-/// USDC raised, every participant's LP locks forever. Before that, a participant
-/// may exit with both legs of their share while 30-day fee volume is below
-/// `exitThreshold` (0 disables exits).
+/// protocol. Claims are pull-based. Lock is two numbers: the 25% already
+/// booked from chain fee revenue (`participantFeesBooked`) vs the USDC
+/// investors spent in the LGE (`totalUsdcRaised`). When the first is ≥ the
+/// second, every participant's LP locks forever. A non-claimer cannot stall
+/// it. Before that, a participant may exit with both legs of their share
+/// while 30-day fee volume is below `exitThreshold` (0 disables exits).
 ///
 /// @dev Native currency0 is Arc's 18-decimal USDC. Hook fees are collected by
 ///      calling `poolManager.take` inside the swap callback (the manager is
 ///      unlocked at that moment) and returning the same amount as the hook
-///      delta, so the swapper's settlement nets to zero. Swaps initiated by the
-///      hook itself (the treasury buy) skip these callbacks entirely
-///      (v4-core: `msg.sender == address(self)`), so the treasury is never
-///      charged the hook fee.
+///      delta, so the swapper's settlement nets to zero.
+///
+///      Security posture, by permission:
+///      - beforeSwap/afterSwapReturnDelta: the hook only ever EXTRACTS — every
+///        returned delta is a positive fee on the USDC leg taken to
+///        address(this); no path returns value to a swapper or LP, so the
+///        return-delta (NoOp-style) rug vector is absent. Exact-output sells
+///        cannot be charged in afterSwap (the unspecified leg is the token)
+///        and revert instead of taxing LPs.
+///      - Quote side is not a choice: Arc's USDC is native, and native sorts
+///        to currency0 in every pool. _beforeInitialize additionally pins the
+///        exact key (native USDC, our token, this hook, sender must be the
+///        PositionManager after success), so foreign pools cannot adopt this
+///        hook and feed its ledgers phantom volume.
+///      - Hook-initiated swaps (the treasury buy) skip all fee logic via the
+///        `inHookOp` flag — deliberately not delegated to the PoolManager:
+///        Arc's deployed manager skips callbacks for self-initiated swaps, the
+///        vendored v4-core used in tests does not. The flag makes "the
+///        treasury is never charged the hook fee" hold on both, and the test
+///        suite asserts it.
+///      - All fee recipients are pull-based (accrue, never push); native sends
+///        that fail park as pending credits (Arc reverts sends to address(0)
+///        and SCAs may not accept plain transfers), so a recipient can never
+///        wedge a swap, a claim, or the success path.
 contract LGEHook is BaseHook, SafeNativeSender {
     using PoolIdLibrary for PoolKey;
     using StateLibrary for IPoolManager;
@@ -519,9 +541,9 @@ contract LGEHook is BaseHook, SafeNativeSender {
         emit TreasuryEscrowed(amount);
     }
 
-    /// @dev Runs inside the PoolManager's unlock, with the hook as the swap
-    ///      caller — hook callbacks are skipped for self-initiated swaps, so the
-    ///      treasury is never charged the hook fee.
+    /// @dev Runs inside the PoolManager's unlock. Some PoolManagers skip hook
+    ///      callbacks when the hook is the swapper; `inHookOp` is what makes
+    ///      "treasury is never charged the hook fee" hold either way.
     function unlockCallback(bytes calldata data) external returns (bytes memory) {
         if (msg.sender != address(poolManager)) revert NotPoolManager();
         if (!inHookOp) revert Unauthorized();
@@ -794,6 +816,17 @@ contract LGEHook is BaseHook, SafeNativeSender {
         SwapParams calldata params,
         bytes calldata
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
+        // Hook-initiated swaps (the treasury buy) skip all fee logic. Do not
+        // rely on the PoolManager skipping callbacks for self-initiated swaps:
+        // Arc's deployed manager does, the vendored v4-core used in tests does
+        // not — the flag makes the invariant hold on either.
+        if (inHookOp) {
+            return (
+                BaseHook.beforeSwap.selector,
+                BeforeSwapDeltaLibrary.ZERO_DELTA,
+                0
+            );
+        }
         if (PoolId.unwrap(poolKey.toId()) != PoolId.unwrap(key.toId())) {
             revert WrongPool();
         }
@@ -830,6 +863,9 @@ contract LGEHook is BaseHook, SafeNativeSender {
         BalanceDelta delta,
         bytes calldata
     ) internal override returns (bytes4, int128) {
+        // See _beforeSwap: hook-initiated swaps skip all fee logic.
+        if (inHookOp) return (BaseHook.afterSwap.selector, 0);
+
         // An exact-output sell specifies the USDC output; the hook fee cannot
         // come out of a specified leg in afterSwap, and charging the pool would
         // tax LPs. Refused instead.

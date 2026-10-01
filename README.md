@@ -45,7 +45,7 @@ machine-readable manifest.
 
 ## What's proven (all on Arc testnet, 2026-10-01)
 
-- **Contracts**: 40 forge tests green (fee split math, LP lock transition, exit
+- **Contracts**: 41 forge tests green (fee split math, LP lock transition, exit
   gating, pull claims, treasury buy at several raise sizes, failure-path
   finalization). `contracts/script/e2e.mjs` passes the full lifecycle on-chain:
   launch → deposits → success → pool seeded → fee accrual → claims → lock.
@@ -63,3 +63,14 @@ machine-readable manifest.
   idempotency replay/mismatch behavior verified, 28 vitest green.
 - **Circle signer**: wallet set `06b8685e-b977-521e-bb61-d42db479df71`, SCA
   provisioning on ARC-TESTNET verified live (`executor/script/circle-smoke.ts`).
+
+Demo video: `demo/abc-demo.mp4` (~90s). Submission paste: `SUBMISSION.md`.
+
+## Day-0 experiments
+
+- 19-gwei send: RPC rejects; baseFee floor is 20 gwei.
+- Kernel `eth_getCode`: observed; 7702 path left unset.
+- `debug_traceCall` / `trace_call` on the public RPC: unsupported. Valuation is
+  by construction from typed intents (fail closed). The keyed Canteen RPC
+  (`arc-canteen rpc-url`) is the BASIS attribution path — run `arc-canteen login`
+  and set `ARC_RPC_URL` / `VITE_ARC_RPC_URL` once the device flow completes.

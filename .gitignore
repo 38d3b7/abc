@@ -9,3 +9,9 @@ broadcast/
 *.log
 .DS_Store
 *.tsbuildinfo
+demo/node_modules/
+demo/*.webm
+demo/frame-*.png
+demo/check-*.jpg
+demo/check-*.png
+demo/act-*.png

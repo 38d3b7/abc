@@ -1,6 +1,7 @@
 /**
  * Worker: pg-boss on the same Postgres (no Redis). Jobs:
  *   agent-prompt          — run the agent loop for an agent with a prompt
+ *   automation-tick       — scan active automations, enqueue those that are due
  *   automation-fire       — re-validate and fire a due automation
  *   keeper-claim-protocol — hourly permissionless claimProtocol sweep per hook
  *   index-deposits        — system emitter: poll Deposited events into the DB
@@ -18,9 +19,11 @@ import { createSigner, createKeeperSigner } from '../signer/index.js'
 import { QuoteSigner } from '../quotes/sign.js'
 import { runAgentLoop } from '../agent/loop.js'
 import { isSent } from '../signer/types.js'
+import { isDue } from './due.js'
 
 export const QUEUES = {
   agentPrompt: 'agent-prompt',
+  automationTick: 'automation-tick',
   automationFire: 'automation-fire',
   keeperClaimProtocol: 'keeper-claim-protocol',
   indexDeposits: 'index-deposits'
@@ -28,6 +31,7 @@ export const QUEUES = {
 
 const HOOK_ABI = parseAbi([
   'function protocolAccrued() view returns (uint256)',
+  'function participantFeesBooked() view returns (uint256)',
   'function claimProtocol()'
 ])
 
@@ -64,6 +68,33 @@ export async function startWorker (): Promise<void> {
     }
   )
 
+  // ---- automation tick: who is due? (every minute) ----
+  await boss.createQueue(QUEUES.automationTick)
+  await boss.work(QUEUES.automationTick, async () => {
+    const rows = await store.listActiveAutomations()
+    const now = Date.now()
+    for (const row of rows) {
+      let booked: bigint | undefined
+      if (row.kind === 'fee_accrued' && row.hook_address) {
+        booked = await chain.readContract({
+          address: row.hook_address as Address,
+          abi: HOOK_ABI,
+          functionName: 'participantFeesBooked'
+        })
+      }
+      if (isDue({
+        kind: row.kind,
+        spec: row.spec,
+        lastFiredAt: row.last_fired_at,
+        createdAt: row.created_at,
+        participantFeesBooked: booked
+      }, now)) {
+        await boss.send(QUEUES.automationFire, { automationId: row.id })
+      }
+    }
+  })
+  await boss.schedule(QUEUES.automationTick, '* * * * *')
+
   // ---- automation fires (re-validated at fire time) ----
   await boss.createQueue(QUEUES.automationFire)
   await boss.work<{ automationId: string }>(
@@ -72,6 +103,22 @@ export async function startWorker (): Promise<void> {
       if (!job) return
       const row = await store.getAutomation(job.data.automationId)
       if (!row || !row.active) return
+      const full = (await store.listActiveAutomations()).find(a => a.id === row.id)
+      let booked: bigint | undefined
+      if (full?.kind === 'fee_accrued' && full.hook_address) {
+        booked = await chain.readContract({
+          address: full.hook_address as Address,
+          abi: HOOK_ABI,
+          functionName: 'participantFeesBooked'
+        })
+      }
+      if (full && !isDue({
+        kind: full.kind,
+        spec: full.spec,
+        lastFiredAt: full.last_fired_at,
+        createdAt: full.created_at,
+        participantFeesBooked: booked
+      }, Date.now())) return
       const t = row.intent_template as { type: string; params: Record<string, unknown> }
       const agent = await store.getAgent(row.agent_id)
       if (!agent) return

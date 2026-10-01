@@ -2,6 +2,7 @@
 pragma solidity =0.8.26;
 
 import {Test} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {stdStorage, StdStorage} from "forge-std/StdStorage.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
@@ -422,6 +423,26 @@ contract LGEHookTest is Test, PosmTestSetup {
         _reachCapSuccessfully();
         vm.expectRevert(LGEHook.NoPendingBuy.selector);
         _hook().treasuryBuy();
+    }
+
+    /// The treasury buy is a hook-initiated swap: it must never be charged the
+    /// hook fee. The invariant is "no FeeCharged / no booked share", not
+    /// "which layer skipped the callback". `inHookOp` is the hook's own
+    /// skip; some PoolManagers also skip self-initiated callbacks.
+    function test_treasuryBuyBooksNoFee() public {
+        vm.recordLogs();
+        _reachCapSuccessfully();
+
+        assertEq(_hook().participantFeesBooked(), 0, "participant fees booked by treasury buy");
+        assertEq(_hook().agentAccrued(), 0, "agent fees booked by treasury buy");
+        assertEq(_hook().protocolAccrued(), 0, "protocol fees booked by treasury buy");
+
+        // no FeeCharged log from the success path
+        bytes32 sig = keccak256("FeeCharged(uint256,uint256,uint256,uint256)");
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i; i < logs.length; ++i) {
+            assertFalse(logs[i].topics[0] == sig, "FeeCharged emitted during treasury buy");
+        }
     }
 
     function test_LGEFailedPartialCapReached() public {
