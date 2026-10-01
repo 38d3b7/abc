@@ -1,0 +1,145 @@
+@use "variables" as *;
+@use "mixins" as *;
+
+.about-page {
+  max-width: $max-width-container;
+  margin: 0 auto;
+  padding: $spacing-2xl $spacing-lg;
+  font-family: "Share Tech Mono", monospace;
+}
+
+.about-header {
+  text-align: center;
+  margin-bottom: $spacing-3xl;
+
+  h1 {
+    font-size: 2.5rem;
+    color: var(--terminal-green);
+    text-shadow: 0 0 20px var(--terminal-green);
+    margin-bottom: $spacing-md;
+    font-weight: bold;
+  }
+
+  .about-subtitle {
+    font-size: 1.2rem;
+    color: var(--terminal-cyan);
+    text-shadow: 0 0 10px var(--terminal-cyan);
+    opacity: 0.9;
+  }
+}
+
+.about-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2xl;
+}
+
+.about-section {
+  &.full-width {
+    width: 100%;
+  }
+
+  &.half-width {
+    flex: 1;
+    min-width: 300px;
+  }
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-xl;
+
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include desktop {
+    gap: $spacing-2xl;
+  }
+}
+
+.about-box {
+  background: var(--terminal-dark);
+  border: 2px solid var(--terminal-green);
+  border-radius: $border-radius-sm;
+  padding: $spacing-2xl;
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--terminal-green) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 30px color-mix(in srgb, var(--terminal-green) 50%, transparent),
+      inset 0 0 30px color-mix(in srgb, var(--terminal-green) 20%, transparent);
+  }
+
+  .box-header {
+    color: var(--terminal-cyan);
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--terminal-cyan);
+    margin-bottom: $spacing-lg;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid
+      color-mix(in srgb, var(--terminal-cyan) 30%, transparent);
+    padding-bottom: $spacing-sm;
+  }
+
+  .box-text {
+    color: var(--terminal-green);
+    font-size: 1rem;
+    line-height: 1.6;
+    text-shadow: 0 0 5px var(--terminal-green);
+    margin: 0;
+    flex: 1;
+    display: flex;
+    align-items: center;
+
+    .about-link {
+      color: var(--terminal-cyan);
+      text-decoration: none;
+      text-shadow: 0 0 8px var(--terminal-cyan);
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: var(--terminal-amber);
+        text-shadow: 0 0 12px var(--terminal-amber);
+      }
+    }
+
+    strong {
+      color: var(--terminal-amber);
+      text-shadow: 0 0 8px var(--terminal-amber);
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .about-page {
+    padding: $spacing-lg $spacing-md;
+  }
+
+  .about-header h1 {
+    font-size: 2rem;
+  }
+
+  .about-box {
+    padding: $spacing-lg;
+
+    .box-header {
+      font-size: 1.1rem;
+    }
+
+    .box-text {
+      font-size: 0.9rem;
+    }
+  }
+}

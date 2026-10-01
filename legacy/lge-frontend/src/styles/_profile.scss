@@ -1,0 +1,279 @@
+@use "variables" as *;
+@use "mixins" as *;
+
+.profile-header {
+  margin-bottom: $spacing-2xl;
+
+  h1 {
+    font-size: 1.75rem;
+    color: var(--terminal-green);
+    text-shadow: 0 0 10px var(--terminal-green);
+    font-family: "Share Tech Mono", monospace;
+    font-weight: bold;
+  }
+}
+
+.profile-info {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-3xl;
+
+  @include tablet {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: $spacing-xl;
+  }
+
+  @include desktop {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-2xl;
+  }
+}
+
+.info-card {
+  @include card;
+
+  h2 {
+    font-size: 0.9rem;
+    color: var(--terminal-cyan);
+    opacity: 0.8;
+    margin-bottom: $spacing-md;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 5px var(--terminal-cyan);
+    font-family: "Share Tech Mono", monospace;
+  }
+
+  p,
+  code {
+    display: block;
+    word-break: break-all;
+    font-size: 0.9rem;
+    color: var(--terminal-green);
+    text-shadow: 0 0 5px var(--terminal-green);
+    font-family: "Share Tech Mono", monospace;
+  }
+}
+
+.user-campaigns-section {
+  margin-top: $spacing-3xl;
+
+  h2 {
+    margin-bottom: $spacing-xl;
+    font-size: 1.25rem;
+    color: var(--terminal-green);
+    text-shadow: 0 0 10px var(--terminal-green);
+    font-family: "Share Tech Mono", monospace;
+    font-weight: bold;
+
+    @include desktop {
+      font-size: 1.5rem;
+      margin-bottom: $spacing-2xl;
+    }
+  }
+}
+
+.tokens-table-section {
+  margin-top: $spacing-3xl;
+
+  h2 {
+    color: var(--terminal-green);
+    text-shadow: 0 0 10px var(--terminal-green);
+    margin-bottom: $spacing-xl;
+    font-family: "Share Tech Mono", monospace;
+    font-size: 1.5rem;
+  }
+}
+
+.tokens-table-container {
+  overflow-x: auto;
+  border: 2px solid var(--terminal-green);
+  border-radius: $border-radius-sm;
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--terminal-green) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+}
+
+.tokens-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Share Tech Mono", monospace;
+  background: var(--terminal-dark);
+
+  thead {
+    background: color-mix(in srgb, var(--terminal-green) 10%, transparent);
+    border-bottom: 2px solid var(--terminal-green);
+
+    th {
+      padding: $spacing-lg;
+      text-align: left;
+      color: var(--terminal-cyan);
+      font-weight: bold;
+      text-shadow: 0 0 5px var(--terminal-cyan);
+      white-space: nowrap;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid
+        color-mix(in srgb, var(--terminal-green) 20%, transparent);
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: color-mix(in srgb, var(--terminal-green) 5%, transparent);
+      }
+
+      td {
+        padding: $spacing-lg;
+        color: var(--terminal-green);
+
+        &.ticker {
+          color: var(--terminal-amber);
+          font-weight: bold;
+        }
+
+        &.address-cell {
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+        }
+
+        &.tokens-amount {
+          color: var(--terminal-cyan);
+          font-weight: bold;
+          text-align: right;
+        }
+
+        &.action-cell {
+          text-align: center;
+        }
+
+        &.image-cell {
+          text-align: center;
+          width: 60px;
+          padding: $spacing-sm;
+        }
+
+        &.created-date {
+          color: var(--terminal-amber);
+          font-size: 0.9rem;
+          text-align: center;
+        }
+      }
+    }
+  }
+}
+
+.token-thumbnail {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 2px solid var(--terminal-green);
+  box-shadow: 0 0 10px
+    color-mix(in srgb, var(--terminal-green) 30%, transparent);
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px
+      color-mix(in srgb, var(--terminal-green) 50%, transparent);
+  }
+}
+
+.token-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: linear-gradient(
+    135deg,
+    var(--terminal-amber) 0%,
+    var(--terminal-cyan) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--terminal-green);
+  box-shadow: 0 0 10px
+    color-mix(in srgb, var(--terminal-green) 30%, transparent);
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px
+      color-mix(in srgb, var(--terminal-green) 50%, transparent);
+  }
+
+  .token-symbol {
+    font-family: "Share Tech Mono", monospace;
+    font-weight: bold;
+    font-size: 0.7rem;
+    color: var(--terminal-dark);
+    text-shadow: none;
+  }
+}
+
+.copy-btn {
+  background: transparent;
+  border: 1px solid var(--terminal-cyan);
+  color: var(--terminal-cyan);
+  padding: $spacing-xs $spacing-sm;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--terminal-cyan);
+    color: var(--terminal-dark);
+    box-shadow: 0 0 10px var(--terminal-cyan);
+  }
+}
+
+.action-btn {
+  background: transparent;
+  padding: $spacing-sm $spacing-lg;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: $border-radius-sm;
+
+  &.claim-btn {
+    border: 2px solid var(--terminal-green);
+    color: var(--terminal-green);
+    text-shadow: 0 0 5px var(--terminal-green);
+
+    &:hover {
+      background: var(--terminal-green);
+      color: var(--terminal-dark);
+      box-shadow: 0 0 15px var(--terminal-green);
+    }
+  }
+
+  &.recover-btn {
+    border: 2px solid var(--terminal-amber);
+    color: var(--terminal-amber);
+    text-shadow: 0 0 5px var(--terminal-amber);
+
+    &:hover {
+      background: var(--terminal-amber);
+      color: var(--terminal-dark);
+      box-shadow: 0 0 15px var(--terminal-amber);
+    }
+  }
+}
+
+.status-ongoing {
+  color: var(--terminal-cyan);
+  text-shadow: 0 0 5px var(--terminal-cyan);
+  font-weight: bold;
+  font-family: "Share Tech Mono", monospace;
+}
+
+.status-complete {
+  color: color-mix(in srgb, var(--terminal-green) 50%, transparent);
+  font-family: "Share Tech Mono", monospace;
+}

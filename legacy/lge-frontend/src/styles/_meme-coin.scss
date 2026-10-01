@@ -1,0 +1,310 @@
+// Meme Coin Display Styles - Based on the sunglasses coin design
+.meme-coin-display {
+  width: 100%;
+  height: 100%;
+  background: #0f172a; // Dark navy background
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  // Top Banner
+  .meme-banner-top {
+    display: flex;
+    height: 40px;
+    position: relative;
+    z-index: 2;
+
+    .banner-left {
+      flex: 1;
+      background: #e91e63; // Dark pink/magenta
+    }
+
+    .banner-right {
+      flex: 1;
+      background: linear-gradient(90deg, #e91e63 0%, #f06292 100%); // Light pink gradient
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .lp-text {
+        color: white;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+    }
+  }
+
+  // Main Content
+  .meme-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    position: relative;
+    background: #0f172a;
+  }
+
+  // Meme Coin Container
+  .meme-coin-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    height: 100%;
+  }
+
+  // Coin with Sunglasses
+  .coin-with-sunglasses {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .coin-image {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+      border: 3px solid #ffd700;
+    }
+
+    .sunglasses-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+    }
+  }
+
+  // Placeholder Coin
+  .coin-placeholder {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .coin-circle {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffd700 0%, #ffa500 70%, #ff8c00 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+      border: 3px solid #ffd700;
+      position: relative;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 20%;
+        left: 20%;
+        width: 20%;
+        height: 30%;
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        transform: rotate(-30deg);
+      }
+
+      .coin-text-top {
+        font-size: 1rem;
+        font-weight: 900;
+        color: #8b4513;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        letter-spacing: 1px;
+        transform: rotate(-15deg);
+        margin-top: -10px;
+      }
+
+      .coin-text-bottom {
+        font-size: 1rem;
+        font-weight: 900;
+        color: #8b4513;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        letter-spacing: 1px;
+        transform: rotate(15deg);
+        margin-top: 5px;
+      }
+    }
+
+    .sunglasses-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+    }
+  }
+
+  // Sunglasses Overlay
+  .sunglasses-overlay {
+    .sunglasses-left,
+    .sunglasses-right {
+      position: absolute;
+      width: 24px;
+      height: 18px;
+      background: #000;
+      border-radius: 50%;
+      top: -8px;
+    }
+
+    .sunglasses-left {
+      left: -20px;
+    }
+
+    .sunglasses-right {
+      right: -20px;
+    }
+
+    .sunglasses-bridge {
+      position: absolute;
+      width: 8px;
+      height: 3px;
+      background: #000;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    // Add pixel highlights
+    &::before {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      top: -12px;
+      left: -8px;
+      opacity: 0.7;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      top: -12px;
+      right: -8px;
+      opacity: 0.7;
+    }
+  }
+
+  // Countdown Timer
+  .meme-timer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .timer-item {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+
+      .timer-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #333;
+        min-width: 24px;
+        text-align: right;
+        font-family: 'Courier New', monospace;
+      }
+
+      .timer-unit {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #666;
+      }
+    }
+  }
+
+  // Bottom Banner
+  .meme-banner-bottom {
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+
+    .token-info {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  // Hover Effects
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+
+    .coin-image,
+    .coin-circle {
+      transform: scale(1.05) rotate(2deg);
+      transition: transform 0.3s ease;
+    }
+  }
+
+  // Responsive Design
+  @media (max-width: 768px) {
+    .meme-content {
+      padding: 16px;
+    }
+
+    .coin-with-sunglasses,
+    .coin-placeholder {
+      width: 100px;
+      height: 100px;
+
+      .coin-text-top,
+      .coin-text-bottom {
+        font-size: 0.9rem;
+      }
+    }
+
+    .meme-timer {
+      padding: 8px 12px;
+
+      .timer-item {
+        .timer-value {
+          font-size: 1rem;
+        }
+
+        .timer-unit {
+          font-size: 0.7rem;
+        }
+      }
+    }
+
+    .meme-banner-bottom {
+      padding: 10px 16px;
+
+      .token-info {
+        font-size: 0.9rem;
+      }
+    }
+  }
+}

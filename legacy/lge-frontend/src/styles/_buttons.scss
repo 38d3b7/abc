@@ -1,0 +1,169 @@
+@use "variables" as *;
+@use "mixins" as *;
+
+.btn {
+  padding: $spacing-md $spacing-xl;
+  border-radius: $border-radius-sm;
+  border: 2px solid var(--terminal-green);
+  background: var(--terminal-dark);
+  color: var(--terminal-green);
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+  width: 100%;
+  text-align: center;
+  font-family: $font-family-base;
+  text-shadow: 0 0 5px var(--terminal-green);
+  letter-spacing: 0.5px;
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--terminal-green) 30%, transparent),
+    inset 0 0 10px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+  min-height: 44px; // Touch-friendly minimum
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  @include tablet {
+    width: auto;
+  }
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--terminal-green) 10%, transparent);
+    text-shadow: 0 0 10px var(--terminal-green);
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--terminal-green) 50%, transparent),
+      inset 0 0 20px color-mix(in srgb, var(--terminal-green) 20%, transparent);
+    transform: translateY(-2px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(
+    90deg,
+    var(--terminal-cyan) 0%,
+    var(--terminal-green) 100%
+  );
+  color: var(--terminal-dark);
+  font-weight: $font-weight-bold;
+  position: relative;
+  overflow: visible;
+  min-width: 140px;
+  border: 2px solid var(--terminal-cyan);
+  text-shadow: none;
+
+  @include tablet {
+    min-width: 200px;
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--terminal-cyan) 10%, var(--terminal-dark)) 0%,
+      color-mix(in srgb, var(--terminal-green) 10%, var(--terminal-dark)) 100%
+    );
+    color: var(--terminal-green);
+    text-shadow:
+      0 0 5px var(--terminal-green),
+      0 0 10px var(--terminal-green),
+      0 0 15px var(--terminal-green);
+    border-color: var(--terminal-green);
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--terminal-green) 60%, transparent),
+      0 0 40px color-mix(in srgb, var(--terminal-green) 40%, transparent),
+      inset 0 0 20px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+.btn-accent {
+  background-color: var(--terminal-amber);
+  font-weight: $font-weight-bold;
+  color: var(--terminal-dark);
+  border: 2px solid var(--terminal-amber);
+  text-shadow: none;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px
+      color-mix(in srgb, var(--terminal-amber) 50%, transparent);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--terminal-red);
+  font-weight: $font-weight-bold;
+  border: 2px solid var(--terminal-red);
+  text-shadow: 0 0 5px var(--terminal-red);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--terminal-red) 10%, transparent);
+    text-shadow: 0 0 10px var(--terminal-red);
+    box-shadow: 0 0 20px
+      color-mix(in srgb, var(--terminal-red) 30%, transparent);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--terminal-cyan);
+  padding: $spacing-md;
+  width: auto;
+  border: none;
+  text-shadow: 0 0 5px var(--terminal-cyan);
+  min-height: 44px;
+
+  &:hover {
+    text-shadow: 0 0 10px var(--terminal-cyan);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(1);
+  }
+}
+
+.btn-large {
+  padding: $spacing-lg $spacing-2xl;
+  font-size: 1rem;
+  min-height: 56px;
+
+  @include tablet {
+    width: 100%;
+  }
+}
+
+// Touch-specific styles for mobile
+@media (hover: none) and (pointer: coarse) {
+  .btn {
+    // Increase touch target on mobile
+    padding: $spacing-lg $spacing-xl;
+    min-height: 48px;
+  }
+
+  .btn-large {
+    min-height: 60px;
+  }
+}

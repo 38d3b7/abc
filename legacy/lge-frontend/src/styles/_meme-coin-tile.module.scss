@@ -1,0 +1,626 @@
+@use "../styles/variables" as *;
+
+.memeCoinTile {
+  --tile-size: 360px;
+  --frame-thickness: 60px;
+  --lp-progress: 0%;
+  --right-progress: 0%;
+  --bottom-progress: 0%;
+
+  position: relative;
+  width: var(--tile-size);
+  height: var(--tile-size);
+  cursor: pointer;
+  transition: all 0.1s linear;
+  z-index: 2;
+  filter: brightness(1.1) contrast(1.1);
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  overflow: visible;
+
+  &:hover {
+    transform: scale(1.02);
+    filter: brightness(1.3) contrast(1.2);
+  }
+
+  // Glitch effect on hover
+  &:hover::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: color-mix(in srgb, var(--terminal-green) 10%, transparent);
+    animation: glitch 0.3s infinite;
+    z-index: 10;
+    pointer-events: none;
+  }
+}
+
+/* TOP FRAME - GREEN TERMINAL */
+.frameTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--tile-size);
+  height: var(--frame-thickness);
+  background: var(--terminal-dark);
+  border: 2px solid var(--terminal-green);
+  border-bottom: none;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    calc(100% - var(--frame-thickness)) 100%,
+    var(--frame-thickness) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  z-index: 1;
+  box-shadow:
+    inset 0 0 20px color-mix(in srgb, var(--terminal-green) 20%, transparent),
+    0 0 10px color-mix(in srgb, var(--terminal-green) 30%, transparent);
+
+  // Ensure top border is visible
+  &::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    height: 2px;
+    background: var(--terminal-green);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  // Ensure left border is visible
+  &::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--terminal-green);
+    z-index: 10;
+    pointer-events: none;
+  }
+}
+
+.progressTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: var(--lp-progress);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    color-mix(in srgb, var(--terminal-green) 10%, transparent) 1px,
+    color-mix(in srgb, var(--terminal-green) 20%, transparent) 2px,
+    transparent 3px,
+    transparent 10px
+  );
+  border-right: 2px solid var(--terminal-green);
+  z-index: 2;
+  animation: dataFlow 2s linear infinite;
+}
+
+.progressTop::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--terminal-green);
+  box-shadow:
+    0 0 10px var(--terminal-green),
+    0 0 20px var(--terminal-green);
+  animation: terminalBlink 1s steps(2, start) infinite;
+}
+
+.lpText {
+  position: absolute;
+  color: var(--terminal-green);
+  font-size: 1.6rem;
+  font-weight: normal;
+  letter-spacing: 0.1em;
+  text-shadow:
+    0 0 5px var(--terminal-green),
+    0 0 10px var(--terminal-green),
+    0 0 15px var(--terminal-green);
+  z-index: 10;
+  white-space: nowrap;
+  animation: textFlicker 3s infinite;
+}
+
+/* RIGHT FRAME - AMBER TERMINAL */
+.frameRight {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--frame-thickness);
+  height: var(--tile-size);
+  background: var(--terminal-dark);
+  border: 2px solid var(--terminal-amber);
+  border-left: none;
+  clip-path: polygon(
+    0 var(--frame-thickness),
+    100% 0,
+    100% 100%,
+    0 calc(100% - var(--frame-thickness))
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  z-index: 1;
+  box-shadow:
+    inset 0 0 20px color-mix(in srgb, var(--terminal-amber) 20%, transparent),
+    0 0 10px color-mix(in srgb, var(--terminal-amber) 30%, transparent);
+
+  // Ensure right border is visible
+  &::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--terminal-amber);
+    z-index: 10;
+  }
+}
+
+.progressRight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--right-progress);
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    color-mix(in srgb, var(--terminal-amber) 10%, transparent) 1px,
+    color-mix(in srgb, var(--terminal-amber) 20%, transparent) 2px,
+    transparent 3px,
+    transparent 10px
+  );
+  border-bottom: 2px solid var(--terminal-amber);
+  z-index: 2;
+  animation: dataFlowVertical 2s linear infinite;
+}
+
+.progressRight::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--terminal-amber);
+  box-shadow:
+    0 0 10px var(--terminal-amber),
+    0 0 20px var(--terminal-amber);
+  animation: terminalBlink 1s steps(2, start) infinite;
+}
+
+.countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10;
+  color: var(--terminal-amber);
+  text-shadow:
+    0 0 5px var(--terminal-amber),
+    0 0 10px var(--terminal-amber);
+  line-height: 1;
+}
+
+.countdownLine {
+  display: flex;
+  align-items: baseline;
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+}
+
+.countdownValue {
+  font-size: 1.2rem;
+  min-width: 1.5em;
+}
+
+.countdownUnit {
+  font-size: 1rem;
+  margin-left: 2px;
+  opacity: 0.8;
+}
+
+/* BOTTOM FRAME - CYAN TERMINAL */
+.frameBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: var(--tile-size);
+  height: var(--frame-thickness);
+  background: var(--terminal-dark);
+  border: 2px solid var(--terminal-cyan);
+  border-top: none;
+  clip-path: polygon(
+    var(--frame-thickness) 0,
+    calc(100% - var(--frame-thickness)) 0,
+    100% 100%,
+    0 100%
+  );
+  overflow: visible;
+  z-index: 1;
+  box-shadow:
+    inset 0 0 20px color-mix(in srgb, var(--terminal-cyan) 20%, transparent),
+    0 0 10px color-mix(in srgb, var(--terminal-cyan) 30%, transparent);
+
+  // Ensure bottom border is visible
+  &::before {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: -2px;
+    right: -2px;
+    height: 2px;
+    background: var(--terminal-cyan);
+    z-index: 10;
+  }
+}
+
+.progressBottom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-progress);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    color-mix(in srgb, var(--terminal-cyan) 10%, transparent) 1px,
+    color-mix(in srgb, var(--terminal-cyan) 20%, transparent) 2px,
+    transparent 3px,
+    transparent 10px
+  );
+  z-index: 2;
+  transition: height 0.3s linear;
+  animation: dataFlow 2s linear infinite;
+}
+
+.progressBottom::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--terminal-cyan);
+  box-shadow:
+    0 0 10px var(--terminal-cyan),
+    0 0 20px var(--terminal-cyan);
+  animation: terminalBlink 1s steps(2, start) infinite;
+}
+
+.priceLeft {
+  position: absolute;
+  left: 50px;
+  bottom: 10px;
+  color: var(--terminal-cyan);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-shadow:
+    0 0 3px var(--terminal-cyan),
+    0 0 6px var(--terminal-cyan);
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 0.8;
+}
+
+.priceCenter {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  color: var(--terminal-cyan);
+  font-size: 1.6rem;
+  letter-spacing: 0.08em;
+  text-shadow:
+    0 0 5px var(--terminal-cyan),
+    0 0 10px var(--terminal-cyan),
+    0 0 15px var(--terminal-cyan);
+  white-space: nowrap;
+  z-index: 11;
+  animation: textFlicker 2s infinite;
+}
+
+.priceRight {
+  position: absolute;
+  right: 50px;
+  bottom: 10px;
+  color: var(--terminal-cyan);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-shadow:
+    0 0 3px var(--terminal-cyan),
+    0 0 6px var(--terminal-cyan);
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 0.8;
+}
+
+/* LEFT FRAME - RED TERMINAL */
+.frameLeft {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--frame-thickness);
+  height: var(--tile-size);
+  background: var(--terminal-dark);
+  border: 2px solid var(--terminal-red);
+  border-right: none;
+  clip-path: polygon(
+    0 0,
+    100% var(--frame-thickness),
+    100% calc(100% - var(--frame-thickness)),
+    0 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  z-index: 1;
+  box-shadow:
+    inset 0 0 20px color-mix(in srgb, var(--terminal-red) 20%, transparent),
+    0 0 10px color-mix(in srgb, var(--terminal-red) 30%, transparent);
+
+  // Ensure left border is visible
+  &::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--terminal-red);
+    z-index: 10;
+  }
+}
+
+.tokenInfo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  z-index: 10;
+  user-select: none;
+  cursor: pointer;
+  transition: all 0.1s linear;
+}
+
+.tokenName {
+  color: var(--terminal-red);
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  text-shadow:
+    0 0 5px var(--terminal-red),
+    0 0 10px var(--terminal-red);
+  white-space: nowrap;
+  animation: textFlicker 4s infinite;
+}
+
+.tokenSymbol {
+  color: var(--terminal-red);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-shadow:
+    0 0 3px var(--terminal-red),
+    0 0 6px var(--terminal-red);
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.tokenInfo:hover .tokenName {
+  font-size: 1.1rem;
+  text-shadow:
+    0 0 10px var(--terminal-red),
+    0 0 20px var(--terminal-red),
+    0 0 30px var(--terminal-red);
+}
+
+.tokenInfo:hover .tokenSymbol {
+  font-size: 0.9rem;
+  opacity: 1;
+}
+
+/* Inner frames - CRT monitor effect */
+.innerFrame {
+  position: absolute;
+  top: var(--frame-thickness);
+  left: var(--frame-thickness);
+  right: var(--frame-thickness);
+  bottom: var(--frame-thickness);
+  background: var(--terminal-dark);
+  border: 1px solid color-mix(in srgb, var(--terminal-green) 20%, transparent);
+  box-shadow: inset 0 0 50px
+    color-mix(in srgb, var(--terminal-green) 5%, transparent);
+  z-index: 0;
+}
+
+.tileContent {
+  position: absolute;
+  top: calc(var(--frame-thickness) + 8px);
+  left: calc(var(--frame-thickness) + 8px);
+  right: calc(var(--frame-thickness) + 8px);
+  bottom: calc(var(--frame-thickness) + 8px);
+  background: radial-gradient(
+    circle at center,
+    color-mix(in srgb, var(--terminal-green) 2%, transparent) 0%,
+    var(--terminal-dark) 70%
+  );
+  border-radius: 2px;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ASCII art decoration */
+.tileContent::before {
+  content: "◢◤";
+  position: absolute;
+  color: color-mix(in srgb, var(--terminal-green) 10%, transparent);
+  font-size: 100px;
+  animation: rotateSlow 30s linear infinite;
+}
+
+// States
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+
+  &:hover {
+    transform: scale(1);
+    filter: brightness(1.1) contrast(1.1);
+  }
+}
+
+.animated {
+  .progressTop,
+  .progressRight,
+  .progressBottom {
+    transition:
+      width 0.3s linear,
+      height 0.3s linear,
+      top 0.3s linear;
+  }
+}
+
+// Animations
+@keyframes terminalBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes textFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0.6;
+  }
+  94% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 0.8;
+  }
+  98% {
+    opacity: 1;
+  }
+}
+
+@keyframes dataFlow {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 20px 0;
+  }
+}
+
+@keyframes dataFlowVertical {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 20px;
+  }
+}
+
+@keyframes glitch {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px);
+  }
+  40% {
+    transform: translateX(2px);
+  }
+  60% {
+    transform: translateX(-1px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes rotateSlow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .memeCoinTile {
+    --tile-size: 320px;
+    --frame-thickness: 50px;
+  }
+
+  .lpText {
+    font-size: 1.4rem;
+  }
+
+  .countdownValue {
+    font-size: 1rem;
+  }
+
+  .countdownUnit {
+    font-size: 0.8rem;
+  }
+
+  .priceCenter {
+    font-size: 1.4rem;
+  }
+
+  .tokenName {
+    font-size: 0.9rem;
+  }
+
+  .tokenSymbol {
+    font-size: 0.7rem;
+  }
+}

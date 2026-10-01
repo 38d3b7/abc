@@ -1,0 +1,25 @@
+@use "variables" as *;
+
+// Toast customization
+:root {
+  --toastify-color-light: var(--terminal-dark);
+  --toastify-color-dark: var(--terminal-green);
+  --toastify-color-info: var(--terminal-cyan);
+  --toastify-color-success: var(--terminal-green);
+  --toastify-color-warning: var(--terminal-amber);
+  --toastify-color-error: var(--terminal-red);
+  --toastify-text-color-light: var(--terminal-green);
+}
+
+// Override react-hot-toast styles
+[data-sonner-toast] {
+  border-radius: $border-radius-sm !important;
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--terminal-green) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--terminal-green) 10%, transparent) !important;
+  font-family: "Share Tech Mono", monospace !important;
+  border: 2px solid var(--terminal-green) !important;
+  background: var(--terminal-dark) !important;
+  color: var(--terminal-green) !important;
+  text-shadow: 0 0 5px var(--terminal-green) !important;
+}

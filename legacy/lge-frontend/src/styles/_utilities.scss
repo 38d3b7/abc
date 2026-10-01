@@ -1,0 +1,29 @@
+@use "variables" as *;
+@use "mixins" as *;
+
+.loading,
+.empty-state,
+.connect-prompt,
+.error {
+  text-align: center;
+  padding: $spacing-3xl $spacing-lg;
+  color: var(--terminal-green);
+  opacity: 0.8;
+  font-size: 0.95rem;
+  text-shadow: 0 0 5px var(--terminal-green);
+  font-family: "Share Tech Mono", monospace;
+}
+
+.empty-state {
+  @include card;
+  background: var(--terminal-dark);
+  border: 2px solid var(--terminal-green);
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--terminal-green) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+}
+
+.error {
+  color: var(--terminal-red);
+  text-shadow: 0 0 5px var(--terminal-red);
+}

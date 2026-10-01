@@ -1,0 +1,686 @@
+:root {
+  --text: #00FF00;
+  --background: #000000;
+  --primary: #00FF00;
+  --secondary: #00FFFF;
+  --accent: #FFA500;
+
+  color: var(--text);
+  background-color: var(--background);
+  color-scheme: dark;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-synthesis: none;
+  font-weight: 400;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Layout */
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Navbar - Mobile First */
+.navbar {
+  background-color: var(--background);
+  border-bottom: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  padding: 1rem;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.nav-brand a {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  order: 3;
+  width: 100%;
+  justify-content: center;
+}
+
+.nav-links a {
+  color: var(--text);
+  text-decoration: none;
+  transition: color 0.2s;
+  font-size: 0.9rem;
+  padding: 0.25rem;
+}
+
+.nav-links a:hover {
+  color: var(--primary);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.connected-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+
+.address {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--text);
+  padding: 0;
+  background: transparent;
+  word-break: break-all;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Main Content - Mobile First */
+.main-content {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Footer */
+.footer {
+  background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+  border-top: 1px solid var(--secondary);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--text);
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
+
+/* Buttons - Mobile First */
+.btn {
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+  width: 100%;
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--background);
+  font-weight: 600;
+  position: relative;
+  overflow: visible;
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--primary) 40%, transparent),
+    0 0 40px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.btn-accent {
+  background-color: var(--accent);
+  color: var(--background);
+  font-weight: 600;
+}
+
+.btn-accent:hover:not(:disabled) {
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 0 40px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.btn-secondary {
+  background-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--text);
+  border: none;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--primary);
+  padding: 0.5rem;
+  width: auto;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.btn-large {
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Page Headers - Mobile First */
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+  font-size: 1.5rem;
+}
+
+/* Campaigns Grid - Mobile First */
+.campaigns-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.campaign-card {
+  background-color: color-mix(in srgb, var(--secondary) 20%, transparent);
+  border: none;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.campaign-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.campaign-card h3 {
+  font-size: 1.15rem;
+  margin-bottom: 0.5rem;
+  word-break: break-word;
+  color: var(--accent);
+}
+
+.campaign-info {
+  flex: 1;
+}
+
+.campaign-info p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.campaign-info .metadata {
+  color: var(--text);
+  opacity: 0.7;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.campaign-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.view-details {
+  color: var(--primary);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Forms - Mobile First */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 0.5rem;
+  background-color: color-mix(in srgb, var(--background) 80%, var(--text));
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+/* Create Campaign Form - Mobile First */
+.create-campaign-form {
+  background-color: color-mix(in srgb, var(--background) 60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.create-campaign-form h2 {
+  margin-bottom: 1.25rem;
+  font-size: 1.25rem;
+}
+
+/* Campaign Detail - Mobile First */
+.campaign-detail-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.campaign-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.campaign-header h1 {
+  font-size: 1.75rem;
+  word-break: break-word;
+}
+
+.token-symbol {
+  font-size: 1rem;
+  background-color: var(--accent);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.campaign-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.stat-card {
+  background-color: color-mix(in srgb, var(--background) 60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.stat-card.highlight {
+  border-color: var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.stat-card h3 {
+  font-size: 0.85rem;
+  color: var(--text);
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.deposit-section {
+  background-color: color-mix(in srgb, var(--background) 60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.deposit-section h2 {
+  margin-bottom: 1.25rem;
+  font-size: 1.25rem;
+}
+
+.deposit-form {
+  max-width: 100%;
+}
+
+.contract-info {
+  background-color: color-mix(in srgb, var(--background) 60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.contract-info h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.contract-info code {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--primary);
+  word-break: break-all;
+  overflow-x: auto;
+}
+
+/* User Profile - Mobile First */
+.profile-header {
+  margin-bottom: 1.5rem;
+}
+
+.profile-header h1 {
+  font-size: 1.75rem;
+}
+
+.profile-info {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.info-card {
+  background-color: color-mix(in srgb, var(--background) 60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.info-card h2 {
+  font-size: 0.9rem;
+  color: var(--text);
+  opacity: 0.7;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-card p,
+.info-card code {
+  display: block;
+  word-break: break-all;
+  font-size: 0.9rem;
+}
+
+.user-campaigns-section {
+  margin-top: 2rem;
+}
+
+.user-campaigns-section h2 {
+  margin-bottom: 1.25rem;
+  font-size: 1.25rem;
+}
+
+/* Utility Classes */
+.loading,
+.empty-state,
+.connect-prompt,
+.error {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text);
+  opacity: 0.8;
+  font-size: 0.95rem;
+}
+
+.empty-state {
+  background-color: color-mix(in srgb, var(--background) 60%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+  border-radius: 0.75rem;
+}
+
+.error {
+  color: #ff6b6b;
+}
+
+/* Keep dark mode only - removed light mode styles */
+
+/* Tablet Breakpoint (min-width: 600px) */
+@media (min-width: 600px) {
+  .navbar {
+    padding: 1rem 1.5rem;
+  }
+
+  .nav-links {
+    order: 0;
+    width: auto;
+    justify-content: flex-start;
+  }
+
+  .nav-links a {
+    font-size: 1rem;
+  }
+
+  .address {
+    max-width: 200px;
+    font-size: 0.85rem;
+    padding: 0;
+  }
+
+  .main-content {
+    padding: 1.5rem;
+  }
+
+  .campaigns-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .campaign-stats {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .profile-info {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .btn {
+    width: auto;
+  }
+
+  .btn-large {
+    width: 100%;
+  }
+
+  .create-campaign-form {
+    padding: 1.5rem;
+  }
+
+  .deposit-form {
+    max-width: 400px;
+  }
+
+  .campaign-header {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .campaign-header h1 {
+    font-size: 2rem;
+  }
+
+  .token-symbol {
+    font-size: 1.1rem;
+  }
+}
+
+/* Desktop Breakpoint (min-width: 1024px) */
+@media (min-width: 1024px) {
+  .navbar {
+    padding: 1rem 2rem;
+  }
+
+  .nav-container {
+    gap: 2rem;
+  }
+
+  .nav-brand a {
+    font-size: 1.5rem;
+  }
+
+  .nav-links {
+    gap: 2rem;
+  }
+
+  .nav-actions {
+    gap: 1rem;
+  }
+
+  .connected-info {
+    gap: 1rem;
+  }
+
+  .address {
+    max-width: none;
+    font-size: 0.9rem;
+    padding: 0;
+  }
+
+  .main-content {
+    padding: 2rem;
+  }
+
+  .page-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .campaigns-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .campaign-card {
+    padding: 1.5rem;
+  }
+
+  .campaign-card h3 {
+    font-size: 1.25rem;
+  }
+
+  .campaign-stats {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .campaign-header h1 {
+    font-size: 2.5rem;
+  }
+
+  .token-symbol {
+    font-size: 1.2rem;
+  }
+
+  .create-campaign-form,
+  .deposit-section,
+  .contract-info,
+  .info-card {
+    padding: 2rem;
+  }
+
+  .create-campaign-form h2,
+  .deposit-section h2,
+  .user-campaigns-section h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .profile-info {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .user-campaigns-section {
+    margin-top: 3rem;
+  }
+
+  .footer {
+    padding: 2rem;
+    font-size: 0.9rem;
+  }
+}

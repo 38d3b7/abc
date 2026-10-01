@@ -1,0 +1,229 @@
+// Campaign Tile Styles
+.campaign-tile {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  // Top Progress Bar
+  .tile-progress-bar {
+    position: relative;
+    height: 40px;
+    background: linear-gradient(90deg, #ff6b9d 0%, #ff8fab 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    .tile-progress-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: linear-gradient(90deg, #ff1744 0%, #ff5722 100%);
+      transition: width 0.3s ease;
+    }
+
+    .tile-progress-text {
+      position: relative;
+      z-index: 2;
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  // Main Content Area
+  .tile-content {
+    position: relative;
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  // Meme Coin Container
+  .tile-coin-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+
+    .tile-coin-image {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      object-fit: cover;
+      border: none;
+      box-shadow: none;
+      transition: transform 0.3s ease;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+
+      &:hover {
+        transform: scale(1.02) rotate(1deg);
+      }
+    }
+
+    .tile-coin-placeholder {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      background: #ff1744;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border: none;
+      box-shadow: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      z-index: 1;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 30%;
+        background: #ff1744;
+        border-radius: 0;
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40%;
+        background: #8b5cf6;
+        border-radius: 0;
+      }
+
+      .coin-text {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: white;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        line-height: 1.1;
+        letter-spacing: 1.2px;
+        z-index: 2;
+        position: relative;
+        text-align: center;
+      }
+    }
+  }
+
+  // Timer
+  .tile-timer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+
+    .timer-item {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+
+      .timer-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #333;
+        min-width: 24px;
+        text-align: right;
+      }
+
+      .timer-unit {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #666;
+      }
+    }
+  }
+
+  // Bottom Price Bar
+  .tile-price-bar {
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+
+    .tile-ticker {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .tile-price {
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: 'Courier New', monospace;
+    }
+  }
+
+  // Responsive Design
+  @media (max-width: 768px) {
+    .tile-content {
+      padding: 12px;
+    }
+
+    .tile-coin-container {
+      .tile-coin-image,
+      .tile-coin-placeholder {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .tile-timer {
+      .timer-item {
+        .timer-value {
+          font-size: 1rem;
+        }
+
+        .timer-unit {
+          font-size: 0.7rem;
+        }
+      }
+    }
+
+    .tile-price-bar {
+      padding: 10px 16px;
+
+      .tile-ticker {
+        font-size: 1rem;
+      }
+
+      .tile-price {
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+

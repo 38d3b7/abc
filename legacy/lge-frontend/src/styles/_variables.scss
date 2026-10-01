@@ -1,0 +1,101 @@
+// Terminal/Hacker Color Palette Variables
+:root {
+  --text: #00ff00;
+  --background: #000000;
+  --primary: #00ff00;
+  --secondary: #00ffff;
+  --accent: #ffa500;
+  --accent-pink: #ff0040;
+  --navbar: #000000;
+  --textAdditional: #00ff00;
+  --terminal-green: #00ff00;
+  --terminal-amber: #ffa500;
+  --terminal-cyan: #00ffff;
+  --terminal-red: #ff0040;
+  --terminal-dark: #000000;
+  --terminal-glow: #00ff00;
+}
+
+// SCSS Variables (for use in other SCSS files)
+// Cyberpunk Font System
+$font-family-base: "Chakra Petch", "Share Tech Mono", sans-serif;
+$font-family-heading: "Orbitron", "Chakra Petch", sans-serif;
+$font-family-mono: "Space Mono", "Courier New", monospace;
+$font-family-glitch: "Rubik Glitch", "Courier New", monospace;
+
+$font-weight-light: 300;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+$font-weight-black: 900;
+$line-height-base: 1.5;
+
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-md: 0.75rem;
+$spacing-lg: 1rem;
+$spacing-xl: 1.25rem;
+$spacing-2xl: 1.5rem;
+$spacing-3xl: 2rem;
+
+$border-radius-sm: 0.5rem;
+$border-radius-md: 0.75rem;
+
+$breakpoint-tablet: 600px;
+$breakpoint-desktop: 1024px;
+
+$max-width-container: 1400px;
+$max-width-form: 400px;
+
+// Additional CSS Custom Properties for Meme Coin Tile - 4-Color Palette
+:root {
+  // 4-Color Palette
+  --color-primary-mint: #6ee1aa;
+  --color-electric-teal: #00ced1;
+  --color-vibrant-purple: #8b5cf6;
+  --color-hot-pink: #ff6b9d;
+
+  --color-bg-dark: #ffffff;
+  --color-bg-panel: #ffffff;
+  --color-bg-tile: #ffffff;
+
+  --color-text-primary: #0a0a0a;
+  --color-text-secondary: #6ee1aa;
+  --color-text-dark: #0a0a0a;
+
+  // Meme Coin Spacing
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  // Meme Coin Border Radius
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  // Meme Coin Shadows
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-glow-gold: 0 0 30px rgba(255, 215, 0, 0.4);
+  --shadow-inner-gold: inset 0 2px 4px rgba(255, 215, 0, 0.3);
+
+  // Meme Coin Transitions
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
+
+  // Meme Coin Z-index
+  --z-base: 0;
+  --z-above: 10;
+  --z-modal: 100;
+  --z-overlay: 1000;
+  --z-top: 9999;
+}

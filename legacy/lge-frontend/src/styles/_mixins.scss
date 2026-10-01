@@ -1,0 +1,41 @@
+@use "variables" as *;
+
+@function color-mix-alpha($color, $opacity) {
+  @return color-mix(in srgb, var(#{$color}) #{$opacity}%, transparent);
+}
+
+@mixin tablet {
+  @media (min-width: $breakpoint-tablet) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: $breakpoint-desktop) {
+    @content;
+  }
+}
+
+@mixin card {
+  background-color: var(--terminal-dark);
+  border: 2px solid var(--terminal-green);
+  border-radius: $border-radius-md;
+  padding: $spacing-xl;
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--terminal-green) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+
+  @include tablet {
+    padding: $spacing-2xl;
+  }
+
+  @include desktop {
+    padding: $spacing-3xl;
+  }
+}
+
+@mixin glow($color) {
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(#{$color}) 40%, transparent),
+    0 0 40px color-mix(in srgb, var(#{$color}) 20%, transparent);
+}

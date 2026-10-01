@@ -1,0 +1,748 @@
+@use "variables" as *;
+@use "mixins" as *;
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.navbar {
+  background-color: var(--navbar);
+  border-bottom: 2px solid var(--terminal-green);
+  padding: $spacing-lg;
+  position: relative;
+  z-index: 10;
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--terminal-green) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+  overflow: visible;
+
+  @include tablet {
+    padding: $spacing-lg $spacing-2xl;
+  }
+
+  @include desktop {
+    padding: $spacing-lg $spacing-3xl;
+  }
+}
+
+.nav-container {
+  max-width: $max-width-container;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  font-weight: $font-weight-bold;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+
+  @include tablet {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: $spacing-lg;
+  }
+
+  @include desktop {
+    gap: $spacing-3xl;
+  }
+}
+
+.nav-brand {
+  justify-self: start;
+  position: relative;
+  z-index: 11;
+  background: transparent;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.testnet-badge {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: color-mix(
+    in srgb,
+    var(--terminal-dark) 95%,
+    var(--terminal-amber)
+  );
+  border: 2px solid var(--terminal-amber);
+  border-radius: $border-radius-sm;
+  position: relative;
+  animation: testnet-pulse 2s ease-in-out infinite;
+  white-space: nowrap;
+  box-shadow:
+    0 0 15px color-mix(in srgb, var(--terminal-amber) 40%, transparent),
+    inset 0 0 10px color-mix(in srgb, var(--terminal-amber) 5%, transparent);
+}
+
+.unichain-logo {
+  display: block;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 4px var(--terminal-amber));
+  opacity: 0.95;
+  flex-shrink: 0;
+
+  @include tablet {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.testnet-badge-text {
+  font-family: $font-family-heading;
+  font-size: 0.75rem;
+  font-weight: $font-weight-black;
+  color: var(--terminal-amber);
+  text-shadow:
+    0 0 10px var(--terminal-amber),
+    0 0 20px var(--terminal-amber);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 1;
+  flex-shrink: 0;
+
+  @include tablet {
+    font-size: 0.8rem;
+    letter-spacing: 2.5px;
+  }
+}
+
+@keyframes testnet-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 15px color-mix(in srgb, var(--terminal-amber) 40%, transparent),
+      inset 0 0 10px color-mix(in srgb, var(--terminal-amber) 5%, transparent);
+    border-color: var(--terminal-amber);
+  }
+  50% {
+    box-shadow:
+      0 0 25px color-mix(in srgb, var(--terminal-amber) 60%, transparent),
+      0 0 35px color-mix(in srgb, var(--terminal-amber) 30%, transparent),
+      inset 0 0 15px color-mix(in srgb, var(--terminal-amber) 10%, transparent);
+    border-color: color-mix(in srgb, var(--terminal-amber) 120%, white);
+  }
+}
+
+.nav-links {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  @include tablet {
+    justify-self: end;
+    flex-wrap: wrap;
+  }
+
+  @include desktop {
+    gap: $spacing-lg;
+  }
+}
+
+.network-switch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background: transparent;
+  border: 2px solid var(--terminal-amber);
+  border-radius: $border-radius-sm;
+  color: var(--terminal-amber);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-family: $font-family-heading;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+
+  &:hover {
+    background: var(--terminal-amber);
+    color: var(--terminal-dark);
+    box-shadow: 0 0 15px var(--terminal-amber);
+    transform: scale(1.05);
+  }
+
+  .network-switch-icon {
+    font-size: 1.1rem;
+    text-shadow: 0 0 5px var(--terminal-amber);
+    line-height: 1;
+    display: block;
+  }
+
+  .network-switch-text {
+    font-size: 0.85rem;
+    text-shadow: 0 0 5px var(--terminal-amber);
+    display: block;
+  }
+
+  &:hover .network-switch-icon,
+  &:hover .network-switch-text {
+    text-shadow: none;
+  }
+
+  @include tablet {
+    .network-switch-text {
+      font-size: 0.9rem;
+    }
+  }
+}
+
+.info-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 2px solid var(--terminal-cyan);
+  border-radius: $border-radius-sm;
+  color: var(--terminal-cyan);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-family: $font-family-heading;
+  font-weight: bold;
+  padding: 0;
+  position: relative;
+
+  &:hover {
+    background: var(--terminal-cyan);
+    color: var(--terminal-dark);
+    box-shadow: 0 0 15px var(--terminal-cyan);
+    transform: scale(1.05);
+  }
+
+  .info-icon {
+    font-size: 1.1rem;
+    text-shadow: 0 0 5px var(--terminal-cyan);
+    line-height: 1;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: block;
+  }
+
+  &:hover .info-icon {
+    text-shadow: none;
+  }
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 12;
+  background: transparent;
+  isolation: isolate;
+
+  &:hover {
+    transform: scale(1.05);
+    animation: logo-glow 0.5s ease-in-out;
+  }
+
+  .terminal-logo {
+    transition: all 0.3s ease;
+    animation: logo-flicker 4s infinite;
+    background: transparent;
+    isolation: isolate;
+  }
+
+  &:hover .terminal-logo {
+    animation: logo-glow 0.5s ease-in-out;
+  }
+}
+
+// Logo animations
+@keyframes logo-flicker {
+  0%,
+  100% {
+    text-shadow:
+      0 0 10px var(--terminal-green),
+      0 0 20px var(--terminal-green),
+      0 0 30px var(--terminal-green);
+    box-shadow:
+      0 0 15px color-mix(in srgb, var(--terminal-green) 50%, transparent),
+      inset 0 0 15px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+  }
+  50% {
+    text-shadow:
+      0 0 15px var(--terminal-green),
+      0 0 25px var(--terminal-cyan),
+      0 0 35px var(--terminal-green);
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--terminal-green) 70%, transparent),
+      inset 0 0 20px color-mix(in srgb, var(--terminal-green) 20%, transparent);
+  }
+}
+
+@keyframes terminal-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes logo-glow {
+  0% {
+    text-shadow:
+      0 0 10px var(--terminal-green),
+      0 0 20px var(--terminal-green),
+      0 0 30px var(--terminal-green);
+    box-shadow:
+      0 0 15px color-mix(in srgb, var(--terminal-green) 50%, transparent),
+      inset 0 0 15px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+  }
+  50% {
+    text-shadow:
+      0 0 20px var(--terminal-green),
+      0 0 40px var(--terminal-cyan),
+      0 0 60px var(--terminal-amber);
+    box-shadow:
+      0 0 25px color-mix(in srgb, var(--terminal-green) 80%, transparent),
+      0 0 40px color-mix(in srgb, var(--terminal-cyan) 40%, transparent),
+      inset 0 0 25px color-mix(in srgb, var(--terminal-green) 30%, transparent);
+  }
+  100% {
+    text-shadow:
+      0 0 15px var(--terminal-green),
+      0 0 30px var(--terminal-cyan);
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--terminal-green) 60%, transparent),
+      inset 0 0 20px color-mix(in srgb, var(--terminal-green) 20%, transparent);
+  }
+}
+
+.nav-links {
+  display: flex;
+  gap: $spacing-lg;
+  flex-wrap: wrap;
+  order: 3;
+  width: 100%;
+  justify-content: center;
+
+  @include tablet {
+    order: 0;
+    width: auto;
+    justify-content: flex-start;
+  }
+
+  @include desktop {
+    gap: $spacing-3xl;
+  }
+
+  a {
+    color: var(--text);
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    padding: $spacing-xs;
+    position: relative;
+    text-shadow: 0 0 5px var(--terminal-green);
+    font-weight: bold;
+
+    @include tablet {
+      font-size: 1rem;
+    }
+
+    &:hover {
+      color: var(--terminal-cyan);
+      text-shadow: 0 0 10px var(--terminal-cyan);
+      transform: scale(1.05);
+    }
+
+    &.active {
+      color: var(--terminal-amber);
+      text-shadow: 0 0 10px var(--terminal-amber);
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          var(--terminal-cyan) 0%,
+          var(--terminal-green) 100%
+        );
+        box-shadow: 0 0 5px var(--terminal-green);
+      }
+    }
+  }
+}
+
+.connected-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: nowrap;
+  font-size: 0.85rem;
+
+  @include desktop {
+    gap: $spacing-lg;
+  }
+}
+
+.address-dropdown {
+  position: relative;
+}
+
+.address {
+  font-family: $font-family-mono;
+  font-size: 0.95rem;
+  padding: $spacing-md $spacing-xl;
+  background: var(--terminal-dark);
+  color: var(--terminal-green);
+  border: 2px solid var(--terminal-green);
+  border-radius: $border-radius-sm;
+  position: relative;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 1;
+  min-width: 0;
+  font-weight: $font-weight-bold;
+  text-shadow: 0 0 5px var(--terminal-green);
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--terminal-green) 30%, transparent),
+    inset 0 0 10px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+
+  &:hover {
+    background: color-mix(in srgb, var(--terminal-green) 10%, transparent);
+    text-shadow: 0 0 10px var(--terminal-green);
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--terminal-green) 50%, transparent),
+      inset 0 0 20px color-mix(in srgb, var(--terminal-green) 20%, transparent);
+    transform: scale(1.02);
+  }
+}
+
+.address-dropdown-menu {
+  position: absolute;
+  top: calc(100% + $spacing-sm);
+  right: 0;
+  min-width: 220px;
+  background: var(--terminal-dark);
+  border: 2px solid var(--terminal-green);
+  border-radius: $border-radius-sm;
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--terminal-green) 50%, transparent),
+    0 8px 16px color-mix(in srgb, var(--terminal-dark) 90%, transparent);
+  z-index: 999;
+  padding: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.dropdown-item {
+  display: block;
+  padding: $spacing-md $spacing-lg;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+}
+
+.dropdown-button {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-lg $spacing-xl;
+  background: var(--terminal-dark);
+  color: var(--terminal-cyan);
+  border: 2px solid var(--terminal-cyan);
+  border-radius: $border-radius-sm;
+  font-family: $font-family-base;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 5px var(--terminal-cyan);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  width: 100%;
+
+  &:hover {
+    background: var(--terminal-cyan);
+    color: var(--terminal-dark);
+    text-shadow: none;
+    box-shadow: 0 0 15px var(--terminal-cyan);
+  }
+
+  &.disconnect {
+    color: var(--terminal-red);
+    border-color: var(--terminal-red);
+    text-shadow: 0 0 5px var(--terminal-red);
+
+    &:hover {
+      background: var(--terminal-red);
+      color: var(--terminal-dark);
+      text-shadow: none;
+      box-shadow: 0 0 15px var(--terminal-red);
+    }
+  }
+}
+
+.dropdown-icon {
+  font-weight: bold;
+  opacity: 0.8;
+}
+
+.main-content {
+  flex: 1;
+  max-width: $max-width-container;
+  width: 100%;
+  margin: 0 auto;
+  padding: $spacing-lg;
+  position: relative;
+  z-index: 2;
+
+  @include tablet {
+    padding: $spacing-2xl;
+  }
+
+  @include desktop {
+    padding: $spacing-3xl;
+  }
+}
+
+// Mobile/Desktop visibility utilities
+.mobile-only {
+  display: block;
+
+  @include tablet {
+    display: none !important;
+  }
+}
+
+.desktop-only {
+  display: none;
+
+  @include tablet {
+    display: block;
+  }
+}
+
+// Mobile hamburger menu
+.mobile-menu-toggle {
+  background: transparent;
+  border: 2px solid var(--terminal-green);
+  border-radius: $border-radius-sm;
+  padding: $spacing-sm;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: color-mix(in srgb, var(--terminal-green) 10%, transparent);
+    box-shadow: 0 0 15px
+      color-mix(in srgb, var(--terminal-green) 50%, transparent);
+  }
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 24px;
+
+  span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: var(--terminal-green);
+    transition: all 0.3s ease;
+    box-shadow: 0 0 5px var(--terminal-green);
+  }
+
+  &.open {
+    span:nth-child(1) {
+      transform: rotate(45deg) translate(6px, 6px);
+    }
+
+    span:nth-child(2) {
+      opacity: 0;
+    }
+
+    span:nth-child(3) {
+      transform: rotate(-45deg) translate(6px, -6px);
+    }
+  }
+}
+
+// Mobile menu overlay
+.mobile-menu {
+  position: fixed;
+  top: 100px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--terminal-dark) 98%, transparent);
+  z-index: 999;
+  animation: slideDown 0.3s ease;
+  overflow-y: auto;
+  border-top: 2px solid var(--terminal-green);
+  box-shadow: 0 0 30px
+    color-mix(in srgb, var(--terminal-green) 50%, transparent);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-menu-content {
+  padding: $spacing-2xl $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-xl;
+  background: var(--terminal-dark);
+  color: var(--terminal-cyan);
+  border: 2px solid var(--terminal-cyan);
+  border-radius: $border-radius-sm;
+  font-family: $font-family-base;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 5px var(--terminal-cyan);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-weight: bold;
+  min-height: 56px;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:hover {
+    background: var(--terminal-cyan);
+    color: var(--terminal-dark);
+    text-shadow: none;
+    box-shadow: 0 0 20px var(--terminal-cyan);
+  }
+
+  &.disconnect {
+    color: var(--terminal-red);
+    border-color: var(--terminal-red);
+    text-shadow: 0 0 5px var(--terminal-red);
+
+    &:hover {
+      background: var(--terminal-red);
+      color: var(--terminal-dark);
+      box-shadow: 0 0 20px var(--terminal-red);
+    }
+  }
+}
+
+.mobile-menu-button {
+  width: 100%;
+  text-align: left;
+  border: 2px solid var(--terminal-green);
+  color: var(--terminal-green);
+  text-shadow: 0 0 5px var(--terminal-green);
+
+  &:hover {
+    background: var(--terminal-green);
+    box-shadow: 0 0 20px var(--terminal-green);
+  }
+}
+
+.menu-icon {
+  font-weight: bold;
+  opacity: 0.8;
+  font-size: 1.2rem;
+}
+
+.mobile-menu-address {
+  padding: $spacing-lg;
+  text-align: center;
+  color: var(--terminal-amber);
+  font-family: $font-family-mono;
+  font-size: 0.95rem;
+  text-shadow: 0 0 5px var(--terminal-amber);
+  border: 1px solid var(--terminal-amber);
+  border-radius: $border-radius-sm;
+  background: color-mix(in srgb, var(--terminal-amber) 5%, transparent);
+}
+
+.mobile-menu-connect {
+  padding: $spacing-md 0;
+
+  button {
+    width: 100%;
+    min-height: 56px;
+    font-size: 1.1rem;
+  }
+}
+
+.footer {
+  background-color: var(--terminal-dark);
+  border-top: 2px solid var(--terminal-green);
+  padding: $spacing-2xl $spacing-lg;
+  text-align: center;
+  color: var(--terminal-green);
+  font-size: 0.85rem;
+  position: relative;
+  z-index: 10;
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--terminal-green) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--terminal-green) 10%, transparent);
+  text-shadow: 0 0 5px var(--terminal-green);
+
+  @include desktop {
+    padding: $spacing-3xl;
+    font-size: 0.9rem;
+  }
+
+  p {
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}
