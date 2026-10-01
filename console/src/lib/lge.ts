@@ -194,7 +194,7 @@ export function priceCurve (c: Pick<CampaignState, 'startBlock' | 'streamBlocks'
   const pts: [number, number][] = []
   for (let i = 0; i <= segments; i++) {
     const b = c.startBlock + (c.streamBlocks * BigInt(i)) / BigInt(segments)
-    pts.push([Number(b), Number(priceAtBlock(c, b)) / 1e18])
+    pts.push([Number(b), Number(priceAtBlock(c, b))])
   }
   return pts
 }

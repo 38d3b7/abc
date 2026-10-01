@@ -266,6 +266,26 @@ contract LGEHookTest is Test, PosmTestSetup {
         _hook().deposit{value: usdcNeeded - 1}(tokenAmount);
     }
 
+    /// @dev Regression: floor division `amountOfTokens / tokensPerUsdc` quoted
+    ///      0 for buys smaller than the ratio and the hook accepted
+    ///      msg.value == 0 — free tokens. Pin the ABSOLUTE quote so the price
+    ///      units (raw token-wei per usdc-wei) can never drift again: at
+    ///      MIN_PRICE = 1e9, 1 token costs ceil(1e18/1e9) = 1e9 usdc-wei per
+    ///      half, and 1 token-wei (dust) still quotes 1 usdc-wei per half.
+    function test_depositQuoteAbsoluteUnits() public {
+        assertEq(calculateUSDCNeeded(1e18), 2e9); // 1 token at min price
+        assertEq(calculateUSDCNeeded(1), 2); // 1 token-wei of dust, ceil-rounded
+        assertEq(calculateUSDCNeeded(549_088e18), 1_098_176_000_000_000); // exact
+
+        vm.expectRevert(LGEHook.InvalidPrice.selector);
+        _hook().deposit{value: 0}(1);
+
+        _depositAs(user, 1e18);
+        LGEHook.UserState memory st = _getUserState(user);
+        assertEq(st.tokensToLiquidity, 1e18);
+        assertEq(st.usdcToLiquidityDeposited, 1e9);
+    }
+
     function test_depositAfterLGEFinishedRevert() public {
         _reachCapSuccessfully();
 
@@ -320,8 +340,8 @@ contract LGEHookTest is Test, PosmTestSetup {
         );
 
         // maxUsdcPerToken below the current price
-        uint256 price = _hook().currentTokenPrice(); // tokens per USDC
-        uint256 usdcPerToken = 1e36 / price; // floor; hook computes the ceil
+        uint256 price = _hook().currentTokenPrice(); // token-wei per usdc-wei
+        uint256 usdcPerToken = 1e18 / price; // floor; hook computes the ceil
         hoax(user);
         vm.expectRevert(LGEHook.InvalidPrice.selector);
         _hook().deposit{value: usdcNeeded}(

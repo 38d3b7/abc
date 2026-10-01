@@ -53,10 +53,10 @@ export function DepositBox ({ s, block }: { s: CampaignState; block: bigint }) {
     setError(null)
     setDone(null)
     try {
-      // maxUsdcPerToken: ceil(1e36 / currentPrice) with 5% headroom, matching
-      // the hook's own computation in the overload.
+      // maxUsdcPerToken: ceil(1e18 / currentPrice) usdc-wei per whole token
+      // with 5% headroom, matching the hook's own computation in the overload.
       const price = s.currentPrice
-      const usdcPerToken = ((1n * 10n ** 36n - 1n) / price + 1n) * 105n / 100n
+      const usdcPerToken = ((10n ** 18n + price - 1n) / price) * 105n / 100n
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 600)
       const hash = await writeContractAsync({
         address: s.hook,

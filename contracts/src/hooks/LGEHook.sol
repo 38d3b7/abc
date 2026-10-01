@@ -305,15 +305,16 @@ contract LGEHook is BaseHook, SafeNativeSender {
 
     /// @notice Deposit with buyer protection: reverts after `deadline` and when
     ///         the current USDC price per token exceeds `maxUsdcPerToken`
-    ///         (18-dec USDC per whole token).
+    ///         (usdc-wei per whole token; price is the raw token-wei/usdc-wei
+    ///         ratio, so per-token cost is 1e18/price usdc-wei).
     function deposit(
         uint256 amountOfTokens,
         uint256 maxUsdcPerToken,
         uint256 deadline
     ) external payable {
         if (block.timestamp > deadline) revert LGEFinished();
-        uint256 price = currentTokenPrice(); // tokens per USDC
-        uint256 usdcPerToken = (1e36 - 1) / price + 1; // ceil
+        uint256 price = currentTokenPrice(); // token-wei per usdc-wei
+        uint256 usdcPerToken = (1e18 + price - 1) / price; // ceil
         if (usdcPerToken > maxUsdcPerToken) revert InvalidPrice();
         _deposit(amountOfTokens);
     }

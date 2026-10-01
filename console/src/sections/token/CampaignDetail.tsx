@@ -42,7 +42,7 @@ export function CampaignDetail ({ hook }: { hook: `0x${string}` }) {
       <StatStrip stats={[
         { label: 'Raised', value: `${fmtUsdc(s.totalUsdcRaised)} USDC` },
         { label: 'Sold', value: `${fmtTokens(s.totalTokensClaimed)} / ${fmtTokens(s.cap)}` },
-        { label: 'Current rate', value: `${(Number(s.currentPrice) / 1e18).toLocaleString('en-US')} tok/USDC` },
+        { label: 'Current rate', value: `${Number(s.currentPrice).toLocaleString('en-US')} tok/USDC` },
         { label: 'Implied price', value: `${priceToUsdcPerToken(s.currentPrice)} USDC` },
         live
           ? { label: 'Time left', value: fmtBlocks(blocksLeft) }

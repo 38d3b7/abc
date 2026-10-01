@@ -45,7 +45,11 @@ library LGECalculationsLibrary {
             minTokenPrice,
             maxTokenPrice
         );
-        uint256 usdcForTokenAmount = amountOfTokens / tokensPerUsdc;
+        // tokensPerUsdc is a raw wei-to-wei ratio (token-wei per usdc-wei;
+        // both legs are 18-dec so "20000 tokens per USDC" is simply 20000).
+        // Round UP — floor division undercharges, and quotes exactly 0 for
+        // buys smaller than the ratio (free tokens).
+        uint256 usdcForTokenAmount = (amountOfTokens + tokensPerUsdc - 1) / tokensPerUsdc;
         usdcExpected = usdcForTokenAmount * 2;
     }
 

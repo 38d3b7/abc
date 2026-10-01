@@ -44,8 +44,10 @@ export function LaunchWizard ({ onClose, onLaunched }: { onClose: () => void; on
         agent: address,
         startBlock: block + 20n, // ~10s of breathing room before the window opens
         streamBlocks: BigInt(Math.round(Number(windowHours) * BLOCKS_PER_HOUR)),
-        minTokenPrice: parseEther(minPrice),
-        maxTokenPrice: parseEther(maxPrice),
+        // Prices are raw token-wei/usdc-wei ratios: both legs are 18-dec, so
+        // "20000 tokens per USDC" is simply 20000 (NOT parseEther).
+        minTokenPrice: BigInt(minPrice),
+        maxTokenPrice: BigInt(maxPrice),
         exitThreshold: 0n, // unset item: exits disabled until the protocol sets a default
         feeBps: Number(feeBps),
         vestingCliff: 0n,

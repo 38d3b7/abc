@@ -31,11 +31,10 @@ export function fmtTime (unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toISOString().replace('T', ' ').slice(0, 19) + 'Z'
 }
 
-/** tokens-per-USDC (18-dec raw ratio) → USDC per whole token, display */
+/** tokens-per-USDC (raw token-wei/usdc-wei ratio) → USDC per whole token, display */
 export function priceToUsdcPerToken (tokensPerUsdc: bigint): string {
   if (tokensPerUsdc === 0n) return '—'
-  const v = Number(formatUnits(tokensPerUsdc, 18))
-  if (v === 0) return '—'
-  const usdc = 1 / v
+  const usdc = 1 / Number(tokensPerUsdc)
+  if (usdc === 0) return '—'
   return usdc.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })
 }
