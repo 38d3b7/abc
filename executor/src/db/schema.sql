@@ -179,3 +179,27 @@ CREATE TABLE IF NOT EXISTS apps (
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
+
+-- Migration 0005: per-call inference payments (PRODUCT.md third lock).
+-- One row per model call the agent pays for over the x402 Gateway rail.
+-- The EIP-3009 authorization nonce is the idempotency key: a replayed
+-- payment returns the existing charge instead of settling twice
+-- (REPO-MINING OneShot discipline: 1 charge / N delivery attempts / <=1
+-- settlement). tokens_* are backfilled by the buyer after the model call;
+-- settlement_ref backfills when the Gateway batch commits on-chain.
+CREATE TABLE IF NOT EXISTS inference_payments (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id       uuid NOT NULL REFERENCES agents(id),
+  model          text NOT NULL,
+  price_usdc6    numeric NOT NULL,
+  tokens_in      integer,
+  tokens_out     integer,
+  eip3009_nonce  text NOT NULL UNIQUE,
+  payer          text NOT NULL,
+  payee          text NOT NULL,
+  state          text NOT NULL DEFAULT 'SETTLED' CHECK (state IN ('SETTLED','UNCERTAIN','FAILED')),
+  settlement_ref text,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS inference_payments_agent_created ON inference_payments (agent_id, created_at DESC);

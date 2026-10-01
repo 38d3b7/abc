@@ -39,6 +39,23 @@ export interface Intent {
   updatedAt: string
 }
 
+/** One paid model call (executor inference_payments table). */
+export interface InferencePayment {
+  id: string
+  agentId: string
+  model: string
+  priceUsdc6: string
+  tokensIn: number | null
+  tokensOut: number | null
+  eip3009Nonce: string
+  payer: string
+  payee: string
+  state: 'SETTLED' | 'UNCERTAIN' | 'FAILED'
+  settlementRef: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface BucketBalance {
   usdc6: string
   residualWei: string
@@ -126,6 +143,9 @@ export const api = {
 
   getLedger: async (agentId: string) =>
     (await req<{ balances: Record<string, string> }>('GET', `/agents/${agentId}/ledger`)).balances,
+
+  listInference: async (agentId: string) =>
+    (await req<{ payments: InferencePayment[] }>('GET', `/agents/${agentId}/inference`)).payments,
 
   listAutomations: async (agentId: string) =>
     (await req<{ automations: Automation[] }>('GET', `/agents/${agentId}/automations`)).automations,

@@ -37,6 +37,16 @@ export const config = {
   keeperKey: process.env.ABC_KEEPER_KEY || '',
   aiGatewayKey: process.env.AI_GATEWAY_API_KEY || '',
   agentModel: process.env.ABC_AGENT_MODEL || 'anthropic/claude-sonnet-4.5',
+  /** Inference rail (PRODUCT.md third lock). Buyer: the agent's dedicated
+   *  inference EOA key, funded by capped draws from its InferenceEscrow
+   *  credit. Seller: the executor's charge endpoint, paid to the keeper EOA
+   *  unless ABC_INFERENCE_SELLER_ADDRESS overrides. Both sides unset = free
+   *  local dev (no charging). */
+  inferenceKey: process.env.ABC_INFERENCE_KEY || '',
+  inferencePriceUsdc6: BigInt(process.env.ABC_INFERENCE_PRICE_USDC6 || '100'), // $0.0001/call
+  inferenceChargeBaseUrl: process.env.ABC_INFERENCE_CHARGE_URL || 'http://localhost:8787',
+  inferenceSellerAddress: process.env.ABC_INFERENCE_SELLER_ADDRESS || '',
+  gatewayFacilitatorUrl: process.env.GATEWAY_FACILITATOR_URL || 'https://gateway-api-testnet.circle.com',
   /** Showcase app write API. Unset = local dev (push is a no-op). */
   appsPushUrl: process.env.ABC_APPS_PUSH_URL || '',
   appsPushKey: process.env.ABC_APPS_PUSH_KEY || '',

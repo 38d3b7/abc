@@ -172,6 +172,35 @@ export interface AgentSkillRow {
   addedAt: string
 }
 
+/** One paid model call (PRODUCT.md third lock). The EIP-3009 authorization
+ *  nonce is the idempotency key; tokens_* and settlementRef backfill. */
+export interface InferencePaymentRow {
+  id: string
+  agentId: string
+  model: string
+  priceUsdc6: bigint
+  tokensIn: number | null
+  tokensOut: number | null
+  eip3009Nonce: string
+  payer: string
+  payee: string
+  state: 'SETTLED' | 'UNCERTAIN' | 'FAILED'
+  settlementRef: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface NewInferencePayment {
+  agentId: string
+  model: string
+  priceUsdc6: bigint
+  eip3009Nonce: string
+  payer: string
+  payee: string
+  state: 'SETTLED' | 'UNCERTAIN' | 'FAILED'
+  settlementRef?: string | null
+}
+
 export interface MessageRow {
   id: string
   agentId: string
@@ -252,6 +281,17 @@ export interface Store {
   upsertApp (agentId: string, slug: string, blocks: AppBlocks, refs: { tokenAddress: string | null; hookAddress: string | null }): Promise<AppRow>
   /** Edit one block; returns null when no app exists yet. */
   updateAppField (agentId: string, field: keyof AppBlocks, value: unknown): Promise<AppRow | null>
+
+  /** Insert a settled/uncertain charge. Throws unique-violation (23505) on
+   *  nonce replay — the seller catches it and serves the existing row. */
+  createInferencePayment (p: NewInferencePayment): Promise<InferencePaymentRow>
+  getInferencePaymentByNonce (nonce: string): Promise<InferencePaymentRow | null>
+  /** Backfill token usage after the model call; no-op when the charge is unknown. */
+  updateInferenceUsage (id: string, tokensIn: number, tokensOut: number): Promise<void>
+  /** Reconciliation path: flip a FAILED/UNCERTAIN charge to SETTLED after a
+   *  successful re-settle, and backfill the batch settlement reference. */
+  setInferencePaymentState (id: string, state: InferencePaymentRow['state'], settlementRef?: string | null): Promise<InferencePaymentRow>
+  listInferencePayments (agentId: string, limit?: number): Promise<InferencePaymentRow[]>
 
   close (): Promise<void>
 }

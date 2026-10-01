@@ -13,7 +13,8 @@
  * A skill's tool.ts may override the auto-generated tool by key.
  */
 
-import { generateText, tool, stepCountIs, type LanguageModel } from 'ai'
+import { generateText, tool, stepCountIs, wrapLanguageModel, type LanguageModel } from 'ai'
+import { gateway } from '@ai-sdk/gateway'
 import { z } from 'zod'
 import type { Store, AgentRow } from '../db/store.js'
 import type { PipelineRunner } from '../pipeline/runner.js'
@@ -25,6 +26,7 @@ import {
   SKILLS_DIR, type SkillManifest
 } from './skills.js'
 import { signRationale } from './rationale.js'
+import type { InferenceBuyer } from '../inference/client.js'
 
 export interface AgentLoopDeps {
   store: Store
@@ -38,6 +40,10 @@ export interface AgentLoopDeps {
   skillsDir?: string
   /** Test seam: skip the registry read. */
   registry?: SkillManifest[]
+  /** Inference rail. Present = every model call is charged over x402 before
+   *  it runs (fail closed: no payment, no inference). Absent = free local
+   *  dev. Tests inject a fake buyer. */
+  inference?: InferenceBuyer
 }
 
 /** Read intents are the base surface — every agent can observe. */
@@ -102,8 +108,34 @@ export async function runAgentLoop (deps: AgentLoopDeps): Promise<{ text: string
       ])
   )
 
+  // The model: a test double when injected, else the configured gateway
+  // model resolved to an instance so the charging middleware can wrap it.
+  const base = deps.model ?? gateway(config.agentModel)
+  const model = deps.inference
+    ? wrapLanguageModel({
+      model: base as Exclude<LanguageModel, string>,
+      middleware: {
+        // Hold-before-call: the charge settles before the model runs; the
+        // token counts backfill after. A charge failure aborts the turn —
+        // the agent pays for its own inference or it does not run.
+        wrapGenerate: async ({ doGenerate }) => {
+          const { chargeId } = await deps.inference!.charge(agent.id, config.agentModel)
+          const out = await doGenerate()
+          const tokensIn = out.usage?.inputTokens?.total ?? 0
+          const tokensOut = out.usage?.outputTokens?.total ?? 0
+          try {
+            await deps.inference!.reportUsage(chargeId, tokensIn, tokensOut)
+          } catch {
+            // usage backfill is best-effort; the charge row already settled
+          }
+          return out
+        }
+      }
+    })
+    : base
+
   const result = await generateText({
-    model: deps.model ?? config.agentModel,
+    model,
     system: knowledge ? `${SYSTEM}\n\n${knowledge}` : SYSTEM,
     prompt: `Agent "${agent.name}" (id ${agent.id}).\nToken: ${agent.tokenAddress ?? 'not launched'}\nHook: ${agent.hookAddress ?? 'n/a'}\n\nTask: ${prompt}`,
     tools: { ...tools, ...skillTools },

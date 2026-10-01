@@ -9,6 +9,7 @@
 import { z } from 'zod'
 import { encodeFunctionData, parseAbi, type Address, type Hex } from 'viem'
 import { buildLaunchTx, type PreparedLaunch } from '../lge/launch.js'
+import { INFERENCE_ESCROW } from '../inference/escrow.js'
 
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/)
 const uint = z.string().regex(/^[0-9]+$/) // decimal string, 18-dec wei unless stated
@@ -49,6 +50,17 @@ export const INTENT_SCHEMAS = {
 
   fund_gas: z.object({
     escrow: address,
+    amountWei: uint
+  }).strict(),
+
+  /**
+   * Draw the agent's InferenceEscrow credit down to the protocol-set
+   * inference provider (the executor's inference EOA), which deposits it to
+   * Circle Gateway and pays per model call over x402. Value at risk is the
+   * draw amount, so the quote/policy/confirmation path applies. The escrow
+   * address comes from the chain map — never from the model.
+   */
+  draw_inference: z.object({
     amountWei: uint
   }).strict(),
 
@@ -150,6 +162,8 @@ const HOOK_ABI = parseAbi([
 
 const ESCROW_ABI = parseAbi(['function fundGas(uint256 amount)'])
 
+const PAY_PROVIDER_ABI = parseAbi(['function payProvider(uint256 amount)'])
+
 /**
  * Builds the transaction for an intent that carries one. Read-only intents
  * (get_balances, lge_quote, create_automation) have no tx and never reach the
@@ -198,6 +212,17 @@ export function buildTx (intent: TypedIntent, chainId: number): FinalTx {
         chainId
       }
     }
+    case 'draw_inference': {
+      const p = intent.params as IntentParams<'draw_inference'>
+      const escrow = INFERENCE_ESCROW[chainId]
+      if (!escrow) throw new UnpriceableIntent(`no InferenceEscrow on chain ${chainId}`)
+      return {
+        to: escrow,
+        data: encodeFunctionData({ abi: PAY_PROVIDER_ABI, functionName: 'payProvider', args: [BigInt(p.amountWei)] }),
+        value: 0n,
+        chainId
+      }
+    }
     case 'lge_launch': {
       const p = intent.params as unknown as PreparedLaunch
       const tx = buildLaunchTx(p, chainId)
@@ -225,7 +250,8 @@ export const VALUE_INTENTS: ReadonlySet<IntentType> = new Set([
   'transfer',
   'swap',
   'lge_deposit',
-  'fund_gas'
+  'fund_gas',
+  'draw_inference'
 ])
 
 /**

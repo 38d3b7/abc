@@ -353,10 +353,13 @@ export class PipelineRunner {
         return { valueWei: BigInt(p.amountWei), gasEstimate: gas }
       }
       case 'claim_fees':
-      case 'fund_gas': {
+      case 'fund_gas':
+      case 'draw_inference': {
         const tx = buildTx(intent, this.d.chainId)
         const gas = await this.d.chain.estimateGas({ to: tx.to, data: tx.data, value: tx.value, account: wallet as `0x${string}` })
-        const value = intent.type === 'fund_gas' ? BigInt((intent.params as IntentParams<'fund_gas'>).amountWei) : 0n
+        const value = intent.type === 'fund_gas' ? BigInt((intent.params as IntentParams<'fund_gas'>).amountWei)
+          : intent.type === 'draw_inference' ? BigInt((intent.params as IntentParams<'draw_inference'>).amountWei)
+          : 0n
         return { valueWei: value, gasEstimate: gas }
       }
       case 'lge_deposit': {
@@ -417,14 +420,19 @@ export class PipelineRunner {
   }
 
   private async bookLedger (row: IntentRow, intent: TypedIntent, tx: FinalTx): Promise<void> {
-    if (tx.value === 0n) return
+    // draw_inference moves escrow credit, not msg.value — book from params.
+    const spendWei = intent.type === 'draw_inference'
+      ? BigInt((intent.params as IntentParams<'draw_inference'>).amountWei)
+      : tx.value
+    if (spendWei === 0n) return
     const bucket = intent.type === 'fund_gas' ? 'gas'
       : intent.type === 'lge_deposit' ? 'trading'
+      : intent.type === 'draw_inference' ? 'inference'
       : 'treasury'
     await this.d.store.appendLedger({
       agentId: row.agentId,
       bucket,
-      amount: splitUsd(tx.value),
+      amount: splitUsd(spendWei),
       direction: 'debit',
       intentId: row.id,
       ...(row.txHash ? { fundingTxHash: row.txHash } : {}),

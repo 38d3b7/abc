@@ -6,7 +6,7 @@
   "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/treasury-ops",
   "licenseSpdx": "MIT",
   "kind": "capability",
-  "description": "Move USDC, fund the inference escrow's gas lane, and schedule standing automations.",
-  "tools": ["transfer", "fund_gas", "create_automation"],
+  "description": "Move USDC, fund the inference escrow's gas lane, draw inference credit down to the inference key, and schedule standing automations.",
+  "tools": ["transfer", "fund_gas", "draw_inference", "create_automation"],
   "referenceOnly": false
 }

@@ -17,12 +17,15 @@ import type { SignerAdapter } from '../signer/types.js'
 import { QuoteSigner } from '../quotes/sign.js'
 import { config, arcTestnet } from '../config.js'
 import { createPublicClient, http } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+import { BatchFacilitatorClient } from '@circle-fin/x402-batching/server'
 import { splitUsd } from '../ledger/usd.js'
 import { enqueueAgentPrompt } from '../worker/enqueue.js'
 import type { AgentPromptJob } from '../worker/handlers.js'
 import { loadRegistry, resolveAgentSkills, SKILLS_DIR } from '../agent/skills.js'
 import { importSkill, ImportRefused, type ImportOptions, type ImportResult } from '../agent/skillImport.js'
 import { pushAppToShowcase } from '../apps/push.js'
+import { registerInferenceSeller, type FacilitatorSeam } from '../inference/seller.js'
 
 function requestHash (body: unknown): string {
   return createHash('sha256').update(JSON.stringify(body)).digest('hex')
@@ -38,6 +41,13 @@ export interface ApiDeps {
   skillsDir?: string
   /** Install-from-URL pipeline; tests inject a stub. */
   importSkillFromUrl?: (opts: ImportOptions) => Promise<ImportResult>
+  /** Inference seller side. Absent = the charge routes 503 (free local dev
+   *  runs no seller). Tests inject a fake facilitator. */
+  inferenceSeller?: {
+    facilitator: FacilitatorSeam
+    sellerAddress: string
+    priceUsdc6: bigint
+  }
 }
 
 export function createApp ({
@@ -46,7 +56,8 @@ export function createApp ({
   signer,
   enqueuePrompt = enqueueAgentPrompt,
   skillsDir = SKILLS_DIR,
-  importSkillFromUrl = importSkill
+  importSkillFromUrl = importSkill,
+  inferenceSeller
 }: ApiDeps): Hono {
   const app = new Hono()
 
@@ -78,6 +89,10 @@ export function createApp ({
 
   app.use('*', async (c, next) => {
     if (c.req.path === '/health') return next()
+    // The inference charge rail authenticates with the x402 payment itself
+    // (and the usage backfill with the charge id as a bearer capability), so
+    // it is exempt from the owner key.
+    if (c.req.path.startsWith('/inference/')) return next()
     if (c.req.header('X-ABC-Key') !== config.apiKey) {
       return c.json({ error: 'unauthorized' }, 401)
     }
@@ -375,6 +390,22 @@ export function createApp ({
     return c.json({ campaigns: await store.listCampaigns(c.req.param('id')) })
   })
 
+  // ---- inference rail (x402 seller; PRODUCT.md third lock) ----
+  app.get('/agents/:id/inference', async c => {
+    const agent = await store.getAgent(c.req.param('id'))
+    if (!agent) return c.json({ error: 'not found' }, 404)
+    const payments = await store.listInferencePayments(agent.id)
+    return c.json({
+      payments: payments.map(p => ({ ...p, priceUsdc6: p.priceUsdc6.toString() }))
+    })
+  })
+
+  if (inferenceSeller) {
+    registerInferenceSeller(app, { store, ...inferenceSeller })
+  } else {
+    app.post('/inference/charge', c => c.json({ error: 'inference seller not configured' }, 503))
+  }
+
   return app
 }
 
@@ -391,7 +422,21 @@ export async function serveApi (port = 8787): Promise<void> {
     chainId: arcTestnet.id,
     pushApp: pushAppToShowcase
   })
-  const app = createApp({ store, runner, signer })
+
+  // Inference seller: enabled when the payee is known (explicit override, or
+  // derived from the keeper key). The facilitator talks to Circle Gateway.
+  let inferenceSeller: ApiDeps['inferenceSeller']
+  const sellerAddress = config.inferenceSellerAddress ||
+    (config.keeperKey ? privateKeyToAccount(config.keeperKey as `0x${string}`).address : '')
+  if (sellerAddress) {
+    inferenceSeller = {
+      facilitator: new BatchFacilitatorClient({ url: config.gatewayFacilitatorUrl }),
+      sellerAddress,
+      priceUsdc6: config.inferencePriceUsdc6
+    }
+  }
+
+  const app = createApp({ store, runner, signer, ...(inferenceSeller ? { inferenceSeller } : {}) })
   serve({ fetch: app.fetch, port })
   console.log(`[api] executor listening on :${port}`)
 }

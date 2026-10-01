@@ -7,7 +7,7 @@ import type { State, StateChange } from '../pipeline/states.js'
 import type {
   Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, LedgerRow, IdempotencyRecord, AgentRow,
   AutomationRow, NewAutomation, NewCampaign, CampaignRow, MessageRow, NewMessage, AgentSkillRow,
-  AppRow, AppBlocks
+  AppRow, AppBlocks, InferencePaymentRow, NewInferencePayment
 } from './store.js'
 import { joinUsd, partsFromRow } from '../ledger/usd.js'
 
@@ -547,6 +547,58 @@ export class PgStore implements Store {
       [agentId, stored]
     )
     return res.rows[0] ? PgStore.toApp(res.rows[0]) : null
+  }
+
+  private static toInferencePayment (r: {
+    id: string; agent_id: string; model: string; price_usdc6: string
+    tokens_in: number | null; tokens_out: number | null; eip3009_nonce: string
+    payer: string; payee: string; state: InferencePaymentRow['state']
+    settlement_ref: string | null; created_at: Date; updated_at: Date
+  }): InferencePaymentRow {
+    return {
+      id: r.id, agentId: r.agent_id, model: r.model, priceUsdc6: BigInt(r.price_usdc6),
+      tokensIn: r.tokens_in, tokensOut: r.tokens_out, eip3009Nonce: r.eip3009_nonce,
+      payer: r.payer, payee: r.payee, state: r.state, settlementRef: r.settlement_ref,
+      createdAt: r.created_at.toISOString(), updatedAt: r.updated_at.toISOString()
+    }
+  }
+
+  async createInferencePayment (p: NewInferencePayment): Promise<InferencePaymentRow> {
+    const res = await this.pool.query(
+      `INSERT INTO inference_payments (agent_id, model, price_usdc6, eip3009_nonce, payer, payee, state, settlement_ref)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [p.agentId, p.model, p.priceUsdc6.toString(), p.eip3009Nonce, p.payer, p.payee, p.state, p.settlementRef ?? null]
+    )
+    return PgStore.toInferencePayment(res.rows[0]!)
+  }
+
+  async getInferencePaymentByNonce (nonce: string): Promise<InferencePaymentRow | null> {
+    const res = await this.pool.query('SELECT * FROM inference_payments WHERE eip3009_nonce = $1', [nonce])
+    return res.rows[0] ? PgStore.toInferencePayment(res.rows[0]) : null
+  }
+
+  async updateInferenceUsage (id: string, tokensIn: number, tokensOut: number): Promise<void> {
+    await this.pool.query(
+      'UPDATE inference_payments SET tokens_in = $2, tokens_out = $3, updated_at = now() WHERE id = $1',
+      [id, tokensIn, tokensOut]
+    )
+  }
+
+  async setInferencePaymentState (id: string, state: InferencePaymentRow['state'], settlementRef: string | null = null): Promise<InferencePaymentRow> {
+    const res = await this.pool.query(
+      'UPDATE inference_payments SET state = $2, settlement_ref = COALESCE($3, settlement_ref), updated_at = now() WHERE id = $1 RETURNING *',
+      [id, state, settlementRef]
+    )
+    if (!res.rows[0]) throw new Error(`inference payment ${id} not found`)
+    return PgStore.toInferencePayment(res.rows[0])
+  }
+
+  async listInferencePayments (agentId: string, limit = 200): Promise<InferencePaymentRow[]> {
+    const res = await this.pool.query(
+      'SELECT * FROM inference_payments WHERE agent_id = $1 ORDER BY created_at DESC LIMIT $2',
+      [agentId, limit]
+    )
+    return res.rows.map(PgStore.toInferencePayment)
   }
 
   async close (): Promise<void> {

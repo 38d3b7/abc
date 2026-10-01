@@ -8,6 +8,7 @@ import type { Store } from '../db/store.js'
 import type { PipelineRunner } from '../pipeline/runner.js'
 import type { QuoteSigner } from '../quotes/sign.js'
 import { runAgentLoop } from '../agent/loop.js'
+import type { InferenceBuyer } from '../inference/client.js'
 
 export interface AgentPromptJob {
   agentId: string
@@ -22,6 +23,8 @@ export interface AgentPromptDeps {
   quoteSigner: QuoteSigner
   /** Test seam: overrides the configured gateway model. */
   model?: LanguageModel
+  /** Inference rail; absent = free local dev. */
+  inference?: InferenceBuyer
 }
 
 /**
@@ -40,7 +43,8 @@ export async function handleAgentPrompt (deps: AgentPromptDeps, job: AgentPrompt
       agent,
       prompt: job.prompt,
       quoteSigner: deps.quoteSigner,
-      ...(deps.model !== undefined ? { model: deps.model } : {})
+      ...(deps.model !== undefined ? { model: deps.model } : {}),
+      ...(deps.inference !== undefined ? { inference: deps.inference } : {})
     })
     if (job.replyMessageId) {
       await deps.store.completeMessage(job.replyMessageId, { text: result.text, intentIds: result.intentIds })

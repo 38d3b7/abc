@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { api, type Intent } from '../api/client'
+import { api, type Intent, type InferencePayment } from '../api/client'
 import { useAgent } from '../App'
 import { Table } from '../components/Table'
 import { Chip, stateTone } from '../components/Chip'
@@ -21,6 +21,7 @@ function amountOf (i: Intent): string {
     case 'swap':
       return p.amountIn ? `${(Number(p.amountIn) / 1e18).toLocaleString('en-US', { maximumFractionDigits: 6 })} USDC` : '—'
     case 'fund_gas':
+    case 'draw_inference':
       return p.amountWei ? `${(Number(p.amountWei) / 1e18).toLocaleString('en-US', { maximumFractionDigits: 6 })} USDC` : '—'
     default:
       return '—'
@@ -62,6 +63,14 @@ export function Activity () {
     queryFn: () => api.listIntents(agent.data!.id),
     enabled: Boolean(agent.data),
     retry: false
+  })
+
+  const inference = useQuery({
+    queryKey: ['inference', agent.data?.id],
+    queryFn: () => api.listInference(agent.data!.id),
+    enabled: Boolean(agent.data),
+    retry: false,
+    refetchInterval: 15_000
   })
 
   const filtered = useMemo(() => {
@@ -158,6 +167,28 @@ export function Activity () {
               </section>
             </div>
           )}
+        />
+      </div>
+
+      <header className="page-head" style={{ marginTop: '2rem' }}>
+        <h2>Inference payments</h2>
+        <p className="sub">One row per model call, paid by the agent over the x402 Gateway rail from its own raise.</p>
+      </header>
+      <div className="table-section">
+        <Table<InferencePayment>
+          columns={[
+            { head: 'Time', cell: r => <span className="mono">{fmtTime(Math.floor(new Date(r.createdAt).getTime() / 1000))}</span> },
+            { head: 'Model', cell: r => <span className="mono">{r.model}</span> },
+            { head: 'Price', num: true, cell: r => <span className="mono">${(Number(r.priceUsdc6) / 1e6).toFixed(4)}</span> },
+            { head: 'Tokens', num: true, cell: r => <span className="mono">{r.tokensIn != null ? `${r.tokensIn}→${r.tokensOut ?? 0}` : '—'}</span> },
+            { head: 'State', cell: r => <Chip tone={r.state === 'SETTLED' ? 'ok' : r.state === 'UNCERTAIN' ? 'warn' : 'bad'}>{r.state}</Chip> },
+            { head: 'Nonce', cell: r => <span className="mono small muted">{r.eip3009Nonce.slice(0, 14)}…</span> },
+            { head: 'Settlement', cell: r => r.settlementRef ? <HashLink hash={r.settlementRef} kind="tx" /> : <span className="muted">batched</span> }
+          ]}
+          rows={inference.data ?? []}
+          keyOf={r => r.id}
+          pageSize={PAGE_SIZE}
+          empty={inference.isLoading ? 'Loading…' : 'No paid calls yet.'}
         />
       </div>
     </>

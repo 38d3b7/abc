@@ -9,7 +9,7 @@ import type { State, StateChange } from '../pipeline/states.js'
 import type {
   Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, LedgerRow, IdempotencyRecord, AgentRow,
   AutomationRow, NewAutomation, NewCampaign, CampaignRow, MessageRow, NewMessage, AgentSkillRow,
-  AppRow, AppBlocks
+  AppRow, AppBlocks, InferencePaymentRow, NewInferencePayment
 } from './store.js'
 import { joinUsd } from '../ledger/usd.js'
 
@@ -377,6 +377,72 @@ export class MemoryStore implements Store {
     ;(row as unknown as Record<string, unknown>)[field] = structuredClone(value)
     row.updatedAt = new Date().toISOString()
     return Promise.resolve(structuredClone(row))
+  }
+
+  private inferencePayments = new Map<string, InferencePaymentRow>()
+
+  // async so the duplicate-nonce rejection matches pg's async 23505
+  async createInferencePayment (p: NewInferencePayment): Promise<InferencePaymentRow> {
+    for (const row of this.inferencePayments.values()) {
+      if (row.eip3009Nonce === p.eip3009Nonce) {
+        const e = new Error(`duplicate eip3009_nonce ${p.eip3009Nonce}`) as Error & { code: string }
+        e.code = '23505'
+        throw e
+      }
+    }
+    const now = new Date().toISOString()
+    const row: InferencePaymentRow = {
+      id: randomUUID(),
+      agentId: p.agentId,
+      model: p.model,
+      priceUsdc6: p.priceUsdc6,
+      tokensIn: null,
+      tokensOut: null,
+      eip3009Nonce: p.eip3009Nonce,
+      payer: p.payer,
+      payee: p.payee,
+      state: p.state,
+      settlementRef: p.settlementRef ?? null,
+      createdAt: now,
+      updatedAt: now
+    }
+    this.inferencePayments.set(row.id, row)
+    return structuredClone(row)
+  }
+
+  getInferencePaymentByNonce (nonce: string): Promise<InferencePaymentRow | null> {
+    for (const row of this.inferencePayments.values()) {
+      if (row.eip3009Nonce === nonce) return Promise.resolve(structuredClone(row))
+    }
+    return Promise.resolve(null)
+  }
+
+  updateInferenceUsage (id: string, tokensIn: number, tokensOut: number): Promise<void> {
+    const row = this.inferencePayments.get(id)
+    if (!row) return Promise.resolve()
+    row.tokensIn = tokensIn
+    row.tokensOut = tokensOut
+    row.updatedAt = new Date().toISOString()
+    return Promise.resolve()
+  }
+
+  setInferencePaymentState (id: string, state: InferencePaymentRow['state'], settlementRef: string | null = null): Promise<InferencePaymentRow> {
+    const row = this.inferencePayments.get(id)
+    if (!row) return Promise.reject(new Error(`inference payment ${id} not found`))
+    row.state = state
+    if (settlementRef != null) row.settlementRef = settlementRef
+    row.updatedAt = new Date().toISOString()
+    return Promise.resolve(structuredClone(row))
+  }
+
+  listInferencePayments (agentId: string, limit = 200): Promise<InferencePaymentRow[]> {
+    return Promise.resolve(
+      [...this.inferencePayments.values()]
+        .filter(p => p.agentId === agentId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, limit)
+        .map(p => structuredClone(p))
+    )
   }
 
   close (): Promise<void> {

@@ -22,6 +22,7 @@ import { isDue } from './due.js'
 import { QUEUES } from './queues.js'
 import { handleAgentPrompt, type AgentPromptJob } from './handlers.js'
 import { pushAppToShowcase } from '../apps/push.js'
+import { createInferenceBuyer } from '../inference/client.js'
 
 export { QUEUES }
 
@@ -53,13 +54,25 @@ export async function startWorker (): Promise<void> {
   const boss = new PgBoss(config.databaseUrl)
   await boss.start()
 
+  // Inference rail: when the agent's inference key is configured, every
+  // model call is charged over x402 (PRODUCT.md third lock).
+  const inference = config.inferenceKey
+    ? createInferenceBuyer({
+      chargeBaseUrl: config.inferenceChargeBaseUrl,
+      privateKey: config.inferenceKey as `0x${string}`
+    })
+    : undefined
+
   // ---- agent prompt runs (chat turns settle their pending reply row) ----
   await boss.createQueue(QUEUES.agentPrompt)
   await boss.work<AgentPromptJob>(
     QUEUES.agentPrompt,
     async ([job]) => {
       if (!job) return
-      await handleAgentPrompt({ store, runner, quoteSigner }, job.data)
+      await handleAgentPrompt(
+        { store, runner, quoteSigner, ...(inference ? { inference } : {}) },
+        job.data
+      )
     }
   )
 
