@@ -1,6 +1,66 @@
 {
   "skills": [
     {
+      "slug": "aeon-deep-research",
+      "name": "aeon-deep-research",
+      "version": "1.0.0",
+      "provider": "Aeon",
+      "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/aeon-deep-research/SKILL.md",
+      "licenseSpdx": "NOASSERTION",
+      "kind": "knowledge",
+      "description": "Exhaustive multi-source research on a topic with attributed claims, a mandatory adversarial [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+      "tools": [],
+      "referenceOnly": true
+    },
+    {
+      "slug": "aeon-defi-overview",
+      "name": "aeon-defi-overview",
+      "version": "1.0.0",
+      "provider": "Aeon",
+      "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/aeon-defi-overview/SKILL.md",
+      "licenseSpdx": "NOASSERTION",
+      "kind": "knowledge",
+      "description": "Daily DeFi read — regime verdict (RISK-ON / NEUTRAL / RISK-OFF) reproducible from named inputs, [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+      "tools": [],
+      "referenceOnly": true
+    },
+    {
+      "slug": "aeon-narrative-tracker",
+      "name": "aeon-narrative-tracker",
+      "version": "1.0.0",
+      "provider": "Aeon",
+      "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/aeon-narrative-tracker/SKILL.md",
+      "licenseSpdx": "NOASSERTION",
+      "kind": "knowledge",
+      "description": "Daily narrative map for crypto and AI. Each narrative gets a mindshare score (1-5), a velocity [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+      "tools": [],
+      "referenceOnly": true
+    },
+    {
+      "slug": "aeon-skill-security-scan",
+      "name": "aeon-skill-security-scan",
+      "version": "1.0.0",
+      "provider": "Aeon",
+      "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/aeon-skill-security-scan/SKILL.md",
+      "licenseSpdx": "NOASSERTION",
+      "kind": "knowledge",
+      "description": "Audit installed Bankr skills before you run them — scan SKILL.md and companion scripts for [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+      "tools": [],
+      "referenceOnly": true
+    },
+    {
+      "slug": "aeon-vuln-scanner",
+      "name": "aeon-vuln-scanner",
+      "version": "1.0.0",
+      "provider": "Aeon",
+      "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/aeon-vuln-scanner/SKILL.md",
+      "licenseSpdx": "NOASSERTION",
+      "kind": "knowledge",
+      "description": "Audit trending repos for real exploitable vulnerabilities and disclose responsibly — Private [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+      "tools": [],
+      "referenceOnly": true
+    },
+    {
       "slug": "app-builder",
       "name": "App builder",
       "version": "1.0.0",
@@ -28,6 +88,18 @@
       "referenceOnly": false
     },
     {
+      "slug": "bankr-token-scam-analysis",
+      "name": "token-scam-analysis",
+      "version": "1.0.0",
+      "provider": "BankrBot",
+      "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/bankr-token-scam-analysis/SKILL.md",
+      "licenseSpdx": "NOASSERTION",
+      "kind": "knowledge",
+      "description": "Deep on-chain scam / rug / soft-rug analysis for EVM tokens (especially Clanker, Doppler, Bankr-style single-admin ERC-20s). Use when the user asks to \"analyze this token for scam\", \"is this a rug\", \"should I trust this  [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+      "tools": [],
+      "referenceOnly": true
+    },
+    {
       "slug": "console-api",
       "name": "Console API",
       "version": "1.0.0",
@@ -40,6 +112,30 @@
       "referenceOnly": false
     },
     {
+      "slug": "cortx",
+      "name": "cortx",
+      "version": "1.0.0",
+      "provider": "CORTX",
+      "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/cortx/SKILL.md",
+      "licenseSpdx": "NOASSERTION",
+      "kind": "knowledge",
+      "description": "Check whether an x402 payment endpoint is reliably delivering value before an agent spends USDC on it. Runs a 7-stage verification using real on-chain data. [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+      "tools": [],
+      "referenceOnly": true
+    },
+    {
+      "slug": "defi-native",
+      "name": "defi-native",
+      "version": "1.0.0",
+      "provider": "Emily Lai",
+      "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/defi-native/SKILL.md",
+      "licenseSpdx": "NOASSERTION",
+      "kind": "knowledge",
+      "description": "Makes an agent crypto-native for onchain capital markets. Use for ANY question about DeFi, vaults, curators, yield, stablecoins, synthetic dollars, RWAs (real world assets), tokenized stocks, lending, perps, options, LP  [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+      "tools": [],
+      "referenceOnly": true
+    },
+    {
       "slug": "lge-rules",
       "name": "LGE rules",
       "version": "1.0.0",
@@ -48,6 +144,42 @@
       "licenseSpdx": "MIT",
       "kind": "knowledge",
       "description": "The raise mechanics: deposit split, 5% vesting buy, 25/50/25 fee split, LP lock rule.",
+      "tools": [],
+      "referenceOnly": false
+    },
+    {
+      "slug": "risk-manager",
+      "name": "Risk Manager",
+      "version": "1.0.0",
+      "provider": "Clawpump",
+      "sourceUrl": "https://github.com/Clawpump/agents-skills/blob/5b46024a78eca13d208ae7b404761f892658de68/skills/risk-manager/SKILL.md",
+      "licenseSpdx": "MIT",
+      "kind": "knowledge",
+      "description": "Pre-trade risk assessment with position sizing, concentration, and drawdown checks",
+      "tools": [],
+      "referenceOnly": false
+    },
+    {
+      "slug": "security-checklist",
+      "name": "Security checklist",
+      "version": "1.0.0",
+      "provider": "ABC",
+      "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/security-checklist",
+      "licenseSpdx": "MIT",
+      "kind": "knowledge",
+      "description": "Pre-action security discipline for an agent that moves real USDC — address provenance, amount sanity, untrusted-content handling, key refusal. Reauthored from ideas reviewed in the Bankr and Clawpump skill catalogs.",
+      "tools": [],
+      "referenceOnly": false
+    },
+    {
+      "slug": "straight-talk",
+      "name": "Straight Talk",
+      "version": "1.0.0",
+      "provider": "Clawpump",
+      "sourceUrl": "https://github.com/Clawpump/agents-skills/blob/5b46024a78eca13d208ae7b404761f892658de68/skills/straight-talk/SKILL.md",
+      "licenseSpdx": "MIT",
+      "kind": "knowledge",
+      "description": "Turn an agent's action or holdings into an honest, no-shill social post: states the read, admits losses, flags traps (🪤), never promises price. SOAG voice.",
       "tools": [],
       "referenceOnly": false
     },

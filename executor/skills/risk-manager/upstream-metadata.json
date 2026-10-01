@@ -1,0 +1,7 @@
+{
+  "name": "Risk Manager",
+  "description": "Pre-trade risk assessment with position sizing, concentration, and drawdown checks",
+  "author": "clawpump",
+  "tags": ["risk", "trading", "portfolio"],
+  "version": "1.0.0"
+}

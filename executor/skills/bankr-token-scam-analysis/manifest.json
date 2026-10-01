@@ -1,0 +1,12 @@
+{
+  "slug": "bankr-token-scam-analysis",
+  "name": "token-scam-analysis",
+  "version": "1.0.0",
+  "provider": "BankrBot",
+  "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/bankr-token-scam-analysis/SKILL.md",
+  "licenseSpdx": "NOASSERTION",
+  "kind": "knowledge",
+  "description": "Deep on-chain scam / rug / soft-rug analysis for EVM tokens (especially Clanker, Doppler, Bankr-style single-admin ERC-20s). Use when the user asks to \"analyze this token for scam\", \"is this a rug\", \"should I trust this  [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+  "tools": [],
+  "referenceOnly": true
+}

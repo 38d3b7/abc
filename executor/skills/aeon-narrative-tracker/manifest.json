@@ -1,0 +1,12 @@
+{
+  "slug": "aeon-narrative-tracker",
+  "name": "aeon-narrative-tracker",
+  "version": "1.0.0",
+  "provider": "Aeon",
+  "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/aeon-narrative-tracker/SKILL.md",
+  "licenseSpdx": "NOASSERTION",
+  "kind": "knowledge",
+  "description": "Daily narrative map for crypto and AI. Each narrative gets a mindshare score (1-5), a velocity [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+  "tools": [],
+  "referenceOnly": true
+}

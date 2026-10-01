@@ -1,0 +1,12 @@
+{
+  "slug": "straight-talk",
+  "name": "Straight Talk",
+  "version": "1.0.0",
+  "provider": "Clawpump",
+  "sourceUrl": "https://github.com/Clawpump/agents-skills/blob/5b46024a78eca13d208ae7b404761f892658de68/skills/straight-talk/SKILL.md",
+  "licenseSpdx": "MIT",
+  "kind": "knowledge",
+  "description": "Turn an agent's action or holdings into an honest, no-shill social post: states the read, admits losses, flags traps (\ud83e\udea4), never promises price. SOAG voice.",
+  "tools": [],
+  "referenceOnly": false
+}

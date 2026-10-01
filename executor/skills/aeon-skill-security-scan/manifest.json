@@ -1,0 +1,12 @@
+{
+  "slug": "aeon-skill-security-scan",
+  "name": "aeon-skill-security-scan",
+  "version": "1.0.0",
+  "provider": "Aeon",
+  "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/aeon-skill-security-scan/SKILL.md",
+  "licenseSpdx": "NOASSERTION",
+  "kind": "knowledge",
+  "description": "Audit installed Bankr skills before you run them \u2014 scan SKILL.md and companion scripts for [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+  "tools": [],
+  "referenceOnly": true
+}

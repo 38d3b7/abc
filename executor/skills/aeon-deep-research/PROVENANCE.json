@@ -1,0 +1,8 @@
+{
+  "repo": "https://github.com/BankrBot/skills",
+  "commit": "359393d3ab36829f17b3807224193927a932203f",
+  "fetchedAt": "2026-10-01",
+  "upstreamPath": "aeon-deep-research",
+  "licenseFile": null,
+  "note": "Reference-only: the upstream repo carries no LICENSE (all rights reserved). Only this catalog entry is committed; skill content is fetched live from sourceUrl at the operator's explicit install command."
+}

@@ -12,7 +12,9 @@
     "build": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "skill-registry": "node --import tsx script/skill-registry.ts",
-    "skill-import": "node --import tsx script/skill-import.ts"
+    "skill-import": "node --import tsx script/skill-import.ts",
+    "licenses": "node --import tsx script/licenses.ts",
+    "licenses:check": "node --import tsx script/licenses.ts --check"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^4.0.102",

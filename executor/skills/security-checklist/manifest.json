@@ -1,0 +1,12 @@
+{
+  "slug": "security-checklist",
+  "name": "Security checklist",
+  "version": "1.0.0",
+  "provider": "ABC",
+  "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/security-checklist",
+  "licenseSpdx": "MIT",
+  "kind": "knowledge",
+  "description": "Pre-action security discipline for an agent that moves real USDC — address provenance, amount sanity, untrusted-content handling, key refusal. Reauthored from ideas reviewed in the Bankr and Clawpump skill catalogs.",
+  "tools": [],
+  "referenceOnly": false
+}

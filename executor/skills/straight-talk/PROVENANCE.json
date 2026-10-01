@@ -1,0 +1,8 @@
+{
+  "repo": "https://github.com/Clawpump/agents-skills",
+  "commit": "5b46024a78eca13d208ae7b404761f892658de68",
+  "fetchedAt": "2026-10-01",
+  "upstreamPath": "skills/straight-talk",
+  "licenseFile": "LICENSE",
+  "note": "Vendored verbatim under the upstream MIT license. Platform-locked skills from the same repo (clawpump.tech callers) were deliberately not vendored."
+}

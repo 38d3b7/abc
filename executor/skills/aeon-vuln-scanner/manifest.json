@@ -1,0 +1,12 @@
+{
+  "slug": "aeon-vuln-scanner",
+  "name": "aeon-vuln-scanner",
+  "version": "1.0.0",
+  "provider": "Aeon",
+  "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/aeon-vuln-scanner/SKILL.md",
+  "licenseSpdx": "NOASSERTION",
+  "kind": "knowledge",
+  "description": "Audit trending repos for real exploitable vulnerabilities and disclose responsibly \u2014 Private [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+  "tools": [],
+  "referenceOnly": true
+}

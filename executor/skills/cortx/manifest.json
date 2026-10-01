@@ -1,0 +1,12 @@
+{
+  "slug": "cortx",
+  "name": "cortx",
+  "version": "1.0.0",
+  "provider": "CORTX",
+  "sourceUrl": "https://raw.githubusercontent.com/BankrBot/skills/359393d3ab36829f17b3807224193927a932203f/cortx/SKILL.md",
+  "licenseSpdx": "NOASSERTION",
+  "kind": "knowledge",
+  "description": "Check whether an x402 payment endpoint is reliably delivering value before an agent spends USDC on it. Runs a 7-stage verification using real on-chain data. [Reference-only catalog entry: upstream repo carries no license; content is fetched from sourceUrl at install time, never vendored.]",
+  "tools": [],
+  "referenceOnly": true
+}
