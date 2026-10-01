@@ -6,7 +6,7 @@ import pg from 'pg'
 import type { State, StateChange } from '../pipeline/states.js'
 import type {
   Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow,
-  AutomationRow, NewAutomation, NewCampaign, MessageRow, NewMessage
+  AutomationRow, NewAutomation, NewCampaign, MessageRow, NewMessage, AgentSkillRow
 } from './store.js'
 import { joinUsd, partsFromRow } from '../ledger/usd.js'
 
@@ -394,6 +394,47 @@ export class PgStore implements Store {
        WHERE id = $1 AND state = 'pending'`,
       [id, error]
     )
+  }
+
+  async listAgentSkills (agentId: string): Promise<AgentSkillRow[]> {
+    const res = await this.pool.query<{
+      agent_id: string; slug: string; enabled: boolean; config: Record<string, unknown>; added_at: Date
+    }>(
+      'SELECT * FROM agent_skills WHERE agent_id = $1 ORDER BY added_at ASC',
+      [agentId]
+    )
+    return res.rows.map(r => ({
+      agentId: r.agent_id, slug: r.slug, enabled: r.enabled, config: r.config, addedAt: r.added_at.toISOString()
+    }))
+  }
+
+  async installAgentSkill (agentId: string, slug: string, config: Record<string, unknown> = {}): Promise<AgentSkillRow> {
+    const res = await this.pool.query<{
+      agent_id: string; slug: string; enabled: boolean; config: Record<string, unknown>; added_at: Date
+    }>(
+      `INSERT INTO agent_skills (agent_id, slug, config) VALUES ($1, $2, $3)
+       ON CONFLICT (agent_id, slug) DO NOTHING
+       RETURNING *`,
+      [agentId, slug, JSON.stringify(config)]
+    )
+    const row = res.rows[0] ?? (await this.pool.query<{
+      agent_id: string; slug: string; enabled: boolean; config: Record<string, unknown>; added_at: Date
+    }>('SELECT * FROM agent_skills WHERE agent_id = $1 AND slug = $2', [agentId, slug])).rows[0]!
+    return {
+      agentId: row.agent_id, slug: row.slug, enabled: row.enabled, config: row.config, addedAt: row.added_at.toISOString()
+    }
+  }
+
+  async setAgentSkillEnabled (agentId: string, slug: string, enabled: boolean): Promise<AgentSkillRow | null> {
+    const res = await this.pool.query<{
+      agent_id: string; slug: string; enabled: boolean; config: Record<string, unknown>; added_at: Date
+    }>(
+      'UPDATE agent_skills SET enabled = $3 WHERE agent_id = $1 AND slug = $2 RETURNING *',
+      [agentId, slug, enabled]
+    )
+    const r = res.rows[0]
+    if (!r) return null
+    return { agentId: r.agent_id, slug: r.slug, enabled: r.enabled, config: r.config, addedAt: r.added_at.toISOString() }
   }
 
   async close (): Promise<void> {

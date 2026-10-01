@@ -1,0 +1,12 @@
+{
+  "slug": "lge-rules",
+  "name": "LGE rules",
+  "version": "1.0.0",
+  "provider": "ABC",
+  "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/lge-rules",
+  "licenseSpdx": "MIT",
+  "kind": "knowledge",
+  "description": "The raise mechanics: deposit split, 5% vesting buy, 25/50/25 fee split, LP lock rule.",
+  "tools": [],
+  "referenceOnly": false
+}

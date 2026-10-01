@@ -55,6 +55,25 @@ export interface Automation {
   createdAt: string
 }
 
+export interface Skill {
+  slug: string
+  name: string
+  version: string
+  provider: string
+  sourceUrl: string
+  licenseSpdx: string
+  kind: 'knowledge' | 'capability'
+  description: string
+  tools: string[]
+  referenceOnly: boolean
+}
+
+export interface AgentSkill extends Skill {
+  enabled: boolean
+  config: Record<string, unknown>
+  addedAt: string
+}
+
 export interface AgentMessage {
   id: string
   agentId: string
@@ -119,6 +138,16 @@ export const api = {
     (await req<{ messages: AgentMessage[] }>('GET', `/agents/${agentId}/messages`)).messages,
   sendMessage: async (agentId: string, text: string) =>
     req<{ message: AgentMessage; reply: AgentMessage | null }>('POST', `/agents/${agentId}/messages`, { text }, crypto.randomUUID()),
+
+  listSkillCatalog: async () => (await req<{ skills: Skill[] }>('GET', '/skills')).skills,
+  listAgentSkills: async (agentId: string) =>
+    (await req<{ skills: AgentSkill[] }>('GET', `/agents/${agentId}/skills`)).skills,
+  installSkill: async (agentId: string, slug: string) =>
+    req<{ skill: AgentSkill }>('POST', `/agents/${agentId}/skills`, { slug }),
+  installSkillFromUrl: async (agentId: string, url: string, licenseSpdx: string, provider: string) =>
+    req<{ skill: AgentSkill; vendored: boolean }>('POST', `/agents/${agentId}/skills/install-url`, { url, licenseSpdx, provider }),
+  setSkillEnabled: (agentId: string, slug: string, enabled: boolean) =>
+    req<{ skill: AgentSkill }>('PATCH', `/agents/${agentId}/skills/${slug}`, { enabled }),
 
   registerCampaign: async (agentId: string, c: {
     tokenAddress: string; hookAddress: string; name?: string; symbol?: string

@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto'
 import type { State, StateChange } from '../pipeline/states.js'
 import type {
   Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow,
-  AutomationRow, NewAutomation, NewCampaign, MessageRow, NewMessage
+  AutomationRow, NewAutomation, NewCampaign, MessageRow, NewMessage, AgentSkillRow
 } from './store.js'
 import { joinUsd } from '../ledger/usd.js'
 
@@ -279,6 +279,35 @@ export class MemoryStore implements Store {
     row.state = 'failed'
     row.error = error
     return Promise.resolve()
+  }
+
+  private skills = new Map<string, AgentSkillRow>()
+
+  listAgentSkills (agentId: string): Promise<AgentSkillRow[]> {
+    return Promise.resolve(
+      [...this.skills.values()]
+        .filter(s => s.agentId === agentId)
+        .sort((a, b) => a.addedAt.localeCompare(b.addedAt))
+        .map(s => structuredClone(s))
+    )
+  }
+
+  installAgentSkill (agentId: string, slug: string, config: Record<string, unknown> = {}): Promise<AgentSkillRow> {
+    const k = `${agentId}:${slug}`
+    const existing = this.skills.get(k)
+    if (existing) return Promise.resolve(structuredClone(existing))
+    const row: AgentSkillRow = {
+      agentId, slug, enabled: true, config: structuredClone(config), addedAt: new Date().toISOString()
+    }
+    this.skills.set(k, row)
+    return Promise.resolve(structuredClone(row))
+  }
+
+  setAgentSkillEnabled (agentId: string, slug: string, enabled: boolean): Promise<AgentSkillRow | null> {
+    const row = this.skills.get(`${agentId}:${slug}`)
+    if (!row) return Promise.resolve(null)
+    row.enabled = enabled
+    return Promise.resolve(structuredClone(row))
   }
 
   close (): Promise<void> {

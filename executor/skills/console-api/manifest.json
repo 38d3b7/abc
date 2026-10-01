@@ -1,0 +1,12 @@
+{
+  "slug": "console-api",
+  "name": "Console API",
+  "version": "1.0.0",
+  "provider": "ABC",
+  "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/console-api",
+  "licenseSpdx": "MIT",
+  "kind": "knowledge",
+  "description": "The executor API surface: routes, idempotency, intent types, pipeline states.",
+  "tools": [],
+  "referenceOnly": false
+}

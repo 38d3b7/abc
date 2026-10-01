@@ -1,0 +1,12 @@
+{
+  "slug": "arc-facts",
+  "name": "Arc facts (fixture)",
+  "version": "1.0.0",
+  "provider": "ABC",
+  "sourceUrl": "https://example.com/arc-facts/SKILL.md",
+  "licenseSpdx": "MIT",
+  "kind": "knowledge",
+  "description": "Fixture knowledge skill",
+  "tools": [],
+  "referenceOnly": false
+}

@@ -20,6 +20,8 @@ import { createPublicClient, http } from 'viem'
 import { splitUsd } from '../ledger/usd.js'
 import { enqueueAgentPrompt } from '../worker/enqueue.js'
 import type { AgentPromptJob } from '../worker/handlers.js'
+import { loadRegistry, resolveAgentSkills, SKILLS_DIR } from '../agent/skills.js'
+import { importSkill, ImportRefused, type ImportOptions, type ImportResult } from '../agent/skillImport.js'
 
 function requestHash (body: unknown): string {
   return createHash('sha256').update(JSON.stringify(body)).digest('hex')
@@ -31,9 +33,20 @@ export interface ApiDeps {
   signer: SignerAdapter
   /** Send side of the agent-prompt queue; tests inject an in-memory capture. */
   enqueuePrompt?: (job: AgentPromptJob) => Promise<void>
+  /** Skills catalog location; tests substitute a fixture dir. */
+  skillsDir?: string
+  /** Install-from-URL pipeline; tests inject a stub. */
+  importSkillFromUrl?: (opts: ImportOptions) => Promise<ImportResult>
 }
 
-export function createApp ({ store, runner, signer, enqueuePrompt = enqueueAgentPrompt }: ApiDeps): Hono {
+export function createApp ({
+  store,
+  runner,
+  signer,
+  enqueuePrompt = enqueueAgentPrompt,
+  skillsDir = SKILLS_DIR,
+  importSkillFromUrl = importSkill
+}: ApiDeps): Hono {
   const app = new Hono()
 
   /** The agent's wallet is executor-provisioned, never caller-supplied:
@@ -265,6 +278,67 @@ export function createApp ({ store, runner, signer, enqueuePrompt = enqueueAgent
     const limit = Number(c.req.query('limit') ?? 200)
     const messages = await store.listMessages(agent.id, Number.isFinite(limit) ? limit : 200)
     return c.json({ messages })
+  })
+
+  // ---- skills ----
+  // Skill writes are naturally idempotent (PK upsert / boolean set), so no
+  // Idempotency-Key header — requiring one we never store would be theater.
+  app.get('/skills', c => {
+    return c.json({ skills: loadRegistry(skillsDir) })
+  })
+
+  app.get('/agents/:id/skills', async c => {
+    const agent = await store.getAgent(c.req.param('id'))
+    if (!agent) return c.json({ error: 'not found' }, 404)
+    const installs = await store.listAgentSkills(agent.id)
+    return c.json({ skills: resolveAgentSkills(loadRegistry(skillsDir), installs) })
+  })
+
+  app.post('/agents/:id/skills', async c => {
+    const agent = await store.getAgent(c.req.param('id'))
+    if (!agent) return c.json({ error: 'not found' }, 404)
+    const body = await c.req.json<{ slug?: string }>()
+    if (!body.slug) return c.json({ error: 'slug required' }, 400)
+    const manifest = loadRegistry(skillsDir).find(s => s.slug === body.slug)
+    if (!manifest) return c.json({ error: 'not in the registry' }, 404)
+    const row = await store.installAgentSkill(agent.id, manifest.slug)
+    const [skill] = resolveAgentSkills([manifest], [row])
+    return c.json({ skill }, 201)
+  })
+
+  app.post('/agents/:id/skills/install-url', async c => {
+    const agent = await store.getAgent(c.req.param('id'))
+    if (!agent) return c.json({ error: 'not found' }, 404)
+    const body = await c.req.json<{ url?: string; licenseSpdx?: string; provider?: string; slug?: string }>()
+    if (!body.url || !body.licenseSpdx || !body.provider) {
+      return c.json({ error: 'url, licenseSpdx and provider required (license is operator-asserted from the upstream LICENSE)' }, 400)
+    }
+    let result
+    try {
+      result = await importSkillFromUrl({
+        url: body.url,
+        licenseSpdx: body.licenseSpdx,
+        provider: body.provider,
+        ...(body.slug ? { slug: body.slug } : {}),
+        skillsDir
+      })
+    } catch (e) {
+      if (e instanceof ImportRefused) {
+        return c.json({ error: e.message, findings: e.findings }, 422)
+      }
+      throw e
+    }
+    const row = await store.installAgentSkill(agent.id, result.slug)
+    const [skill] = resolveAgentSkills([result.manifest], [row])
+    return c.json({ skill, vendored: result.vendored }, 201)
+  })
+
+  app.patch('/agents/:id/skills/:slug', async c => {
+    const body = await c.req.json<{ enabled?: boolean }>()
+    if (typeof body.enabled !== 'boolean') return c.json({ error: 'enabled boolean required' }, 400)
+    const row = await store.setAgentSkillEnabled(c.req.param('id'), c.req.param('slug'), body.enabled)
+    if (!row) return c.json({ error: 'not installed' }, 404)
+    return c.json({ skill: row })
   })
 
   // ---- ledger ----

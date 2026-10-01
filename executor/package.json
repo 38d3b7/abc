@@ -10,7 +10,9 @@
     "worker": "node --import tsx --env-file-if-exists=.env src/worker/index.ts",
     "migrate": "node --import tsx --env-file-if-exists=.env src/db/migrate.ts",
     "build": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "skill-registry": "node --import tsx script/skill-registry.ts",
+    "skill-import": "node --import tsx script/skill-import.ts"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^4.0.102",

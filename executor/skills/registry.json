@@ -1,0 +1,40 @@
+{
+  "skills": [
+    {
+      "slug": "arc-chain",
+      "name": "Arc chain facts",
+      "version": "1.0.0",
+      "provider": "ABC",
+      "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/arc-chain",
+      "licenseSpdx": "MIT",
+      "kind": "knowledge",
+      "description": "Arc testnet facts: chain id, USDC units, gas, finality, reverting addresses.",
+      "tools": [],
+      "referenceOnly": false
+    },
+    {
+      "slug": "console-api",
+      "name": "Console API",
+      "version": "1.0.0",
+      "provider": "ABC",
+      "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/console-api",
+      "licenseSpdx": "MIT",
+      "kind": "knowledge",
+      "description": "The executor API surface: routes, idempotency, intent types, pipeline states.",
+      "tools": [],
+      "referenceOnly": false
+    },
+    {
+      "slug": "lge-rules",
+      "name": "LGE rules",
+      "version": "1.0.0",
+      "provider": "ABC",
+      "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/lge-rules",
+      "licenseSpdx": "MIT",
+      "kind": "knowledge",
+      "description": "The raise mechanics: deposit split, 5% vesting buy, 25/50/25 fee split, LP lock rule.",
+      "tools": [],
+      "referenceOnly": false
+    }
+  ]
+}

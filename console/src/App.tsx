@@ -12,6 +12,7 @@ import { Overview } from './sections/Overview'
 import { Token } from './sections/Token'
 import { Activity } from './sections/Activity'
 import { Automations } from './sections/Automations'
+import { Skills } from './sections/Skills'
 import { Settings } from './sections/Settings'
 import { useBalance } from 'wagmi'
 import { truncHash } from './components/HashLink'
@@ -119,6 +120,7 @@ export function App () {
         <NavLink to="/token" className={({ isActive }) => isActive ? 'current' : ''}>Token</NavLink>
         <NavLink to="/activity" className={({ isActive }) => isActive ? 'current' : ''}>Activity</NavLink>
         <NavLink to="/automations" className={({ isActive }) => isActive ? 'current' : ''}>Automations</NavLink>
+        <NavLink to="/skills" className={({ isActive }) => isActive ? 'current' : ''}>Skills</NavLink>
         <NavLink to="/settings" className={({ isActive }) => isActive ? 'current' : ''}>Settings</NavLink>
       </nav>
       <main className="content">
@@ -129,6 +131,7 @@ export function App () {
           <Route path="/token/:hookAddress" element={<Token />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/automations" element={<Automations />} />
+          <Route path="/skills" element={<Skills />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>

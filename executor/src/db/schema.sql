@@ -146,3 +146,16 @@ CREATE TABLE IF NOT EXISTS agent_messages (
   UNIQUE (agent_id, client_key)
 );
 CREATE INDEX IF NOT EXISTS agent_messages_agent_created ON agent_messages (agent_id, created_at ASC);
+
+-- Migration 0003: per-agent skill installs. The registry (executor/skills/)
+-- is global; this table records which skills an agent has installed, whether
+-- they are enabled, and per-agent config. Reference-only skills keep their
+-- content upstream — only the catalog entry is installed.
+CREATE TABLE IF NOT EXISTS agent_skills (
+  agent_id  uuid NOT NULL REFERENCES agents(id),
+  slug      text NOT NULL,
+  enabled   boolean NOT NULL DEFAULT true,
+  config    jsonb NOT NULL DEFAULT '{}'::jsonb,
+  added_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (agent_id, slug)
+);

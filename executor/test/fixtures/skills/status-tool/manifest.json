@@ -1,0 +1,12 @@
+{
+  "slug": "status-tool",
+  "name": "Status tool (fixture)",
+  "version": "1.0.0",
+  "provider": "ABC",
+  "sourceUrl": "https://example.com/status-tool/SKILL.md",
+  "licenseSpdx": "MIT",
+  "kind": "capability",
+  "description": "Fixture capability skill",
+  "tools": ["report_status"],
+  "referenceOnly": false
+}

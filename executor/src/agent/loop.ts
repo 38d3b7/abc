@@ -15,6 +15,10 @@ import type { PipelineRunner } from '../pipeline/runner.js'
 import type { QuoteSigner } from '../quotes/sign.js'
 import { INTENT_SCHEMAS } from '../intents/types.js'
 import { config } from '../config.js'
+import {
+  loadRegistry, resolveAgentSkills, knowledgeContext, capabilityTools,
+  SKILLS_DIR, type SkillManifest
+} from './skills.js'
 
 export interface AgentLoopDeps {
   store: Store
@@ -24,6 +28,10 @@ export interface AgentLoopDeps {
   quoteSigner: QuoteSigner
   /** Test seam: overrides the configured gateway model. */
   model?: LanguageModel
+  /** Skills catalog location; tests substitute a fixture dir. */
+  skillsDir?: string
+  /** Test seam: skip the registry read. */
+  registry?: SkillManifest[]
 }
 
 const SYSTEM = `You are the operator of an agentic business console (ABC) on Arc testnet.
@@ -37,7 +45,18 @@ State numbers with units and name the rule that applied.`
 
 export async function runAgentLoop (deps: AgentLoopDeps): Promise<{ text: string; intentIds: string[] }> {
   const { store, runner, agent, prompt, quoteSigner } = deps
+  const skillsDir = deps.skillsDir ?? SKILLS_DIR
   const intentIds: string[] = []
+
+  // enabled skills: knowledge into context, capability tools beside the intents
+  const installs = await store.listAgentSkills(agent.id)
+  const skills = resolveAgentSkills(deps.registry ?? loadRegistry(skillsDir), installs)
+  const knowledge = await knowledgeContext(skills, skillsDir)
+  const skillTools = await capabilityTools(
+    skills,
+    { store, runner, agent, quoteSigner, config: {} },
+    skillsDir
+  )
 
   const tools = Object.fromEntries(
     Object.entries(INTENT_SCHEMAS).map(([type, schema]) => [
@@ -70,9 +89,9 @@ export async function runAgentLoop (deps: AgentLoopDeps): Promise<{ text: string
 
   const result = await generateText({
     model: deps.model ?? config.agentModel,
-    system: SYSTEM,
+    system: knowledge ? `${SYSTEM}\n\n${knowledge}` : SYSTEM,
     prompt: `Agent "${agent.name}" (id ${agent.id}).\nToken: ${agent.tokenAddress ?? 'not launched'}\nHook: ${agent.hookAddress ?? 'n/a'}\n\nTask: ${prompt}`,
-    tools,
+    tools: { ...tools, ...skillTools },
     stopWhen: stepCountIs(8)
   })
 

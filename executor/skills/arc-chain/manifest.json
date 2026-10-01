@@ -1,0 +1,12 @@
+{
+  "slug": "arc-chain",
+  "name": "Arc chain facts",
+  "version": "1.0.0",
+  "provider": "ABC",
+  "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/arc-chain",
+  "licenseSpdx": "MIT",
+  "kind": "knowledge",
+  "description": "Arc testnet facts: chain id, USDC units, gas, finality, reverting addresses.",
+  "tools": [],
+  "referenceOnly": false
+}

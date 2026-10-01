@@ -109,6 +109,14 @@ export interface NewCampaign {
   feeBps: number
 }
 
+export interface AgentSkillRow {
+  agentId: string
+  slug: string
+  enabled: boolean
+  config: Record<string, unknown>
+  addedAt: string
+}
+
 export interface MessageRow {
   id: string
   agentId: string
@@ -174,6 +182,12 @@ export interface Store {
   completeMessage (id: string, patch: { text: string; intentIds: string[] }): Promise<void>
   /** pending -> failed with the error text. No-op otherwise. */
   failMessage (id: string, error: string): Promise<void>
+
+  listAgentSkills (agentId: string): Promise<AgentSkillRow[]>
+  /** Install is idempotent per (agent, slug): an existing row is returned unchanged. */
+  installAgentSkill (agentId: string, slug: string, config?: Record<string, unknown>): Promise<AgentSkillRow>
+  /** Returns the updated row, or null when the skill is not installed. */
+  setAgentSkillEnabled (agentId: string, slug: string, enabled: boolean): Promise<AgentSkillRow | null>
 
   close (): Promise<void>
 }
