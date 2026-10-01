@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {stdStorage, StdStorage} from "forge-std/StdStorage.sol";
@@ -26,6 +26,7 @@ import {LGECalculationsLibrary} from "../src/libraries/LGECalculationsLibrary.so
 import {HookMiner} from "../src/libraries/HookMiner.sol";
 import {VestingVault} from "../src/VestingVault.sol";
 import {InferenceEscrow} from "../src/InferenceEscrow.sol";
+import {HookCreationCode} from "../src/HookCreationCode.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -53,6 +54,7 @@ contract LGEHookTest is Test, PosmTestSetup {
     LGEManager lgeManager;
     VestingVault vestingVault;
     InferenceEscrow inferenceEscrow;
+    HookCreationCode hookCreationCode;
 
     address owner = address(0xABCD);
     address tokenAdmin = address(0x1234);
@@ -91,13 +93,15 @@ contract LGEHookTest is Test, PosmTestSetup {
 
         vestingVault = new VestingVault();
         inferenceEscrow = new InferenceEscrow(owner);
+        hookCreationCode = new HookCreationCode();
         lgeManager = new LGEManager(
             address(manager),
             address(lpm),
             address(permit2),
             address(vestingVault),
             address(inferenceEscrow),
-            owner
+            owner,
+            address(hookCreationCode)
         );
 
         vm.prank(tokenCreator);

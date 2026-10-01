@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
 import {LGEManager} from "../src/LGEManager.sol";
+import {HookCreationCode} from "../src/HookCreationCode.sol";
 import {HookMinerWrapper} from "../src/utils/HookMinerWrapper.sol";
 import {VestingVault} from "../src/VestingVault.sol";
 import {InferenceEscrow} from "../src/InferenceEscrow.sol";
@@ -43,13 +44,15 @@ contract Deploy is Script {
         HookMinerWrapper hookMiner = new HookMinerWrapper();
         VestingVault vestingVault = new VestingVault();
         InferenceEscrow inferenceEscrow = new InferenceEscrow(protocol);
+        HookCreationCode hookCreationCode = new HookCreationCode();
         LGEManager manager = new LGEManager(
             poolManager,
             positionManager,
             permit2,
             address(vestingVault),
             address(inferenceEscrow),
-            protocol
+            protocol,
+            address(hookCreationCode)
         );
 
         vm.stopBroadcast();
@@ -57,6 +60,7 @@ contract Deploy is Script {
         console.log("HookMinerWrapper:", address(hookMiner));
         console.log("VestingVault:", address(vestingVault));
         console.log("InferenceEscrow:", address(inferenceEscrow));
+        console.log("HookCreationCode:", address(hookCreationCode));
         console.log("LGEManager:", address(manager));
         console.log("  poolManager:", poolManager);
         console.log("  positionManager:", positionManager);

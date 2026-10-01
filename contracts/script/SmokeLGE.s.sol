@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 import {Script, console} from "forge-std/Script.sol";
 import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";

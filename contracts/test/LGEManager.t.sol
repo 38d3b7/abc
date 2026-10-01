@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
@@ -10,6 +10,7 @@ import {LGEHook} from "../src/hooks/LGEHook.sol";
 import {LGEToken} from "../src/LGEToken.sol";
 import {VestingVault} from "../src/VestingVault.sol";
 import {InferenceEscrow} from "../src/InferenceEscrow.sol";
+import {HookCreationCode} from "../src/HookCreationCode.sol";
 import {HookMiner} from "../src/libraries/HookMiner.sol";
 
 contract LGEManagerTest is Test, Deployers {
@@ -27,6 +28,7 @@ contract LGEManagerTest is Test, Deployers {
     LGEManager lgeManager;
     VestingVault vestingVault;
     InferenceEscrow inferenceEscrow;
+    HookCreationCode hookCreationCode;
 
     address owner = address(0xABCD);
     address protocol = address(0xBEEF);
@@ -41,6 +43,7 @@ contract LGEManagerTest is Test, Deployers {
 
         vestingVault = new VestingVault();
         inferenceEscrow = new InferenceEscrow(owner);
+        hookCreationCode = new HookCreationCode();
 
         lgeManager = new LGEManager(
             address(manager),
@@ -48,7 +51,8 @@ contract LGEManagerTest is Test, Deployers {
             address(this),
             address(vestingVault),
             address(inferenceEscrow),
-            protocol
+            protocol,
+            address(hookCreationCode)
         );
     }
 

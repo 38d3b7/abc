@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 /// @title SafeNativeSender
 /// @notice Native-token (on Arc: 18-decimal USDC) sends that never wedge the caller.

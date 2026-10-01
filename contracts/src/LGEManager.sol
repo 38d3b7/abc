@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 
 import {LGEHook} from "./hooks/LGEHook.sol";
 import {LGEToken} from "./LGEToken.sol";
+
+interface IHookCreationCode {
+    function creationCode() external view returns (bytes memory);
+}
 
 contract LGEManager {
     address public immutable _poolManager;
@@ -13,6 +17,7 @@ contract LGEManager {
     address public immutable _vestingVault;
     address public immutable _inferenceEscrow;
     address public immutable _protocol;
+    address public immutable _hookCreationCode;
 
     uint160 public immutable FLAGS =
         uint160(
@@ -58,13 +63,16 @@ contract LGEManager {
         address indexed hookAddress
     );
 
+    error HookDeployFailed();
+
     constructor(
         address poolManager_,
         address positionManager_,
         address permit2_,
         address vestingVault_,
         address inferenceEscrow_,
-        address protocol_
+        address protocol_,
+        address hookCreationCode_
     ) {
         _poolManager = poolManager_;
         _positionManager = positionManager_;
@@ -72,6 +80,7 @@ contract LGEManager {
         _vestingVault = vestingVault_;
         _inferenceEscrow = inferenceEscrow_;
         _protocol = protocol_;
+        _hookCreationCode = hookCreationCode_;
     }
 
     function deployToken(
@@ -106,8 +115,12 @@ contract LGEManager {
         address agent,
         address token
     ) internal returns (address hookAddress) {
-        hookAddress = address(
-            new LGEHook{salt: config.hookSalt}(
+        // The hook's creation bytecode lives in HookCreationCode (see that
+        // contract for why). The manager is still the CREATE2 deployer, so
+        // off-chain salt mining is unaffected.
+        bytes memory initCode = abi.encodePacked(
+            IHookCreationCode(_hookCreationCode).creationCode(),
+            abi.encode(
                 LGEHook.HookParams({
                     poolManager: _poolManager,
                     positionManager: _positionManager,
@@ -128,5 +141,10 @@ contract LGEManager {
                 })
             )
         );
+        bytes32 salt = config.hookSalt;
+        assembly {
+            hookAddress := create2(0, add(initCode, 0x20), mload(initCode), salt)
+        }
+        if (hookAddress == address(0)) revert HookDeployFailed();
     }
 }

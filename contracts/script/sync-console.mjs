@@ -23,7 +23,7 @@ for (const tx of broadcast.transactions) {
     deployed[tx.contractName] = tx.contractAddress
   }
 }
-for (const name of ['HookMinerWrapper', 'VestingVault', 'InferenceEscrow', 'LGEManager']) {
+for (const name of ['HookMinerWrapper', 'VestingVault', 'InferenceEscrow', 'HookCreationCode', 'LGEManager']) {
   if (!deployed[name]) throw new Error(`${name} not found in broadcast run`)
 }
 
@@ -41,6 +41,7 @@ const addresses = {
   hookMiner: deployed.HookMinerWrapper,
   vestingVault: deployed.VestingVault,
   inferenceEscrow: deployed.InferenceEscrow,
+  hookCreationCode: deployed.HookCreationCode,
   lgeManager: deployed.LGEManager,
   calculationsLibrary: env.LIBRARY_ADDRESS || process.env.LIBRARY_ADDRESS || ''
 }
