@@ -20,6 +20,7 @@ export class MemoryStore implements Store {
   private ledger: Array<LedgerEntry & { id: number }> = []
   private automations = new Map<string, AutomationRow>()
   private campaigns: NewCampaign[] = []
+  private wallets = new Map<string, { address: string; provider: string; providerRef: string }>()
 
   createAgent (name: string, slug: string): Promise<AgentRow> {
     const row: AgentRow = {
@@ -49,6 +50,27 @@ export class MemoryStore implements Store {
     if (!r) return Promise.resolve(null)
     r.policy = structuredClone(policy)
     return Promise.resolve(structuredClone(r))
+  }
+
+  registerWallet (agentId: string, address: string, provider: string, providerRef: string): Promise<void> {
+    this.wallets.set(`${agentId}:${provider}`, { address, provider, providerRef })
+    const a = this.agents.get(agentId)
+    if (a) a.walletAddress = address
+    return Promise.resolve()
+  }
+
+  agentWalletAddress (agentId: string): Promise<string | null> {
+    for (const [k, w] of this.wallets) {
+      if (k.startsWith(`${agentId}:`)) return Promise.resolve(w.address)
+    }
+    return Promise.resolve(null)
+  }
+
+  agentWallet (agentId: string): Promise<{ address: string; provider: string; providerRef: string } | null> {
+    for (const [k, w] of this.wallets) {
+      if (k.startsWith(`${agentId}:`)) return Promise.resolve({ address: w.address, provider: w.provider, providerRef: w.providerRef })
+    }
+    return Promise.resolve(null)
   }
 
   registerCampaign (c: NewCampaign): Promise<void> {

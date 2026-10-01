@@ -49,7 +49,7 @@ export class PolicyViolation extends Error {
 /** The slice of viem's PublicClient the runner uses (fakeable in tests). */
 export interface ChainReader {
   estimateGas (args: { to: `0x${string}`; data?: `0x${string}`; value?: bigint; account?: `0x${string}` }): Promise<bigint>
-  call (args: { to: `0x${string}`; data?: `0x${string}`; value?: bigint }): Promise<{ data?: `0x${string}` | undefined }>
+  call (args: { to: `0x${string}`; data?: `0x${string}`; value?: bigint; account?: `0x${string}` }): Promise<{ data?: `0x${string}` | undefined }>
   waitForTransactionReceipt (args: { hash: `0x${string}`; timeout?: number }): Promise<{ status: 'success' | 'reverted'; transactionHash: string }>
   getBalance (args: { address: `0x${string}` }): Promise<bigint>
 }
@@ -207,7 +207,9 @@ export class PipelineRunner {
     let tx: FinalTx
     try {
       tx = buildTx(intent, this.d.chainId)
-      await this.d.chain.call({ to: tx.to, data: tx.data, value: tx.value })
+      // Arc's native USDC reverts when address(0) is a party, so the
+      // simulation must run as the wallet (eth_call defaults to address(0)).
+      await this.d.chain.call({ to: tx.to, data: tx.data, value: tx.value, account: row.walletAddress as `0x${string}` })
     } catch (e) {
       return this.handleFailure(row, e as Error)
     }
@@ -226,7 +228,11 @@ export class PipelineRunner {
 
     // sign + broadcast (Circle: one call covers both)
     await this.advance(await this.mustGet(row.id), 'SIGNED', 'handed to signer')
-    const result = await this.d.signer.send(tx, { agentId: row.agentId })
+    const wallet = await this.d.store.agentWallet(row.agentId)
+    const result = await this.d.signer.send(tx, {
+      agentId: row.agentId,
+      ...(wallet?.providerRef ? { providerRef: wallet.providerRef } : {})
+    })
     row = await this.mustGet(row.id)
     if (!isSent(result)) {
       await this.advance(row, 'DROPPED', `signer refusal: ${result.reason}`, { error: result.reason })

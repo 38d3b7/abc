@@ -340,12 +340,27 @@ export class PgStore implements Store {
     await this.pool.query('UPDATE automations SET last_fired_at = now() WHERE id = $1', [id])
   }
 
+  async registerWallet (agentId: string, address: string, provider: 'circle_sca' | 'local_dev' | 'agent_stack', providerRef: string): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO wallets (agent_id, address, provider, provider_ref) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (agent_id, provider) DO UPDATE SET address = EXCLUDED.address, provider_ref = EXCLUDED.provider_ref`,
+      [agentId, address, provider, providerRef]
+    )
+  }
+
   async agentWalletAddress (agentId: string): Promise<string | null> {
+    const w = await this.agentWallet(agentId)
+    return w?.address ?? null
+  }
+
+  async agentWallet (agentId: string): Promise<{ address: string; provider: string; providerRef: string } | null> {
     const res = await this.pool.query(
-      'SELECT address FROM wallets WHERE agent_id = $1 ORDER BY created_at ASC LIMIT 1',
+      'SELECT address, provider, provider_ref FROM wallets WHERE agent_id = $1 ORDER BY created_at ASC LIMIT 1',
       [agentId]
     )
-    return (res.rows[0]?.address as string | undefined) ?? null
+    const r = res.rows[0]
+    if (!r?.address) return null
+    return { address: r.address as string, provider: r.provider as string, providerRef: (r.provider_ref as string | null) ?? '' }
   }
 
   async listCampaignHooks (): Promise<string[]> {

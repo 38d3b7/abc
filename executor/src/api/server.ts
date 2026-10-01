@@ -12,6 +12,7 @@ import type { Store } from '../db/store.js'
 import { PgStore } from '../db/pg.js'
 import { PipelineRunner } from '../pipeline/runner.js'
 import { createSigner } from '../signer/index.js'
+import type { SignerAdapter } from '../signer/types.js'
 import { QuoteSigner } from '../quotes/sign.js'
 import { config, arcTestnet } from '../config.js'
 import { createPublicClient, http } from 'viem'
@@ -24,10 +25,28 @@ function requestHash (body: unknown): string {
 export interface ApiDeps {
   store: Store
   runner: PipelineRunner
+  signer: SignerAdapter
 }
 
-export function createApp ({ store, runner }: ApiDeps): Hono {
+export function createApp ({ store, runner, signer }: ApiDeps): Hono {
   const app = new Hono()
+
+  /** The agent's wallet is executor-provisioned, never caller-supplied:
+   *  resolve from the wallets table, provisioning lazily on first use. */
+  async function resolveWallet (agentId: string, requested?: string): Promise<{ wallet: string } | { error: string; status: 400 | 404 }> {
+    const agent = await store.getAgent(agentId)
+    if (!agent) return { error: 'not found', status: 404 }
+    let wallet = await store.agentWalletAddress(agentId)
+    if (!wallet) {
+      const w = await signer.ensureWallet(agentId)
+      await store.registerWallet(agentId, w.address, signer.name as 'circle_sca' | 'local_dev' | 'agent_stack', w.providerRef)
+      wallet = w.address
+    }
+    if (requested && requested.toLowerCase() !== wallet.toLowerCase()) {
+      return { error: `walletAddress mismatch: agent wallet is ${wallet}`, status: 400 }
+    }
+    return { wallet }
+  }
 
   app.use('*', async (c, next) => {
     if (c.req.path === '/health') return next()
@@ -45,7 +64,9 @@ export function createApp ({ store, runner }: ApiDeps): Hono {
     if (!body.name) return c.json({ error: 'name required' }, 400)
     const slug = body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     const agent = await store.createAgent(body.name, slug)
-    return c.json({ agent }, 201)
+    const w = await signer.ensureWallet(agent.id)
+    await store.registerWallet(agent.id, w.address, signer.name as 'circle_sca' | 'local_dev' | 'agent_stack', w.providerRef)
+    return c.json({ agent: { ...agent, walletAddress: w.address } }, 201)
   })
 
   app.get('/agents', async c => {
@@ -125,18 +146,21 @@ export function createApp ({ store, runner }: ApiDeps): Hono {
     const agentId = c.req.param('id')
     const key = c.req.header('Idempotency-Key')
     if (!key) return c.json({ error: 'Idempotency-Key header required' }, 400)
-    const body = await c.req.json<{ walletAddress: string; type: string; params: Record<string, unknown>; rationale?: { text: string; signature: string } }>()
-    const hash = requestHash({ agentId, ...body })
+    const body = await c.req.json<{ walletAddress?: string; type: string; params: Record<string, unknown>; rationale?: { text: string; signature: string } }>()
+    const resolved = await resolveWallet(agentId, body.walletAddress)
+    if ('error' in resolved) return c.json({ error: resolved.error }, resolved.status)
+    const wallet = resolved.wallet
+    const hash = requestHash({ agentId, ...body, walletAddress: wallet })
 
-    const existing = await store.getIdempotency(key, body.walletAddress)
+    const existing = await store.getIdempotency(key, wallet)
     if (existing) {
       if (existing.requestHash !== hash) return c.json({ error: 'idempotency key reused with different request' }, 409)
       const intent = await store.getIntent(existing.intentId)
       return c.json({ intent, duplicate: true }, 200, { 'X-Idempotent-Replay': 'true' })
     }
 
-    const intent = await runner.runIntent(agentId, body.walletAddress, body.type, body.params, body.rationale)
-    await store.insertIdempotency({ key, walletAddress: body.walletAddress, requestHash: hash, intentId: intent.id })
+    const intent = await runner.runIntent(agentId, wallet, body.type, body.params, body.rationale)
+    await store.insertIdempotency({ key, walletAddress: wallet, requestHash: hash, intentId: intent.id })
     return c.json({ intent }, 201)
   })
 
@@ -163,8 +187,10 @@ export function createApp ({ store, runner }: ApiDeps): Hono {
 
   // ---- quotes (two-step flow) ----
   app.post('/agents/:id/quotes', async c => {
-    const body = await c.req.json<{ walletAddress: string; type: string; params: Record<string, unknown> }>()
-    const res = await runner.quoteIntent(c.req.param('id'), body.walletAddress, body.type, body.params)
+    const body = await c.req.json<{ walletAddress?: string; type: string; params: Record<string, unknown> }>()
+    const resolved = await resolveWallet(c.req.param('id'), body.walletAddress)
+    if ('error' in resolved) return c.json({ error: resolved.error }, resolved.status)
+    const res = await runner.quoteIntent(c.req.param('id'), resolved.wallet, body.type, body.params)
     if (!res.quote) return c.json({ intent: res.intent, error: 'unpriceable — dropped' }, 422)
     return c.json(res, 201)
   })
@@ -198,14 +224,15 @@ export async function serveApi (port = 8787): Promise<void> {
   const store = new PgStore(config.databaseUrl)
   const quoteSigner = await QuoteSigner.create(config.quoteSecret || undefined)
   const chain = createPublicClient({ chain: arcTestnet, transport: http() })
+  const signer = createSigner()
   const runner = new PipelineRunner({
     store,
-    signer: createSigner(),
+    signer,
     chain,
     quoteSigner,
     chainId: arcTestnet.id
   })
-  const app = createApp({ store, runner })
+  const app = createApp({ store, runner, signer })
   serve({ fetch: app.fetch, port })
   console.log(`[api] executor listening on :${port}`)
 }

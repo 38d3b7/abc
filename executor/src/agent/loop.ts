@@ -44,8 +44,8 @@ export async function runAgentLoop (deps: AgentLoopDeps): Promise<{ text: string
         }),
         execute: async (args) => {
           const { rationale, ...params } = args as { rationale: string } & Record<string, unknown>
-          const wallet = await (store as import('../db/pg.js').PgStore).agentWalletAddress?.(agent.id)
-            ?? agent.hookAddress ?? ''
+          const wallet = await store.agentWalletAddress(agent.id)
+          if (!wallet) throw new Error('agent has no provisioned wallet')
           const rationaleSig = await quoteSigner.sign({
             quoteId: crypto.randomUUID(),
             wallet, chainId: 0, type: 'rationale',

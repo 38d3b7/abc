@@ -114,6 +114,11 @@ export interface Store {
   getAgent (id: string): Promise<AgentRow | null>
   listAgents (): Promise<AgentRow[]>
   updateAgentPolicy (id: string, policy: Record<string, unknown>): Promise<AgentRow | null>
+  /** Record the provisioned wallet for an agent (idempotent per provider). */
+  registerWallet (agentId: string, address: string, provider: 'circle_sca' | 'local_dev' | 'agent_stack', providerRef: string): Promise<void>
+  agentWalletAddress (agentId: string): Promise<string | null>
+  /** Full wallet row — the signer needs providerRef (e.g. Circle wallet id). */
+  agentWallet (agentId: string): Promise<{ address: string; provider: string; providerRef: string } | null>
   registerCampaign (c: NewCampaign): Promise<void>
   listAutomations (agentId: string): Promise<AutomationRow[]>
   createAutomation (a: NewAutomation): Promise<AutomationRow>
