@@ -1,0 +1,83 @@
+/* ABC console design tokens — "audit ledger, not dashboard".
+   Everything flat; hierarchy from fine rules, spacing, alignment.
+   See CONSOLE.md. */
+
+:root {
+  /* surfaces */
+  --paper: #fafaf8;
+  --surface: #ffffff;
+  --tint: #f4f4f1;        /* header bands, alternating rows */
+  --tint-2: #eeeEE9;      /* hover */
+
+  /* ink */
+  --ink: #17171c;
+  --ink-2: #4b4b55;       /* secondary */
+  --ink-3: #8a8a93;       /* labels, captions */
+
+  /* rules */
+  --rule: #e4e3de;
+  --rule-strong: #cfcfc7;
+
+  /* the one accent: desaturated steel blue */
+  --accent: #2e5a8f;
+  --accent-ink: #22456e;
+  --accent-soft: #edf2f8;
+
+  /* status: pale tinted background + light border + darker text */
+  --ok-bg: #edf5ee;   --ok-border: #cfdfd2;   --ok-ink: #2e6b3e;
+  --warn-bg: #faf3e2; --warn-border: #e7dab9; --warn-ink: #8a6413;
+  --bad-bg: #f9ecea;  --bad-border: #e7cdca;  --bad-ink: #a03a30;
+
+  /* type */
+  --sans: "Inter", "Helvetica Neue", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "SF Mono", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+
+  /* geometry */
+  --nav-w: 172px;
+  --topbar-h: 44px;
+  --radius: 2px;
+  --pad: 16px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* machine-generated data is always mono with tabular figures */
+.mono, td.num, .stat-value, code {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 12px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); }
+
+/* the label-over-datum rhythm */
+.label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+::selection { background: var(--accent-soft); }

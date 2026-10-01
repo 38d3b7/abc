@@ -43,7 +43,13 @@ const addresses = {
   inferenceEscrow: deployed.InferenceEscrow,
   hookCreationCode: deployed.HookCreationCode,
   lgeManager: deployed.LGEManager,
-  calculationsLibrary: env.LIBRARY_ADDRESS || process.env.LIBRARY_ADDRESS || ''
+  calculationsLibrary: env.LIBRARY_ADDRESS || process.env.LIBRARY_ADDRESS || '',
+  // Consoles/indexers scan TokenCreated from here, not from genesis.
+  // LGEManager is the last tx of Deploy.s.sol; receipt blockNumbers are hex.
+  managerDeployBlock: (() => {
+    const r = broadcast.receipts?.[broadcast.receipts.length - 1]?.blockNumber
+    return r ? Number(BigInt(r)) : 0
+  })()
 }
 mkdirSync(`${ROOT}deployments`, { recursive: true })
 writeFileSync(`${ROOT}deployments/${CHAIN_ID}.json`, JSON.stringify(addresses, null, 2) + '\n')

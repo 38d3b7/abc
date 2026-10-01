@@ -7,7 +7,8 @@
 import { randomUUID } from 'node:crypto'
 import type { State, StateChange } from '../pipeline/states.js'
 import type {
-  Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow
+  Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow,
+  AutomationRow, NewAutomation, NewCampaign
 } from './store.js'
 import { joinUsd } from '../ledger/usd.js'
 
@@ -17,11 +18,13 @@ export class MemoryStore implements Store {
   private idem = new Map<string, IdempotencyRecord>()
   private quotes = new Map<string, QuoteRow>()
   private ledger: Array<LedgerEntry & { id: number }> = []
+  private automations = new Map<string, AutomationRow>()
+  private campaigns: NewCampaign[] = []
 
   createAgent (name: string, slug: string): Promise<AgentRow> {
     const row: AgentRow = {
       id: randomUUID(), name, slug,
-      tokenAddress: null, hookAddress: null, policy: {},
+      tokenAddress: null, hookAddress: null, walletAddress: null, policy: {},
       createdAt: new Date().toISOString()
     }
     this.agents.set(row.id, row)
@@ -31,6 +34,61 @@ export class MemoryStore implements Store {
   getAgent (id: string): Promise<AgentRow | null> {
     const r = this.agents.get(id)
     return Promise.resolve(r ? structuredClone(r) : null)
+  }
+
+  listAgents (): Promise<AgentRow[]> {
+    return Promise.resolve(
+      [...this.agents.values()]
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .map(a => structuredClone(a))
+    )
+  }
+
+  updateAgentPolicy (id: string, policy: Record<string, unknown>): Promise<AgentRow | null> {
+    const r = this.agents.get(id)
+    if (!r) return Promise.resolve(null)
+    r.policy = structuredClone(policy)
+    return Promise.resolve(structuredClone(r))
+  }
+
+  registerCampaign (c: NewCampaign): Promise<void> {
+    this.campaigns.push(structuredClone(c))
+    const a = this.agents.get(c.agentId)
+    if (a) {
+      a.tokenAddress = c.tokenAddress
+      a.hookAddress = c.hookAddress
+    }
+    return Promise.resolve()
+  }
+
+  listAutomations (agentId: string): Promise<AutomationRow[]> {
+    return Promise.resolve(
+      [...this.automations.values()]
+        .filter(a => a.agentId === agentId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map(a => structuredClone(a))
+    )
+  }
+
+  createAutomation (a: NewAutomation): Promise<AutomationRow> {
+    const row: AutomationRow = {
+      id: randomUUID(),
+      agentId: a.agentId,
+      kind: a.kind,
+      spec: structuredClone(a.spec),
+      intentTemplate: structuredClone(a.intentTemplate),
+      active: true,
+      lastFiredAt: null,
+      createdAt: new Date().toISOString()
+    }
+    this.automations.set(row.id, row)
+    return Promise.resolve(structuredClone(row))
+  }
+
+  setAutomationActive (id: string, active: boolean): Promise<void> {
+    const r = this.automations.get(id)
+    if (r) r.active = active
+    return Promise.resolve()
   }
 
   createIntent (n: NewIntent): Promise<IntentRow> {

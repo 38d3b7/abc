@@ -71,13 +71,53 @@ export interface AgentRow {
   slug: string
   tokenAddress: string | null
   hookAddress: string | null
+  /** First provisioned wallet address, when one exists (wallets table). */
+  walletAddress: string | null
   policy: Record<string, unknown>
   createdAt: string
+}
+
+export interface AutomationRow {
+  id: string
+  agentId: string
+  kind: 'cron' | 'price' | 'fee_accrued'
+  spec: Record<string, unknown>
+  intentTemplate: Record<string, unknown>
+  active: boolean
+  lastFiredAt: string | null
+  createdAt: string
+}
+
+export interface NewAutomation {
+  agentId: string
+  kind: AutomationRow['kind']
+  spec: Record<string, unknown>
+  intentTemplate: Record<string, unknown>
+}
+
+export interface NewCampaign {
+  agentId: string
+  tokenAddress: string
+  hookAddress: string
+  name?: string
+  symbol?: string
+  cap: string
+  startBlock: string
+  streamBlocks: string
+  minTokenPrice: string
+  maxTokenPrice: string
+  feeBps: number
 }
 
 export interface Store {
   createAgent (name: string, slug: string): Promise<AgentRow>
   getAgent (id: string): Promise<AgentRow | null>
+  listAgents (): Promise<AgentRow[]>
+  updateAgentPolicy (id: string, policy: Record<string, unknown>): Promise<AgentRow | null>
+  registerCampaign (c: NewCampaign): Promise<void>
+  listAutomations (agentId: string): Promise<AutomationRow[]>
+  createAutomation (a: NewAutomation): Promise<AutomationRow>
+  setAutomationActive (id: string, active: boolean): Promise<void>
 
   createIntent (n: NewIntent): Promise<IntentRow>
   getIntent (id: string): Promise<IntentRow | null>

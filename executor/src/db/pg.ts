@@ -5,9 +5,34 @@
 import pg from 'pg'
 import type { State, StateChange } from '../pipeline/states.js'
 import type {
-  Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow
+  Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow,
+  AutomationRow, NewAutomation, NewCampaign
 } from './store.js'
 import { joinUsd, partsFromRow } from '../ledger/usd.js'
+
+interface AutomationDbRow {
+  id: string
+  agent_id: string
+  kind: AutomationRow['kind']
+  spec: Record<string, unknown>
+  intent_template: Record<string, unknown>
+  active: boolean
+  last_fired_at: Date | null
+  created_at: Date
+}
+
+function toAutomation (r: AutomationDbRow): AutomationRow {
+  return {
+    id: r.id,
+    agentId: r.agent_id,
+    kind: r.kind,
+    spec: r.spec,
+    intentTemplate: r.intent_template,
+    active: r.active,
+    lastFiredAt: r.last_fired_at?.toISOString() ?? null,
+    createdAt: r.created_at.toISOString()
+  }
+}
 
 interface IntentDbRow {
   id: string
@@ -81,14 +106,20 @@ interface AgentDbRow {
   slug: string
   token_address: string | null
   hook_address: string | null
+  wallet_address: string | null
   policy: Record<string, unknown>
   created_at: Date
 }
+
+const AGENT_SELECT = `
+  SELECT a.*, (SELECT w.address FROM wallets w WHERE w.agent_id = a.id ORDER BY w.created_at ASC LIMIT 1) AS wallet_address
+  FROM agents a`
 
 function toAgent (r: AgentDbRow): AgentRow {
   return {
     id: r.id, name: r.name, slug: r.slug,
     tokenAddress: r.token_address, hookAddress: r.hook_address,
+    walletAddress: r.wallet_address,
     policy: r.policy, createdAt: r.created_at.toISOString()
   }
 }
@@ -102,15 +133,63 @@ export class PgStore implements Store {
 
   async createAgent (name: string, slug: string): Promise<AgentRow> {
     const res = await this.pool.query<AgentDbRow>(
-      'INSERT INTO agents (name, slug) VALUES ($1, $2) RETURNING *',
+      `INSERT INTO agents (name, slug) VALUES ($1, $2) RETURNING *, NULL AS wallet_address`,
       [name, slug]
     )
     return toAgent(res.rows[0]!)
   }
 
   async getAgent (id: string): Promise<AgentRow | null> {
-    const res = await this.pool.query<AgentDbRow>('SELECT * FROM agents WHERE id = $1', [id])
+    const res = await this.pool.query<AgentDbRow>(`${AGENT_SELECT} WHERE a.id = $1`, [id])
     return res.rows[0] ? toAgent(res.rows[0]) : null
+  }
+
+  async listAgents (): Promise<AgentRow[]> {
+    const res = await this.pool.query<AgentDbRow>(`${AGENT_SELECT} ORDER BY a.created_at ASC`)
+    return res.rows.map(toAgent)
+  }
+
+  async updateAgentPolicy (id: string, policy: Record<string, unknown>): Promise<AgentRow | null> {
+    const res = await this.pool.query<AgentDbRow>(
+      'UPDATE agents SET policy = $2 WHERE id = $1 RETURNING *, NULL AS wallet_address',
+      [id, JSON.stringify(policy)]
+    )
+    return res.rows[0] ? toAgent(res.rows[0]) : null
+  }
+
+  async registerCampaign (c: NewCampaign): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO campaigns
+         (agent_id, token_address, hook_address, name, symbol, cap, start_block, stream_blocks, min_token_price, max_token_price, fee_bps)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       ON CONFLICT (hook_address) DO NOTHING`,
+      [c.agentId, c.tokenAddress, c.hookAddress, c.name ?? null, c.symbol ?? null,
+       c.cap, c.startBlock, c.streamBlocks, c.minTokenPrice, c.maxTokenPrice, c.feeBps]
+    )
+    await this.pool.query(
+      'UPDATE agents SET token_address = $2, hook_address = $3 WHERE id = $1',
+      [c.agentId, c.tokenAddress, c.hookAddress]
+    )
+  }
+
+  async listAutomations (agentId: string): Promise<AutomationRow[]> {
+    const res = await this.pool.query(
+      'SELECT * FROM automations WHERE agent_id = $1 ORDER BY created_at DESC',
+      [agentId]
+    )
+    return res.rows.map(toAutomation)
+  }
+
+  async createAutomation (a: NewAutomation): Promise<AutomationRow> {
+    const res = await this.pool.query(
+      `INSERT INTO automations (agent_id, kind, spec, intent_template) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [a.agentId, a.kind, JSON.stringify(a.spec), JSON.stringify(a.intentTemplate)]
+    )
+    return toAutomation(res.rows[0])
+  }
+
+  async setAutomationActive (id: string, active: boolean): Promise<void> {
+    await this.pool.query('UPDATE automations SET active = $2 WHERE id = $1', [id, active])
   }
 
   async createIntent (n: NewIntent): Promise<IntentRow> {

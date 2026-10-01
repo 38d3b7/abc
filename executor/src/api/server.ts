@@ -41,16 +41,83 @@ export function createApp ({ store, runner }: ApiDeps): Hono {
 
   // ---- agents ----
   app.post('/agents', async c => {
-    const body = await c.req.json<{ name: string; slug: string }>()
-    if (!body.name || !body.slug) return c.json({ error: 'name and slug required' }, 400)
-    const agent = await store.createAgent(body.name, body.slug)
+    const body = await c.req.json<{ name: string; slug?: string }>()
+    if (!body.name) return c.json({ error: 'name required' }, 400)
+    const slug = body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const agent = await store.createAgent(body.name, slug)
     return c.json({ agent }, 201)
+  })
+
+  app.get('/agents', async c => {
+    const agents = await store.listAgents()
+    return c.json({ agents })
   })
 
   app.get('/agents/:id', async c => {
     const agent = await store.getAgent(c.req.param('id'))
     if (!agent) return c.json({ error: 'not found' }, 404)
     return c.json({ agent })
+  })
+
+  app.patch('/agents/:id', async c => {
+    const body = await c.req.json<{ policy: Record<string, unknown> }>()
+    if (!body.policy || typeof body.policy !== 'object') return c.json({ error: 'policy object required' }, 400)
+    const agent = await store.updateAgentPolicy(c.req.param('id'), body.policy)
+    if (!agent) return c.json({ error: 'not found' }, 404)
+    return c.json({ agent })
+  })
+
+  // ---- campaigns (launch registration; the indexer watches these hooks) ----
+  app.post('/agents/:id/campaigns', async c => {
+    const key = c.req.header('Idempotency-Key')
+    if (!key) return c.json({ error: 'Idempotency-Key header required' }, 400)
+    const body = await c.req.json<{
+      tokenAddress: string; hookAddress: string; name?: string; symbol?: string
+      cap: string; startBlock: string; streamBlocks: string
+      minTokenPrice: string; maxTokenPrice: string; feeBps: number
+    }>()
+    if (!body.tokenAddress || !body.hookAddress) return c.json({ error: 'tokenAddress and hookAddress required' }, 400)
+    await store.registerCampaign({
+      agentId: c.req.param('id'),
+      tokenAddress: body.tokenAddress,
+      hookAddress: body.hookAddress,
+      ...(body.name !== undefined ? { name: body.name } : {}),
+      ...(body.symbol !== undefined ? { symbol: body.symbol } : {}),
+      cap: body.cap,
+      startBlock: body.startBlock,
+      streamBlocks: body.streamBlocks,
+      minTokenPrice: body.minTokenPrice,
+      maxTokenPrice: body.maxTokenPrice,
+      feeBps: body.feeBps
+    })
+    return c.json({ ok: true }, 201)
+  })
+
+  // ---- automations ----
+  app.get('/agents/:id/automations', async c => {
+    const automations = await store.listAutomations(c.req.param('id'))
+    return c.json({ automations })
+  })
+
+  app.post('/agents/:id/automations', async c => {
+    const key = c.req.header('Idempotency-Key')
+    if (!key) return c.json({ error: 'Idempotency-Key header required' }, 400)
+    const body = await c.req.json<{ kind: 'cron' | 'price' | 'fee_accrued'; spec: Record<string, unknown>; intentTemplate: Record<string, unknown> }>()
+    if (!body.kind || !body.spec || !body.intentTemplate) return c.json({ error: 'kind, spec and intentTemplate required' }, 400)
+    const automation = await store.createAutomation({
+      agentId: c.req.param('id'),
+      kind: body.kind,
+      spec: body.spec,
+      intentTemplate: body.intentTemplate
+    })
+    return c.json({ automation }, 201)
+  })
+
+  app.patch('/automations/:id', async c => {
+    const body = await c.req.json<{ active: boolean }>()
+    if (typeof body.active !== 'boolean') return c.json({ error: 'active boolean required' }, 400)
+    await store.setAutomationActive(c.req.param('id'), body.active)
+    return c.json({ ok: true })
   })
 
   // ---- intents ----

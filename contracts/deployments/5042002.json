@@ -9,5 +9,6 @@
   "inferenceEscrow": "0x126aba70ac4c85e8f0b63b4bbbc3abe555f7d5ba",
   "hookCreationCode": "0xe6bc7c81af86cb9d17c857a689b62f27c6565d63",
   "lgeManager": "0xd463e723a95374585cba3aa4ffb51484e25cee4b",
-  "calculationsLibrary": "0xCDC9d152372043c43754A112091259F658ad1795"
+  "calculationsLibrary": "0xCDC9d152372043c43754A112091259F658ad1795",
+  "managerDeployBlock": 64955897
 }
