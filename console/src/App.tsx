@@ -1,7 +1,8 @@
 import { NavLink, Route, Routes } from 'react-router-dom'
+import { useMemo, useSyncExternalStore } from 'react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { useQuery } from '@tanstack/react-query'
-import { api } from './api/client'
+import { api, type Agent } from './api/client'
 import { fmtUsdc, fmtUsdcFull } from './lib/format'
 import { arcTestnet } from './lib/chain'
 import { Chip } from './components/Chip'
@@ -14,21 +15,47 @@ import { Settings } from './sections/Settings'
 import { HashLink } from './components/HashLink'
 import { useBalance } from 'wagmi'
 
-/** The operator's agent: first agent the executor returns (single-agent MVP). */
-export function useAgent () {
+/** Selected agent id, persisted across reloads; module-level store so every
+ *  useAgent caller agrees without prop drilling. */
+let agentListeners: Array<() => void> = []
+export function setSelectedAgentId (id: string) {
+  localStorage.setItem('abc.agentId', id)
+  agentListeners.forEach(l => l())
+}
+function useSelectedAgentId (): string {
+  return useSyncExternalStore(
+    (cb) => { agentListeners.push(cb); return () => { agentListeners = agentListeners.filter(l => l !== cb) } },
+    () => localStorage.getItem('abc.agentId') ?? ''
+  )
+}
+
+export function useAgents () {
   return useQuery({
-    queryKey: ['agent'],
-    queryFn: async () => {
-      const agents = await api.listAgents()
-      return agents[0] ?? null
-    },
+    queryKey: ['agents'],
+    queryFn: () => api.listAgents(),
     retry: false,
     refetchInterval: 8000
   })
 }
 
+/** The operator's agent: the picker selection, defaulting to the most
+ *  recently created (the one you just made). */
+export function useAgent () {
+  const agents = useAgents()
+  const selectedId = useSelectedAgentId()
+  const data = useMemo<Agent | null | undefined>(() => {
+    const list = agents.data
+    if (!list) return undefined // still loading / error
+    if (list.length === 0) return null
+    return list.find(a => a.id === selectedId) ?? list[list.length - 1]
+  }, [agents.data, selectedId])
+  return { ...agents, data }
+}
+
 function TopBar () {
   const agent = useAgent()
+  const agents = useAgents()
+  const selectedId = useSelectedAgentId()
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
@@ -39,7 +66,17 @@ function TopBar () {
 
   return (
     <div className="topbar">
-      <span className="agent-name">{agent.data?.name ?? 'ABC'}</span>
+      {(agents.data?.length ?? 0) > 1 ? (
+        <select
+          className="agent-picker"
+          value={agent.data?.id ?? selectedId}
+          onChange={e => setSelectedAgentId(e.target.value)}
+        >
+          {agents.data!.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+      ) : (
+        <span className="agent-name">{agent.data?.name ?? 'ABC'}</span>
+      )}
       <Chip tone="acc">{arcTestnet.name}</Chip>
       {agent.data?.walletAddress ? <HashLink hash={agent.data.walletAddress} /> : null}
       <div className="spacer" />

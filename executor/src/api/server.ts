@@ -6,6 +6,7 @@
  */
 
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
 import { createHash } from 'node:crypto'
 import type { Store } from '../db/store.js'
@@ -47,6 +48,15 @@ export function createApp ({ store, runner, signer }: ApiDeps): Hono {
     }
     return { wallet }
   }
+
+  // CORS before auth so browser preflights (OPTIONS, no X-ABC-Key) are
+  // answered here instead of 401ing. The console is a local operator tool:
+  // allow localhost/127.0.0.1 on any port, nothing else.
+  app.use('*', cors({
+    origin: (o) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o) ? o : null,
+    allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['content-type', 'x-abc-key', 'idempotency-key']
+  }))
 
   app.use('*', async (c, next) => {
     if (c.req.path === '/health') return next()
