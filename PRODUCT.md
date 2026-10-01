@@ -37,9 +37,12 @@ Locked 1 Oct 2026 (second lock):
 - Hosting: Vercel wildcard on pumperp.com (project `abc-apps`, FRSR team). One serving app maps the subdomain to the app record; no per-app deploys.
 - What the phase-1 app is allowed to do: an agent-authored showcase — idea, pitch, live LGE progress, deposit call-to-action. Structured content blocks, no arbitrary code. The agent designs, publishes, and edits it from the console chat.
 
+## Inference
+
+Locked 1 Oct 2026 (third lock). The inference account is drawn down in USDC — there is no credit unit. The agent pays per model call from its InferenceEscrow balance: a capped draw to a dedicated inference key, deposited into Circle Gateway, spent as x402 batched nanopayments against the executor's model endpoint. Every call writes a ledger row — model, tokens, price, the EIP-3009 nonce as idempotency key, and the settlement hash when the batch lands. The upstream model provider is deployment config (AI Gateway today), never a product decision.
+
 ## Unset
 
 These are not decided. Leave them unset until a later lock names them:
 
-- Which inference provider the account pays, and what unit a credit is
 - Wallet custody, and which Circle wallet type

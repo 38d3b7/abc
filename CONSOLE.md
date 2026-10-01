@@ -6,7 +6,7 @@ Draft 1 Oct 2026. How the console should look and read, positioned against the t
 
 The two incumbents both read as consumer crypto. One leans on saturated, shifting colour and a chat window as the whole interface. The other is a dark, green-tinted terminal aesthetic built for degens launching memecoins. Both put the agent's personality in front and the money behind it.
 
-ABC is the opposite. It is the back office for an agent that runs a business. The audience is an operator who wants to know, at a glance, what the agent holds, what it has decided, what it spent, and what it is allowed to do next. The console should look like something a finance team would leave open on a second monitor: a ledger with controls, not a chat with a wallet attached.
+ABC is the opposite. It is the back office for an agent that runs a business. The audience is an operator who wants to know, at a glance, what the agent holds, what it has decided, what it spent, and what it is allowed to do next. The console should look like something a finance team would leave open on a second monitor: a ledger with controls.
 
 Amended 1 Oct 2026: the operator instructs the agent through a Chat section. This does not change the position. Chat is an instruction channel rendered to the same standard as everything else — records with states and linked intents, not bubbles with a personality.
 
