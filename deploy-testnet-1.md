@@ -4,13 +4,22 @@ Audience: senior dev replicating the 2026-10-01 deployment by hand. Every step
 below is the one that actually worked; each "watch out" is a real failure hit
 during the first pass.
 
-Resulting deployment (what you should end up with, or what you will redeploy):
+Resulting deployment (final, 2026-10-01; machine-readable in
+`contracts/deployments/5042002.json`):
 
 | Contract | Address |
 |---|---|
-| LGEManager | `0x0aa1421add6b810a0d99541fb13501948bdcdb7a` |
-| LGECalculationsLibrary | `0x23f7ab13a4aBc7670E40B663872f2A976bF3ea96` |
-| HookMinerWrapper | `0x9787190430d32c70c2787af01353a6193cf8ef51` |
+| LGEManager | `0x42213058B545625f8bE3e80bA086C14e8fd22920` |
+| HookCreationCode | `0xB2607DD5d2bCf4C6F26D36A32F3Fd1Df9D3a5c75` |
+| LGECalculationsLibrary | `0xA6C7f398122707Bd10f917A091D3BC7C2C95d53b` |
+| HookMinerWrapper | `0x768956E0207f9902f11a4E209eF4353a3EC1D7E0` |
+| VestingVault | `0x191FD96343b41A13F679dcC87423070E1782438a` |
+| InferenceEscrow | `0xe43226c234B0f425E564e909ae383EB734e74811` |
+
+Live campaigns on this manager (hook addresses are mined per launch, flags
+`0x22CC`): E2ES (successful) hook `0x50FA93893fAc68eDc4aA2D4665f90aC6E78DeaCc`;
+WLK3 (successful, full console walkthrough) hook
+`0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC`.
 
 Arc v4 infrastructure (official Uniswap deployment, not ours to deploy):
 PoolManager `0x8366a39CC670B4001A1121B8F6A443A643e40951`,
@@ -28,8 +37,9 @@ Permit2 `0x000000000022D473030F116dDEE9F6B43aC78BA3`.
   `--gas-price 20000000000 --priority-gas-price 1000000000` or it sits
   forever.
 - `address(0)` transfers revert (native token is a system contract).
-- Block time ~0.5 s. The LGE window is `STREAM_BLOCKS = 3600` blocks
-  (~30 min). (README says 5,000 — stale.)
+- Block time ~0.5 s. Hook v2 takes the window as a constructor param
+  (`streamBlocks`; 24 h = 172,800). The e2e and walkthrough campaigns used
+  short windows (1,440–3,600 blocks) so the full lifecycle fits a session.
 - The public RPC intermittently answers **heavy `eth_call` with `-32003`
   ("Transaction creation failed")** — notably `HookMinerWrapper.find` whenever
   the salt search needs many iterations. It is deterministic per input, so
@@ -43,7 +53,7 @@ Permit2 `0x000000000022D473030F116dDEE9F6B43aC78BA3`.
 
 ```bash
 foundryup            # forge/cast
-svm install 0.8.28   # or let foundry auto-detect, but see §4
+svm install 0.8.26   # pinned everywhere, see §4 — never auto-detect
 node >= 22           # for the e2e script
 ```
 
@@ -95,26 +105,26 @@ forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast \
 ## 3. Sanity-check the deployment
 
 ```bash
-cast call $MANAGER "FLAGS()(uint160)" --rpc-url arc_testnet   # 8832 (0x2280)
+cast call $MANAGER "FLAGS()(uint160)" --rpc-url arc_testnet   # 8908 (0x22CC) — hook v2 adds afterSwap + both ReturnDelta flags
 cast call $MANAGER "poolManager()(address)" --rpc-url arc_testnet
 ```
 
 ## 4. Compiler-version discipline (the subtle one)
 
-The existing on-chain contracts were compiled by **solc 0.8.28** (foundry
-auto-detect at deploy time). A fresh build today auto-detects **0.8.26** and
-produces *different* bytecode — for `LGEToken` the codegen differs in the body,
-for `LGEHook` only the metadata hash differs. Either way the CREATE2 init-code
-hash changes, so:
+Every source in `contracts/` pins `pragma solidity =0.8.26` (v4-core pins it;
+a mixed build flips bytecode). Never let foundry auto-detect: a different
+solc produces *different* bytecode — for `LGEToken` the codegen differs in
+the body, for `LGEHook` only the metadata hash differs. Either way the
+CREATE2 init-code hash changes, so:
 
-- Any salt mined against a 0.8.26 build is **invalid** for a manager built
-  with 0.8.28 → `deployToken` reverts `HookAddressNotValid(address)`.
+- Any salt mined against a different-solc build is **invalid** for the
+  deployed manager → `deployToken` reverts `HookAddressNotValid(address)`.
 - Blockscout verification mismatches until you select the exact compiler.
 
-Rule: **whatever solc compiles the deploy build is the only source of truth.**
-Check the trailing metadata of what you deployed (`...736f6c6343 00081c` =
-0.8.28, `00081a` = 0.8.26) and pin `solc = "0.8.28"` in `foundry.toml` if you
-want reproducibility instead of auto-detect roulette.
+Rule: **the 0.8.26-pinned deploy build is the only source of truth.** Salts,
+console bytecode constants, and verification all derive from it. (History:
+the first pass deployed an auto-detected 0.8.28 build and had to be fully
+redeployed once the pin was applied.)
 
 ## 5. Wire the frontend
 

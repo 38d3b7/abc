@@ -40,4 +40,26 @@ Everything else in this repo is new since 27 Sep:
 
 Chain 5042002, gas in USDC (18 decimals native; the ERC-20 view at
 `0x3600000000000000000000000000000000000000` is 6 decimals). See `deploy-testnet-1.md`
-for deployed addresses and the runbook.
+for deployed addresses and the runbook; `contracts/deployments/5042002.json` is the
+machine-readable manifest.
+
+## What's proven (all on Arc testnet, 2026-10-01)
+
+- **Contracts**: 40 forge tests green (fee split math, LP lock transition, exit
+  gating, pull claims, treasury buy at several raise sizes, failure-path
+  finalization). `contracts/script/e2e.mjs` passes the full lifecycle on-chain:
+  launch → deposits → success → pool seeded → fee accrual → claims → lock.
+- **Live console walkthrough** (campaign WLK3, hook
+  [`0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC`](https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC)):
+  launched from the console wizard, deposited 1.11 USDC through the deposit box,
+  LGE succeeded; the treasury half bought 5% of supply into
+  [VestingVault](https://explorer.testnet.arc.io/address/0x191FD96343b41A13F679dcC87423070E1782438a)
+  (1,000 of 20,000 tokens) and credited
+  [InferenceEscrow](https://explorer.testnet.arc.io/address/0xe43226c234B0f425E564e909ae383EB734e74811)
+  with 0.527 USDC; LP share recorded from the console.
+- **Executor**: intent pipeline round-trip on testnet (QUEUED → QUOTED →
+  SIMULATED → POLICY_PASSED → SIGNED → BROADCAST → FINAL, e.g. tx
+  [`0x1d4103b2…`](https://explorer.testnet.arc.io/tx/0x1d4103b2428d42ff538d63fe3375fcc16350975e00cf10922cb16733f3059868)),
+  idempotency replay/mismatch behavior verified, 28 vitest green.
+- **Circle signer**: wallet set `06b8685e-b977-521e-bb61-d42db479df71`, SCA
+  provisioning on ARC-TESTNET verified live (`executor/script/circle-smoke.ts`).
