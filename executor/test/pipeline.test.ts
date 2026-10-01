@@ -14,6 +14,8 @@ function fakeChain (over: Partial<ChainReader> = {}): ChainReader {
     call: async () => ({ data: '0x' }),
     waitForTransactionReceipt: async () => ({ status: 'success', transactionHash: '0xabc' }),
     getBalance: async () => 10n ** 18n,
+    getBlockNumber: async () => 1_000_000n,
+    getCode: async () => undefined,
     ...over
   }
 }

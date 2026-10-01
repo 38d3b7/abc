@@ -22,6 +22,7 @@ import { enqueueAgentPrompt } from '../worker/enqueue.js'
 import type { AgentPromptJob } from '../worker/handlers.js'
 import { loadRegistry, resolveAgentSkills, SKILLS_DIR } from '../agent/skills.js'
 import { importSkill, ImportRefused, type ImportOptions, type ImportResult } from '../agent/skillImport.js'
+import { pushAppToShowcase } from '../apps/push.js'
 
 function requestHash (body: unknown): string {
   return createHash('sha256').update(JSON.stringify(body)).digest('hex')
@@ -353,6 +354,27 @@ export function createApp ({
     return c.json({ balances })
   })
 
+  app.get('/agents/:id/ledger/entries', async c => {
+    const entries = await store.listLedger(c.req.param('id'))
+    return c.json({
+      entries: entries.map(e => ({
+        ...e,
+        amount: { usdc6: e.amount.usdc6.toString(), residualWei: e.amount.residualWei.toString() }
+      }))
+    })
+  })
+
+  // ---- showcase app (the agent's pumperp.com storefront record) ----
+  app.get('/agents/:id/app', async c => {
+    const appRecord = await store.getApp(c.req.param('id'))
+    if (!appRecord) return c.json({ error: 'no app published' }, 404)
+    return c.json(appRecord)
+  })
+
+  app.get('/agents/:id/campaigns', async c => {
+    return c.json({ campaigns: await store.listCampaigns(c.req.param('id')) })
+  })
+
   return app
 }
 
@@ -366,7 +388,8 @@ export async function serveApi (port = 8787): Promise<void> {
     signer,
     chain,
     quoteSigner,
-    chainId: arcTestnet.id
+    chainId: arcTestnet.id,
+    pushApp: pushAppToShowcase
   })
   const app = createApp({ store, runner, signer })
   serve({ fetch: app.fetch, port })

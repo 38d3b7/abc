@@ -1,0 +1,12 @@
+{
+  "slug": "treasury-ops",
+  "name": "Treasury operations",
+  "version": "1.0.0",
+  "provider": "ABC",
+  "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/treasury-ops",
+  "licenseSpdx": "MIT",
+  "kind": "capability",
+  "description": "Move USDC, fund the inference escrow's gas lane, and schedule standing automations.",
+  "tools": ["transfer", "fund_gas", "create_automation"],
+  "referenceOnly": false
+}

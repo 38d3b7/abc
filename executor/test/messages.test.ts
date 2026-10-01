@@ -74,6 +74,8 @@ function fakeChain (over: Partial<ChainReader> = {}): ChainReader {
     call: async () => ({ data: '0x' }),
     waitForTransactionReceipt: async () => ({ status: 'success', transactionHash: '0xabc' }),
     getBalance: async () => 10n ** 18n,
+    getBlockNumber: async () => 1_000_000n,
+    getCode: async () => undefined,
     ...over
   }
 }
@@ -262,6 +264,8 @@ describe('handleAgentPrompt', () => {
   it('runs tool-called intents through the real pipeline and links them', async () => {
     const agent = await store.createAgent('Test', 'test')
     await store.registerWallet(agent.id, WALLET, 'local_dev', 'fake')
+    // transfer is gated behind a capability skill (loop gating) — grant it
+    await store.installAgentSkill(agent.id, 'treasury-ops')
     const { reply } = await openTurn(agent.id, 'pay 1000 wei')
 
     await handleAgentPrompt(

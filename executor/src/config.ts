@@ -37,6 +37,9 @@ export const config = {
   keeperKey: process.env.ABC_KEEPER_KEY || '',
   aiGatewayKey: process.env.AI_GATEWAY_API_KEY || '',
   agentModel: process.env.ABC_AGENT_MODEL || 'anthropic/claude-sonnet-4.5',
+  /** Showcase app write API. Unset = local dev (push is a no-op). */
+  appsPushUrl: process.env.ABC_APPS_PUSH_URL || '',
+  appsPushKey: process.env.ABC_APPS_PUSH_KEY || '',
   isProduction: process.env.NODE_ENV === 'production',
   requireEnv: required
 } as const

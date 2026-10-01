@@ -159,3 +159,23 @@ CREATE TABLE IF NOT EXISTS agent_skills (
   added_at  timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (agent_id, slug)
 );
+
+-- Migration 0004: the agent's showcase app (PRODUCT.md phase-1 app lock).
+-- One app per agent; slug is the subdomain under pumperp.com. Structured
+-- blocks only — no arbitrary code. Publish/edit go through the intent
+-- pipeline (app_publish / app_edit) so every change has a ledger record.
+CREATE TABLE IF NOT EXISTS apps (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id      uuid NOT NULL REFERENCES agents(id) UNIQUE,
+  slug          text NOT NULL UNIQUE,
+  name          text NOT NULL,
+  tagline       text NOT NULL DEFAULT '',
+  idea          text NOT NULL DEFAULT '',
+  roadmap       jsonb NOT NULL DEFAULT '[]'::jsonb,
+  links         jsonb NOT NULL DEFAULT '[]'::jsonb,
+  token_address text,
+  hook_address  text,
+  published     boolean NOT NULL DEFAULT false,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);

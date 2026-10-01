@@ -5,8 +5,9 @@
 import pg from 'pg'
 import type { State, StateChange } from '../pipeline/states.js'
 import type {
-  Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow,
-  AutomationRow, NewAutomation, NewCampaign, MessageRow, NewMessage, AgentSkillRow
+  Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, LedgerRow, IdempotencyRecord, AgentRow,
+  AutomationRow, NewAutomation, NewCampaign, CampaignRow, MessageRow, NewMessage, AgentSkillRow,
+  AppRow, AppBlocks
 } from './store.js'
 import { joinUsd, partsFromRow } from '../ledger/usd.js'
 
@@ -200,6 +201,33 @@ export class PgStore implements Store {
     )
   }
 
+  async listCampaigns (agentId: string): Promise<CampaignRow[]> {
+    const res = await this.pool.query<{
+      id: string; agent_id: string; token_address: string; hook_address: string
+      name: string | null; symbol: string | null; cap: string; start_block: string
+      stream_blocks: string; min_token_price: string; max_token_price: string
+      fee_bps: number; created_at: Date
+    }>(
+      'SELECT * FROM campaigns WHERE agent_id = $1 ORDER BY created_at DESC',
+      [agentId]
+    )
+    return res.rows.map(r => ({
+      id: r.id,
+      agentId: r.agent_id,
+      tokenAddress: r.token_address,
+      hookAddress: r.hook_address,
+      name: r.name,
+      symbol: r.symbol,
+      cap: r.cap,
+      startBlock: r.start_block,
+      streamBlocks: r.stream_blocks,
+      minTokenPrice: r.min_token_price,
+      maxTokenPrice: r.max_token_price,
+      feeBps: r.fee_bps,
+      createdAt: r.created_at.toISOString()
+    }))
+  }
+
   async listAutomations (agentId: string): Promise<AutomationRow[]> {
     const res = await this.pool.query(
       'SELECT * FROM automations WHERE agent_id = $1 ORDER BY created_at DESC',
@@ -335,6 +363,28 @@ export class PgStore implements Store {
     )
   }
 
+  async listLedger (agentId: string, limit = 200): Promise<LedgerRow[]> {
+    const res = await this.pool.query<{
+      id: string; agent_id: string; bucket: LedgerRow['bucket']
+      amount_usdc6: string; residual_wei: string; direction: LedgerRow['direction']
+      intent_id: string | null; funding_tx_hash: string | null; note: string | null; created_at: Date
+    }>(
+      'SELECT * FROM ledger WHERE agent_id = $1 ORDER BY id DESC LIMIT $2',
+      [agentId, limit]
+    )
+    return res.rows.map(r => ({
+      id: Number(r.id),
+      agentId: r.agent_id,
+      bucket: r.bucket,
+      amount: { usdc6: BigInt(r.amount_usdc6), residualWei: BigInt(r.residual_wei) },
+      direction: r.direction,
+      ...(r.intent_id ? { intentId: r.intent_id } : {}),
+      ...(r.funding_tx_hash ? { fundingTxHash: r.funding_tx_hash } : {}),
+      ...(r.note ? { note: r.note } : {}),
+      createdAt: r.created_at.toISOString()
+    }))
+  }
+
   async ledgerBalance (agentId: string, bucket: string): Promise<bigint> {
     const res = await this.pool.query<{ amount_usdc6: string; residual_wei: string; direction: string }>(
       'SELECT amount_usdc6, residual_wei, direction FROM ledger WHERE agent_id = $1 AND bucket = $2',
@@ -435,6 +485,68 @@ export class PgStore implements Store {
     const r = res.rows[0]
     if (!r) return null
     return { agentId: r.agent_id, slug: r.slug, enabled: r.enabled, config: r.config, addedAt: r.added_at.toISOString() }
+  }
+
+  // ------------------------------------------------------------------
+  // apps (showcase blocks)
+  // ------------------------------------------------------------------
+
+  private static toApp (r: {
+    id: string; agent_id: string; slug: string; name: string; tagline: string; idea: string
+    roadmap: AppRow['roadmap']; links: AppRow['links']; token_address: string | null
+    hook_address: string | null; published: boolean; created_at: Date; updated_at: Date
+  }): AppRow {
+    return {
+      id: r.id, agentId: r.agent_id, slug: r.slug, name: r.name, tagline: r.tagline, idea: r.idea,
+      roadmap: r.roadmap, links: r.links, tokenAddress: r.token_address, hookAddress: r.hook_address,
+      published: r.published, createdAt: r.created_at.toISOString(), updatedAt: r.updated_at.toISOString()
+    }
+  }
+
+  async getApp (agentId: string): Promise<AppRow | null> {
+    const res = await this.pool.query('SELECT * FROM apps WHERE agent_id = $1', [agentId])
+    return res.rows[0] ? PgStore.toApp(res.rows[0]) : null
+  }
+
+  async getAppBySlug (slug: string): Promise<AppRow | null> {
+    const res = await this.pool.query('SELECT * FROM apps WHERE slug = $1', [slug])
+    return res.rows[0] ? PgStore.toApp(res.rows[0]) : null
+  }
+
+  async upsertApp (
+    agentId: string,
+    slug: string,
+    blocks: AppBlocks,
+    refs: { tokenAddress: string | null; hookAddress: string | null }
+  ): Promise<AppRow> {
+    const res = await this.pool.query(
+      `INSERT INTO apps (agent_id, slug, name, tagline, idea, roadmap, links, token_address, hook_address, published)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true)
+       ON CONFLICT (agent_id) DO UPDATE SET
+         name = EXCLUDED.name, tagline = EXCLUDED.tagline, idea = EXCLUDED.idea,
+         roadmap = EXCLUDED.roadmap, links = EXCLUDED.links,
+         token_address = EXCLUDED.token_address, hook_address = EXCLUDED.hook_address,
+         published = true, updated_at = now()
+       RETURNING *`,
+      [
+        agentId, slug, blocks.name, blocks.tagline, blocks.idea,
+        JSON.stringify(blocks.roadmap), JSON.stringify(blocks.links),
+        refs.tokenAddress, refs.hookAddress
+      ]
+    )
+    return PgStore.toApp(res.rows[0]!)
+  }
+
+  async updateAppField (agentId: string, field: keyof AppBlocks, value: unknown): Promise<AppRow | null> {
+    if (!['name', 'tagline', 'idea', 'roadmap', 'links'].includes(field)) {
+      throw new Error(`unknown app field: ${field}`)
+    }
+    const stored = field === 'roadmap' || field === 'links' ? JSON.stringify(value) : value
+    const res = await this.pool.query(
+      `UPDATE apps SET ${field} = $2, updated_at = now() WHERE agent_id = $1 RETURNING *`,
+      [agentId, stored]
+    )
+    return res.rows[0] ? PgStore.toApp(res.rows[0]) : null
   }
 
   async close (): Promise<void> {

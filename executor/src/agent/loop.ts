@@ -6,6 +6,11 @@
  * executor (BASIS euthyna + the 30% sophistication criterion).
  *
  * Model access: Vercel AI SDK through the AI Gateway (AI_GATEWAY_API_KEY).
+ *
+ * Tool surface: read intents are always available; every other intent type
+ * is gated behind an enabled capability skill that lists it in `tools`
+ * (CONSOLE.md: capability skills list the intent types they can raise).
+ * A skill's tool.ts may override the auto-generated tool by key.
  */
 
 import { generateText, tool, stepCountIs, type LanguageModel } from 'ai'
@@ -19,6 +24,7 @@ import {
   loadRegistry, resolveAgentSkills, knowledgeContext, capabilityTools,
   SKILLS_DIR, type SkillManifest
 } from './skills.js'
+import { signRationale } from './rationale.js'
 
 export interface AgentLoopDeps {
   store: Store
@@ -33,6 +39,9 @@ export interface AgentLoopDeps {
   /** Test seam: skip the registry read. */
   registry?: SkillManifest[]
 }
+
+/** Read intents are the base surface — every agent can observe. */
+const BASE_INTENT_TOOLS = new Set(['get_balances', 'lge_quote'])
 
 const SYSTEM = `You are the operator of an agentic business console (ABC) on Arc testnet.
 You act ONLY through the typed intent tools provided. For every action you
@@ -58,33 +67,39 @@ export async function runAgentLoop (deps: AgentLoopDeps): Promise<{ text: string
     skillsDir
   )
 
+  // gate: base reads + intent types granted by enabled capability skills
+  const granted = new Set(BASE_INTENT_TOOLS)
+  for (const s of skills) {
+    if (s.kind === 'capability' && s.enabled) {
+      for (const t of s.tools) granted.add(t)
+    }
+  }
+
   const tools = Object.fromEntries(
-    Object.entries(INTENT_SCHEMAS).map(([type, schema]) => [
-      type,
-      tool({
-        description: `Submit a ${type} intent to the executor pipeline`,
-        inputSchema: schema.extend({
-          rationale: z.string().min(1).max(280).describe('one-sentence reason for this action')
-        }),
-        execute: async (args) => {
-          const { rationale, ...params } = args as { rationale: string } & Record<string, unknown>
-          const wallet = await store.agentWalletAddress(agent.id)
-          if (!wallet) throw new Error('agent has no provisioned wallet')
-          const rationaleSig = await quoteSigner.sign({
-            quoteId: crypto.randomUUID(),
-            wallet, chainId: 0, type: 'rationale',
-            params: { agentId: agent.id, intentType: type },
-            valueWei: '0', gasEstimate: '0', feeWei: '0',
-            notAfter: 0
-          })
-          const row = await runner.runIntent(agent.id, wallet, type, params, {
-            text: rationale, signature: rationaleSig
-          })
-          intentIds.push(row.id)
-          return { intentId: row.id, state: row.state, error: row.error }
-        }
-      })
-    ])
+    Object.entries(INTENT_SCHEMAS)
+      .filter(([type]) => granted.has(type))
+      .map(([type, schema]) => [
+        type,
+        tool({
+          description: `Submit a ${type} intent to the executor pipeline`,
+          inputSchema: schema.extend({
+            rationale: z.string().min(1).max(280).describe('one-sentence reason for this action')
+          }),
+          execute: async (args) => {
+            const { rationale, ...params } = args as { rationale: string } & Record<string, unknown>
+            const wallet = await store.agentWalletAddress(agent.id)
+            if (!wallet) throw new Error('agent has no provisioned wallet')
+            const rationaleSig = await signRationale(quoteSigner, agent.id, wallet, type)
+            const row = await runner.runIntent(agent.id, wallet, type, params, {
+              text: rationale, signature: rationaleSig
+            })
+            intentIds.push(row.id)
+            // effect intents ride the simulation record back to the model
+            const sim = row.simulation as { effect?: unknown } | null
+            return { intentId: row.id, state: row.state, error: row.error, ...(sim?.effect !== undefined ? { effect: sim.effect } : {}) }
+          }
+        })
+      ])
   )
 
   const result = await generateText({

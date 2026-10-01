@@ -23,6 +23,10 @@ import { QuoteSigner, quoteExpired, QUOTE_TTL_SECONDS, type QuotePayload } from 
 import type { SignerAdapter } from '../signer/types.js'
 import { isSent } from '../signer/types.js'
 import { splitUsd } from '../ledger/usd.js'
+import { EFFECT_INTENTS } from '../intents/types.js'
+import { applyEffect } from './effects.js'
+import { prepareLaunch as mineLaunch, type LaunchRequest, type PreparedLaunch } from '../lge/launch.js'
+import type { AppRow } from '../db/store.js'
 
 export interface PolicyConfig {
   /** Per-tx value ceiling (18-dec wei). */
@@ -52,6 +56,8 @@ export interface ChainReader {
   call (args: { to: `0x${string}`; data?: `0x${string}`; value?: bigint; account?: `0x${string}` }): Promise<{ data?: `0x${string}` | undefined }>
   waitForTransactionReceipt (args: { hash: `0x${string}`; timeout?: number }): Promise<{ status: 'success' | 'reverted'; transactionHash: string }>
   getBalance (args: { address: `0x${string}` }): Promise<bigint>
+  getBlockNumber (): Promise<bigint>
+  getCode (args: { address: `0x${string}` }): Promise<`0x${string}` | undefined>
 }
 
 export interface RunnerDeps {
@@ -61,6 +67,8 @@ export interface RunnerDeps {
   quoteSigner: QuoteSigner
   chainId: number
   policy?: Partial<PolicyConfig>
+  /** Showcase push for app effects; default no-op (local dev). Tests capture. */
+  pushApp?: (app: AppRow) => Promise<void>
 }
 
 export class PipelineRunner {
@@ -134,6 +142,16 @@ export class PipelineRunner {
     return this.driveFromSimulated(intentId)
   }
 
+  /**
+   * Mine an LGE launch (salts, precomputed CREATE2 addresses, startBlock)
+   * for the agent's wallet. The token-launch skill's tool calls this before
+   * submitting the lge_launch intent, so the intent record carries the full
+   * mined params and quote/execute can never drift from them.
+   */
+  async prepareLaunch (walletAddress: string, req: LaunchRequest): Promise<PreparedLaunch> {
+    return mineLaunch(this.d.chain, this.d.chainId, walletAddress as `0x${string}`, req)
+  }
+
   // ------------------------------------------------------------------
   // stages
   // ------------------------------------------------------------------
@@ -203,6 +221,42 @@ export class PipelineRunner {
     let row = await this.mustGet(intentId)
     const intent = parseIntent(row.type, row.params)
 
+    // Effect intents: no transaction. Policy is trivially passed (no value
+    // at risk; the schema was the price of admission); the effect applies
+    // at FINAL and its result rides the simulation record back to the model.
+    if (EFFECT_INTENTS.has(intent.type)) {
+      await this.advance(row, 'POLICY_PASSED', 'effect intent', {
+        simulation: { ok: true, at: new Date().toISOString() }
+      })
+      row = await this.mustGet(row.id)
+      try {
+        const agent = await this.d.store.getAgent(row.agentId)
+        if (!agent) throw new Error(`agent ${row.agentId} not found`)
+        const outcome = await applyEffect(intent.type, intent.params as Record<string, unknown>, {
+          store: this.d.store,
+          chain: this.d.chain,
+          agent,
+          pushApp: this.d.pushApp ?? (async () => {})
+        })
+        await this.advance(row, 'FINAL', outcome.note ?? undefined, {
+          simulation: { ok: true, at: new Date().toISOString(), effect: outcome.result }
+        })
+        if (outcome.note) {
+          await this.d.store.appendLedger({
+            agentId: row.agentId,
+            bucket: 'treasury',
+            amount: { usdc6: 0n, residualWei: 0n },
+            direction: 'debit',
+            intentId: row.id,
+            note: outcome.note
+          })
+        }
+      } catch (e) {
+        await this.advance(row, 'DROPPED', (e as Error).message, { error: (e as Error).message })
+      }
+      return this.mustGet(intentId)
+    }
+
     // simulate: build + eth_call + estimateGas (fail closed)
     let tx: FinalTx
     try {
@@ -247,6 +301,7 @@ export class PipelineRunner {
       if (receipt.status === 'success') {
         await this.advance(row, 'FINAL')
         await this.bookLedger(await this.mustGet(row.id), intent, tx)
+        await this.afterFinal(await this.mustGet(row.id), intent)
       } else {
         await this.advance(row, 'REVERTED', 'on-chain revert', { error: 'on-chain revert' })
       }
@@ -279,8 +334,18 @@ export class PipelineRunner {
     switch (intent.type) {
       case 'get_balances':
       case 'lge_quote':
+      case 'app_publish':
+      case 'app_edit':
       case 'create_automation':
         return { valueWei: 0n, gasEstimate: 0n }
+      case 'lge_launch': {
+        // Gas-only value: the deploy moves no USDC. The mined params are
+        // already pinned in the intent (prepareLaunch), so the estimate is
+        // against the exact calldata that will broadcast.
+        const tx = buildTx(intent, this.d.chainId)
+        const gas = await this.d.chain.estimateGas({ to: tx.to, data: tx.data, value: tx.value, account: wallet as `0x${string}` })
+        return { valueWei: 0n, gasEstimate: gas }
+      }
       case 'transfer': {
         const p = intent.params as IntentParams<'transfer'>
         const tx = buildTx(intent, this.d.chainId)
@@ -325,6 +390,29 @@ export class PipelineRunner {
       ) {
         throw new PolicyViolation('recipient not in allowlist')
       }
+    }
+  }
+
+  /** Post-FINAL side effects that are part of the intent's contract. */
+  private async afterFinal (row: IntentRow, intent: TypedIntent): Promise<void> {
+    if (intent.type === 'lge_launch') {
+      // Register the campaign so the deposit indexer, the keeper sweep and
+      // the console Token section all see it. Addresses are the precomputed
+      // CREATE2 pair pinned in the intent params.
+      const p = intent.params as unknown as PreparedLaunch
+      await this.d.store.registerCampaign({
+        agentId: row.agentId,
+        tokenAddress: p.tokenAddress,
+        hookAddress: p.hookAddress,
+        name: p.name,
+        symbol: p.symbol,
+        cap: p.capWei,
+        startBlock: p.startBlock,
+        streamBlocks: p.streamBlocks,
+        minTokenPrice: p.minTokenPrice,
+        maxTokenPrice: p.maxTokenPrice,
+        feeBps: p.feeBps
+      })
     }
   }
 

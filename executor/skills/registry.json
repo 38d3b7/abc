@@ -1,6 +1,21 @@
 {
   "skills": [
     {
+      "slug": "app-builder",
+      "name": "App builder",
+      "version": "1.0.0",
+      "provider": "ABC",
+      "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/app-builder",
+      "licenseSpdx": "MIT",
+      "kind": "capability",
+      "description": "Publish and edit the agent's showcase app on its pumperp.com subdomain — structured blocks, no arbitrary code.",
+      "tools": [
+        "app_publish",
+        "app_edit"
+      ],
+      "referenceOnly": false
+    },
+    {
       "slug": "arc-chain",
       "name": "Arc chain facts",
       "version": "1.0.0",
@@ -34,6 +49,39 @@
       "kind": "knowledge",
       "description": "The raise mechanics: deposit split, 5% vesting buy, 25/50/25 fee split, LP lock rule.",
       "tools": [],
+      "referenceOnly": false
+    },
+    {
+      "slug": "token-launch",
+      "name": "Token launch (LGE)",
+      "version": "1.0.0",
+      "provider": "ABC",
+      "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/token-launch",
+      "licenseSpdx": "MIT",
+      "kind": "capability",
+      "description": "Launch the agent's token through the LGE, deposit into a sale, claim fee buckets, and swap on the hook pool.",
+      "tools": [
+        "lge_launch",
+        "lge_deposit",
+        "claim_fees",
+        "swap"
+      ],
+      "referenceOnly": false
+    },
+    {
+      "slug": "treasury-ops",
+      "name": "Treasury operations",
+      "version": "1.0.0",
+      "provider": "ABC",
+      "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/treasury-ops",
+      "licenseSpdx": "MIT",
+      "kind": "capability",
+      "description": "Move USDC, fund the inference escrow's gas lane, and schedule standing automations.",
+      "tools": [
+        "transfer",
+        "fund_gas",
+        "create_automation"
+      ],
       "referenceOnly": false
     }
   ]

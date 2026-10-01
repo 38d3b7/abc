@@ -21,6 +21,7 @@ import { isSent } from '../signer/types.js'
 import { isDue } from './due.js'
 import { QUEUES } from './queues.js'
 import { handleAgentPrompt, type AgentPromptJob } from './handlers.js'
+import { pushAppToShowcase } from '../apps/push.js'
 
 export { QUEUES }
 
@@ -45,7 +46,8 @@ export async function startWorker (): Promise<void> {
     signer: createSigner(),
     chain,
     quoteSigner,
-    chainId: arcTestnet.id
+    chainId: arcTestnet.id,
+    pushApp: pushAppToShowcase
   })
 
   const boss = new PgBoss(config.databaseUrl)

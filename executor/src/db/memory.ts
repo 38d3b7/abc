@@ -7,8 +7,9 @@
 import { randomUUID } from 'node:crypto'
 import type { State, StateChange } from '../pipeline/states.js'
 import type {
-  Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow,
-  AutomationRow, NewAutomation, NewCampaign, MessageRow, NewMessage, AgentSkillRow
+  Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, LedgerRow, IdempotencyRecord, AgentRow,
+  AutomationRow, NewAutomation, NewCampaign, CampaignRow, MessageRow, NewMessage, AgentSkillRow,
+  AppRow, AppBlocks
 } from './store.js'
 import { joinUsd } from '../ledger/usd.js'
 
@@ -17,9 +18,9 @@ export class MemoryStore implements Store {
   private intents = new Map<string, IntentRow>()
   private idem = new Map<string, IdempotencyRecord>()
   private quotes = new Map<string, QuoteRow>()
-  private ledger: Array<LedgerEntry & { id: number }> = []
+  private ledger: LedgerRow[] = []
   private automations = new Map<string, AutomationRow>()
-  private campaigns: NewCampaign[] = []
+  private campaigns: CampaignRow[] = []
   private wallets = new Map<string, { address: string; provider: string; providerRef: string }>()
   private messages = new Map<string, MessageRow>()
 
@@ -75,13 +76,23 @@ export class MemoryStore implements Store {
   }
 
   registerCampaign (c: NewCampaign): Promise<void> {
-    this.campaigns.push(structuredClone(c))
+    this.campaigns.push({
+      id: randomUUID(),
+      ...structuredClone(c),
+      name: c.name ?? null,
+      symbol: c.symbol ?? null,
+      createdAt: new Date().toISOString()
+    })
     const a = this.agents.get(c.agentId)
     if (a) {
       a.tokenAddress = c.tokenAddress
       a.hookAddress = c.hookAddress
     }
     return Promise.resolve()
+  }
+
+  listCampaigns (agentId: string): Promise<CampaignRow[]> {
+    return Promise.resolve(structuredClone(this.campaigns.filter(c => c.agentId === agentId)))
   }
 
   listAutomations (agentId: string): Promise<AutomationRow[]> {
@@ -206,8 +217,17 @@ export class MemoryStore implements Store {
   }
 
   appendLedger (e: LedgerEntry): Promise<void> {
-    this.ledger.push({ ...e, id: this.ledger.length + 1 })
+    this.ledger.push({ ...e, id: this.ledger.length + 1, createdAt: new Date().toISOString() })
     return Promise.resolve()
+  }
+
+  listLedger (agentId: string, limit = 200): Promise<LedgerRow[]> {
+    // newest first, mirroring pg's ORDER BY id DESC
+    const rows = this.ledger
+      .filter(e => e.agentId === agentId)
+      .sort((a, b) => b.id - a.id)
+      .slice(0, limit)
+    return Promise.resolve(structuredClone(rows))
   }
 
   ledgerBalance (agentId: string, bucket: string): Promise<bigint> {
@@ -307,6 +327,55 @@ export class MemoryStore implements Store {
     const row = this.skills.get(`${agentId}:${slug}`)
     if (!row) return Promise.resolve(null)
     row.enabled = enabled
+    return Promise.resolve(structuredClone(row))
+  }
+
+  private apps = new Map<string, AppRow>()
+
+  getApp (agentId: string): Promise<AppRow | null> {
+    const r = this.apps.get(agentId)
+    return Promise.resolve(r ? structuredClone(r) : null)
+  }
+
+  getAppBySlug (slug: string): Promise<AppRow | null> {
+    for (const r of this.apps.values()) {
+      if (r.slug === slug) return Promise.resolve(structuredClone(r))
+    }
+    return Promise.resolve(null)
+  }
+
+  upsertApp (
+    agentId: string,
+    slug: string,
+    blocks: AppBlocks,
+    refs: { tokenAddress: string | null; hookAddress: string | null }
+  ): Promise<AppRow> {
+    const existing = this.apps.get(agentId)
+    const now = new Date().toISOString()
+    const row: AppRow = {
+      id: existing?.id ?? randomUUID(),
+      agentId,
+      slug,
+      name: blocks.name,
+      tagline: blocks.tagline,
+      idea: blocks.idea,
+      roadmap: structuredClone(blocks.roadmap),
+      links: structuredClone(blocks.links),
+      tokenAddress: refs.tokenAddress,
+      hookAddress: refs.hookAddress,
+      published: true,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    }
+    this.apps.set(agentId, row)
+    return Promise.resolve(structuredClone(row))
+  }
+
+  updateAppField (agentId: string, field: keyof AppBlocks, value: unknown): Promise<AppRow | null> {
+    const row = this.apps.get(agentId)
+    if (!row) return Promise.resolve(null)
+    ;(row as unknown as Record<string, unknown>)[field] = structuredClone(value)
+    row.updatedAt = new Date().toISOString()
     return Promise.resolve(structuredClone(row))
   }
 

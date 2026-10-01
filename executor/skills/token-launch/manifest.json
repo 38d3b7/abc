@@ -1,0 +1,12 @@
+{
+  "slug": "token-launch",
+  "name": "Token launch (LGE)",
+  "version": "1.0.0",
+  "provider": "ABC",
+  "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/token-launch",
+  "licenseSpdx": "MIT",
+  "kind": "capability",
+  "description": "Launch the agent's token through the LGE, deposit into a sale, claim fee buckets, and swap on the hook pool.",
+  "tools": ["lge_launch", "lge_deposit", "claim_fees", "swap"],
+  "referenceOnly": false
+}

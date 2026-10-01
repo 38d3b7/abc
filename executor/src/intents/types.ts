@@ -8,6 +8,7 @@
 
 import { z } from 'zod'
 import { encodeFunctionData, parseAbi, type Address, type Hex } from 'viem'
+import { buildLaunchTx, type PreparedLaunch } from '../lge/launch.js'
 
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/)
 const uint = z.string().regex(/^[0-9]+$/) // decimal string, 18-dec wei unless stated
@@ -55,6 +56,45 @@ export const INTENT_SCHEMAS = {
     kind: z.enum(['cron', 'price', 'fee_accrued']),
     spec: z.record(z.string(), z.unknown()),
     intent: z.record(z.string(), z.unknown())
+  }).strict(),
+
+  /**
+   * Deploy the agent's token + hook through LGEManager. The mined fields
+   * (salts, precomputed CREATE2 addresses, startBlock) are injected by
+   * runner.prepareLaunch before the intent is submitted — the model never
+   * mines. Value is zero (gas only); the consequence is the deployment.
+   */
+  lge_launch: z.object({
+    name: z.string().min(1).max(64),
+    symbol: z.string().min(1).max(12),
+    capWei: uint,
+    streamBlocks: uint,
+    minTokenPrice: uint,
+    maxTokenPrice: uint,
+    feeBps: z.number().int().min(0).max(300),
+    agentAddress: address,
+    startBlock: uint,
+    tokenSalt: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+    hookSalt: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+    tokenAddress: address,
+    hookAddress: address
+  }).strict(),
+
+  /** Publish the agent's showcase app (structured blocks, no arbitrary
+   *  code — PRODUCT.md phase-1 app lock). Effect intent: no transaction. */
+  app_publish: z.object({
+    name: z.string().min(1).max(80),
+    tagline: z.string().max(160).default(''),
+    idea: z.string().max(4000).default(''),
+    roadmap: z.array(z.object({ text: z.string().max(200), done: z.boolean() })).max(20).default([]),
+    links: z.array(z.object({ label: z.string().max(40), url: z.string().url().max(300) })).max(10).default([])
+  }).strict(),
+
+  /** Edit one block of the published app; the ledger note names the field.
+   *  Value shape is validated by the effect (field-dependent). */
+  app_edit: z.object({
+    field: z.enum(['name', 'tagline', 'idea', 'roadmap', 'links']),
+    value: z.unknown()
   }).strict()
 } as const
 
@@ -158,6 +198,11 @@ export function buildTx (intent: TypedIntent, chainId: number): FinalTx {
         chainId
       }
     }
+    case 'lge_launch': {
+      const p = intent.params as unknown as PreparedLaunch
+      const tx = buildLaunchTx(p, chainId)
+      return { to: tx.to, data: tx.data, value: tx.value, chainId }
+    }
     case 'swap':
       // Swaps route through a pool executor contract the agent controls; the
       // executor address comes from policy config at run time. Valued by the
@@ -181,6 +226,19 @@ export const VALUE_INTENTS: ReadonlySet<IntentType> = new Set([
   'swap',
   'lge_deposit',
   'fund_gas'
+])
+
+/**
+ * Effect intents: no transaction — the pipeline applies an off-chain effect
+ * (app write, balance read) and settles POLICY_PASSED -> FINAL. The effect
+ * result rides in the intent's simulation record so the loop's tool result
+ * can carry it back to the model.
+ */
+export const EFFECT_INTENTS: ReadonlySet<IntentType> = new Set([
+  'get_balances',
+  'lge_quote',
+  'app_publish',
+  'app_edit'
 ])
 
 /** Intents whose value at risk exceeds the confirmation threshold go through

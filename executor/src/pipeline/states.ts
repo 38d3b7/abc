@@ -33,7 +33,9 @@ const EDGES: Readonly<Record<State, readonly State[]>> = {
   QUOTED: ['AWAITING_CONFIRMATION', 'SIMULATED', 'DROPPED'],
   AWAITING_CONFIRMATION: ['SIMULATED', 'DROPPED'],
   SIMULATED: ['POLICY_PASSED', 'QUEUED', 'REVERTED', 'DROPPED'],
-  POLICY_PASSED: ['SIGNED', 'DROPPED'],
+  // POLICY_PASSED -> FINAL is the effect-intent path (app publish/edit,
+  // get_balances): no transaction, no signer, the effect applies at FINAL.
+  POLICY_PASSED: ['SIGNED', 'FINAL', 'DROPPED'],
   SIGNED: ['BROADCAST', 'DROPPED'],
   BROADCAST: ['FINAL', 'REVERTED', 'QUEUED', 'DROPPED'],
   FINAL: [],

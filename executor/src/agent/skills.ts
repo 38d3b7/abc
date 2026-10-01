@@ -131,12 +131,13 @@ export async function knowledgeContext (skills: ResolvedSkill[], skillsDir: stri
 }
 
 /** Context a capability tool module receives — the same handles the loop's
- *  intent tools get. */
+ *  intent tools get. Type-only imports: erased at runtime, so skill tool
+ *  modules loading this file pull no extra code. */
 export interface SkillToolContext {
-  store: unknown
-  runner: unknown
-  agent: unknown
-  quoteSigner: unknown
+  store: import('../db/store.js').Store
+  runner: import('../pipeline/runner.js').PipelineRunner
+  agent: import('../db/store.js').AgentRow
+  quoteSigner: import('../quotes/sign.js').QuoteSigner
   config: Record<string, unknown>
 }
 

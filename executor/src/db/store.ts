@@ -109,6 +109,61 @@ export interface NewCampaign {
   feeBps: number
 }
 
+export interface CampaignRow {
+  id: string
+  agentId: string
+  tokenAddress: string
+  hookAddress: string
+  name: string | null
+  symbol: string | null
+  cap: string
+  startBlock: string
+  streamBlocks: string
+  minTokenPrice: string
+  maxTokenPrice: string
+  feeBps: number
+  createdAt: string
+}
+
+export interface LedgerRow extends LedgerEntry {
+  id: number
+  createdAt: string
+}
+
+export interface AppBlock {
+  text: string
+  done: boolean
+}
+
+export interface AppLink {
+  label: string
+  url: string
+}
+
+export interface AppRow {
+  id: string
+  agentId: string
+  slug: string
+  name: string
+  tagline: string
+  idea: string
+  roadmap: AppBlock[]
+  links: AppLink[]
+  tokenAddress: string | null
+  hookAddress: string | null
+  published: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AppBlocks {
+  name: string
+  tagline: string
+  idea: string
+  roadmap: AppBlock[]
+  links: AppLink[]
+}
+
 export interface AgentSkillRow {
   agentId: string
   slug: string
@@ -151,6 +206,7 @@ export interface Store {
   /** Full wallet row — the signer needs providerRef (e.g. Circle wallet id). */
   agentWallet (agentId: string): Promise<{ address: string; provider: string; providerRef: string } | null>
   registerCampaign (c: NewCampaign): Promise<void>
+  listCampaigns (agentId: string): Promise<CampaignRow[]>
   listAutomations (agentId: string): Promise<AutomationRow[]>
   createAutomation (a: NewAutomation): Promise<AutomationRow>
   setAutomationActive (id: string, active: boolean): Promise<void>
@@ -172,6 +228,7 @@ export interface Store {
   consumeQuote (id: string): Promise<QuoteRow | null>
 
   appendLedger (e: LedgerEntry): Promise<void>
+  listLedger (agentId: string, limit?: number): Promise<LedgerRow[]>
   ledgerBalance (agentId: string, bucket: string): Promise<bigint>
 
   /** Throws a unique-violation (code 23505) if clientKey was already used for this agent. */
@@ -188,6 +245,13 @@ export interface Store {
   installAgentSkill (agentId: string, slug: string, config?: Record<string, unknown>): Promise<AgentSkillRow>
   /** Returns the updated row, or null when the skill is not installed. */
   setAgentSkillEnabled (agentId: string, slug: string, enabled: boolean): Promise<AgentSkillRow | null>
+
+  getApp (agentId: string): Promise<AppRow | null>
+  getAppBySlug (slug: string): Promise<AppRow | null>
+  /** Publish: upsert the agent's app blocks and mark it published. */
+  upsertApp (agentId: string, slug: string, blocks: AppBlocks, refs: { tokenAddress: string | null; hookAddress: string | null }): Promise<AppRow>
+  /** Edit one block; returns null when no app exists yet. */
+  updateAppField (agentId: string, field: keyof AppBlocks, value: unknown): Promise<AppRow | null>
 
   close (): Promise<void>
 }
