@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto'
 import type { State, StateChange } from '../pipeline/states.js'
 import type {
   Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow,
-  AutomationRow, NewAutomation, NewCampaign
+  AutomationRow, NewAutomation, NewCampaign, MessageRow, NewMessage
 } from './store.js'
 import { joinUsd } from '../ledger/usd.js'
 
@@ -21,6 +21,7 @@ export class MemoryStore implements Store {
   private automations = new Map<string, AutomationRow>()
   private campaigns: NewCampaign[] = []
   private wallets = new Map<string, { address: string; provider: string; providerRef: string }>()
+  private messages = new Map<string, MessageRow>()
 
   createAgent (name: string, slug: string): Promise<AgentRow> {
     const row: AgentRow = {
@@ -217,6 +218,67 @@ export class MemoryStore implements Store {
       sum += e.direction === 'credit' ? v : -v
     }
     return Promise.resolve(sum)
+  }
+
+  // async so the duplicate-key rejection matches pg's async 23505
+  async createMessage (m: NewMessage): Promise<MessageRow> {
+    if (m.clientKey != null) {
+      for (const row of this.messages.values()) {
+        if (row.agentId === m.agentId && row.clientKey === m.clientKey) {
+          const e = new Error(`duplicate client_key ${m.clientKey}`) as Error & { code: string }
+          e.code = '23505'
+          throw e
+        }
+      }
+    }
+    const row: MessageRow = {
+      id: randomUUID(),
+      agentId: m.agentId,
+      role: m.role,
+      clientKey: m.clientKey ?? null,
+      replyTo: m.replyTo ?? null,
+      text: m.text ?? '',
+      intentIds: structuredClone(m.intentIds ?? []),
+      state: m.state ?? 'done',
+      error: null,
+      createdAt: new Date().toISOString()
+    }
+    this.messages.set(row.id, row)
+    return Promise.resolve(structuredClone(row))
+  }
+
+  getMessageByClientKey (agentId: string, clientKey: string): Promise<MessageRow | null> {
+    for (const row of this.messages.values()) {
+      if (row.agentId === agentId && row.clientKey === clientKey) return Promise.resolve(structuredClone(row))
+    }
+    return Promise.resolve(null)
+  }
+
+  listMessages (agentId: string, limit = 200): Promise<MessageRow[]> {
+    return Promise.resolve(
+      [...this.messages.values()]
+        .filter(m => m.agentId === agentId)
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .slice(-limit)
+        .map(m => structuredClone(m))
+    )
+  }
+
+  completeMessage (id: string, patch: { text: string; intentIds: string[] }): Promise<void> {
+    const row = this.messages.get(id)
+    if (!row || row.state !== 'pending') return Promise.resolve()
+    row.state = 'done'
+    row.text = patch.text
+    row.intentIds = structuredClone(patch.intentIds)
+    return Promise.resolve()
+  }
+
+  failMessage (id: string, error: string): Promise<void> {
+    const row = this.messages.get(id)
+    if (!row || row.state !== 'pending') return Promise.resolve()
+    row.state = 'failed'
+    row.error = error
+    return Promise.resolve()
   }
 
   close (): Promise<void> {

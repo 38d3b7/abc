@@ -43,15 +43,22 @@ export function Automations () {
 
   return (
     <>
-      <div className="page-head">
+      <header className="page-head">
         <h1>Automations</h1>
-        <span className="sub">Standing instructions the worker fires and re-validates at fire time.</span>
-        <div style={{ flex: 1 }} />
+        <p className="sub">Standing instructions the worker fires and re-validates at fire time.</p>
+      </header>
+
+      <div className="page-toolbar">
+        <span className="record-count">
+          {automations.isLoading ? 'Loading…' : `${(automations.data ?? []).length} automation${(automations.data ?? []).length === 1 ? '' : 's'}`}
+        </span>
+        <span className="spacer" />
         <Button variant="primary" onClick={() => setCreateOpen(true)} disabled={!agent.data}>New automation</Button>
       </div>
 
       {error ? <p className="small" style={{ color: 'var(--bad-ink)' }}>{error}</p> : null}
 
+      <div className="table-section">
       <Table
         columns={[
           { head: 'Created', cell: r => <span className="mono">{fmtTime(Math.floor(new Date(r.createdAt).getTime() / 1000))}</span> },
@@ -66,12 +73,13 @@ export function Automations () {
         keyOf={r => r.id}
         empty={automations.isLoading ? 'Loading…' : agent.isError ? 'Executor unreachable.' : 'No automations.'}
         detail={r => (
-          <div>
-            <span className="label">Intent template</span>
+          <section className="detail-section">
+            <span className="detail-section-title">Intent template</span>
             <KeyValue entries={Object.entries((r.intentTemplate as { params?: Record<string, unknown> }).params ?? {}).map(([k, v]) => [k, String(v)])} />
-          </div>
+          </section>
         )}
       />
+      </div>
 
       {createOpen && agent.data ? (
         <CreateAutomation agentId={agent.data.id} onClose={() => setCreateOpen(false)} />

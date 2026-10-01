@@ -6,7 +6,7 @@ import pg from 'pg'
 import type { State, StateChange } from '../pipeline/states.js'
 import type {
   Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, IdempotencyRecord, AgentRow,
-  AutomationRow, NewAutomation, NewCampaign
+  AutomationRow, NewAutomation, NewCampaign, MessageRow, NewMessage
 } from './store.js'
 import { joinUsd, partsFromRow } from '../ledger/usd.js'
 
@@ -109,6 +109,34 @@ interface AgentDbRow {
   wallet_address: string | null
   policy: Record<string, unknown>
   created_at: Date
+}
+
+interface MessageDbRow {
+  id: string
+  agent_id: string
+  role: 'operator' | 'agent'
+  client_key: string | null
+  reply_to: string | null
+  text: string
+  intent_ids: string[]
+  state: 'pending' | 'done' | 'failed'
+  error: string | null
+  created_at: Date
+}
+
+function toMessage (r: MessageDbRow): MessageRow {
+  return {
+    id: r.id,
+    agentId: r.agent_id,
+    role: r.role,
+    clientKey: r.client_key,
+    replyTo: r.reply_to,
+    text: r.text,
+    intentIds: r.intent_ids,
+    state: r.state,
+    error: r.error,
+    createdAt: r.created_at.toISOString()
+  }
 }
 
 const AGENT_SELECT = `
@@ -318,6 +346,54 @@ export class PgStore implements Store {
       sum += r.direction === 'credit' ? v : -v
     }
     return sum
+  }
+
+  async createMessage (m: NewMessage): Promise<MessageRow> {
+    const res = await this.pool.query<MessageDbRow>(
+      `INSERT INTO agent_messages (agent_id, role, client_key, reply_to, text, intent_ids, state)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [
+        m.agentId, m.role, m.clientKey ?? null, m.replyTo ?? null,
+        m.text ?? '', JSON.stringify(m.intentIds ?? []), m.state ?? 'done'
+      ]
+    )
+    return toMessage(res.rows[0]!)
+  }
+
+  async getMessageByClientKey (agentId: string, clientKey: string): Promise<MessageRow | null> {
+    const res = await this.pool.query<MessageDbRow>(
+      'SELECT * FROM agent_messages WHERE agent_id = $1 AND client_key = $2',
+      [agentId, clientKey]
+    )
+    return res.rows[0] ? toMessage(res.rows[0]) : null
+  }
+
+  async listMessages (agentId: string, limit = 200): Promise<MessageRow[]> {
+    // latest N, rendered ascending (matches MemoryStore's sort-then-slice)
+    const res = await this.pool.query<MessageDbRow>(
+      `SELECT * FROM (
+         SELECT * FROM agent_messages WHERE agent_id = $1
+         ORDER BY created_at DESC, id DESC LIMIT $2
+       ) t ORDER BY created_at ASC, id ASC`,
+      [agentId, limit]
+    )
+    return res.rows.map(toMessage)
+  }
+
+  async completeMessage (id: string, patch: { text: string; intentIds: string[] }): Promise<void> {
+    await this.pool.query(
+      `UPDATE agent_messages SET state = 'done', text = $2, intent_ids = $3
+       WHERE id = $1 AND state = 'pending'`,
+      [id, patch.text, JSON.stringify(patch.intentIds)]
+    )
+  }
+
+  async failMessage (id: string, error: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE agent_messages SET state = 'failed', error = $2
+       WHERE id = $1 AND state = 'pending'`,
+      [id, error]
+    )
   }
 
   async close (): Promise<void> {

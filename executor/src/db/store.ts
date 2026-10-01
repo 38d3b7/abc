@@ -109,6 +109,29 @@ export interface NewCampaign {
   feeBps: number
 }
 
+export interface MessageRow {
+  id: string
+  agentId: string
+  role: 'operator' | 'agent'
+  clientKey: string | null
+  replyTo: string | null
+  text: string
+  intentIds: string[]
+  state: 'pending' | 'done' | 'failed'
+  error: string | null
+  createdAt: string
+}
+
+export interface NewMessage {
+  agentId: string
+  role: 'operator' | 'agent'
+  clientKey?: string
+  replyTo?: string
+  text?: string
+  intentIds?: string[]
+  state?: 'pending' | 'done' | 'failed'
+}
+
 export interface Store {
   createAgent (name: string, slug: string): Promise<AgentRow>
   getAgent (id: string): Promise<AgentRow | null>
@@ -142,6 +165,15 @@ export interface Store {
 
   appendLedger (e: LedgerEntry): Promise<void>
   ledgerBalance (agentId: string, bucket: string): Promise<bigint>
+
+  /** Throws a unique-violation (code 23505) if clientKey was already used for this agent. */
+  createMessage (m: NewMessage): Promise<MessageRow>
+  getMessageByClientKey (agentId: string, clientKey: string): Promise<MessageRow | null>
+  listMessages (agentId: string, limit?: number): Promise<MessageRow[]>
+  /** Worker fills the pending reply: pending -> done with text + produced intents. No-op otherwise. */
+  completeMessage (id: string, patch: { text: string; intentIds: string[] }): Promise<void>
+  /** pending -> failed with the error text. No-op otherwise. */
+  failMessage (id: string, error: string): Promise<void>
 
   close (): Promise<void>
 }

@@ -18,6 +18,8 @@ import { QuoteSigner } from '../quotes/sign.js'
 import { config, arcTestnet } from '../config.js'
 import { createPublicClient, http } from 'viem'
 import { splitUsd } from '../ledger/usd.js'
+import { enqueueAgentPrompt } from '../worker/enqueue.js'
+import type { AgentPromptJob } from '../worker/handlers.js'
 
 function requestHash (body: unknown): string {
   return createHash('sha256').update(JSON.stringify(body)).digest('hex')
@@ -27,9 +29,11 @@ export interface ApiDeps {
   store: Store
   runner: PipelineRunner
   signer: SignerAdapter
+  /** Send side of the agent-prompt queue; tests inject an in-memory capture. */
+  enqueuePrompt?: (job: AgentPromptJob) => Promise<void>
 }
 
-export function createApp ({ store, runner, signer }: ApiDeps): Hono {
+export function createApp ({ store, runner, signer, enqueuePrompt = enqueueAgentPrompt }: ApiDeps): Hono {
   const app = new Hono()
 
   /** The agent's wallet is executor-provisioned, never caller-supplied:
@@ -213,6 +217,54 @@ export function createApp ({ store, runner, signer }: ApiDeps): Hono {
     } catch (e) {
       return c.json({ error: (e as Error).message }, 409)
     }
+  })
+
+  // ---- messages (operator instruction -> pending agent reply -> worker settles) ----
+  app.post('/agents/:id/messages', async c => {
+    const agentId = c.req.param('id')
+    const key = c.req.header('Idempotency-Key')
+    if (!key) return c.json({ error: 'Idempotency-Key header required' }, 400)
+    const agent = await store.getAgent(agentId)
+    if (!agent) return c.json({ error: 'not found' }, 404)
+    const body = await c.req.json<{ text?: string }>()
+    const text = body.text?.trim()
+    if (!text) return c.json({ error: 'text required' }, 400)
+
+    const existing = await store.getMessageByClientKey(agentId, key)
+    if (existing) {
+      const reply = (await store.listMessages(agentId)).find(m => m.replyTo === existing.id) ?? null
+      return c.json({ message: existing, reply }, 200, { 'X-Idempotent-Replay': 'true' })
+    }
+
+    let message
+    try {
+      message = await store.createMessage({ agentId, role: 'operator', clientKey: key, text })
+    } catch (e) {
+      // lost a race with the same key — serve the stored row as a replay
+      if ((e as { code?: string }).code === '23505') {
+        const dup = await store.getMessageByClientKey(agentId, key)
+        const reply = dup ? (await store.listMessages(agentId)).find(m => m.replyTo === dup.id) ?? null : null
+        return c.json({ message: dup, reply }, 200, { 'X-Idempotent-Replay': 'true' })
+      }
+      throw e
+    }
+    const reply = await store.createMessage({ agentId, role: 'agent', replyTo: message.id, state: 'pending' })
+    try {
+      await enqueuePrompt({ agentId, prompt: text, replyMessageId: reply.id })
+    } catch (e) {
+      // never leave a silent pending row: fail it with the reason
+      await store.failMessage(reply.id, `enqueue failed: ${(e as Error).message}`)
+      return c.json({ error: 'failed to enqueue the agent turn' }, 502)
+    }
+    return c.json({ message, reply }, 201)
+  })
+
+  app.get('/agents/:id/messages', async c => {
+    const agent = await store.getAgent(c.req.param('id'))
+    if (!agent) return c.json({ error: 'not found' }, 404)
+    const limit = Number(c.req.query('limit') ?? 200)
+    const messages = await store.listMessages(agent.id, Number.isFinite(limit) ? limit : 200)
+    return c.json({ messages })
   })
 
   // ---- ledger ----

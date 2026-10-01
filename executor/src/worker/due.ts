@@ -22,7 +22,7 @@ function at (v: string | Date | null | undefined): number {
 
 /** Decimal USDC → 18-dec wei without `n * 1e18` float rounding. */
 export function usdcToWei (usdc: number): bigint {
-  const [whole, frac = ''] = String(usdc).split('.')
+  const [whole = '0', frac = ''] = String(usdc).split('.')
   const frac18 = (frac + '0'.repeat(18)).slice(0, 18)
   const sign = usdc < 0 ? -1n : 1n
   return sign * (BigInt(whole.replace('-', '') || '0') * 10n ** 18n + BigInt(frac18))

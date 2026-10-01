@@ -127,3 +127,22 @@ CREATE TABLE IF NOT EXISTS indexer_state (
   last_block  numeric NOT NULL DEFAULT 0,
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
+
+-- Migration 0002: operator<->agent messages (the console Chat section).
+-- An operator row carries the client's idempotency key (UNIQUE per agent, so
+-- a retried submit can never enqueue the agent twice); the agent's reply is a
+-- separate row held in 'pending' until the worker completes or fails it.
+CREATE TABLE IF NOT EXISTS agent_messages (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id    uuid NOT NULL REFERENCES agents(id),
+  role        text NOT NULL CHECK (role IN ('operator','agent')),
+  client_key  text,
+  reply_to    uuid REFERENCES agent_messages(id),
+  text        text NOT NULL DEFAULT '',
+  intent_ids  jsonb NOT NULL DEFAULT '[]'::jsonb,
+  state       text NOT NULL DEFAULT 'done' CHECK (state IN ('pending','done','failed')),
+  error       text,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (agent_id, client_key)
+);
+CREATE INDEX IF NOT EXISTS agent_messages_agent_created ON agent_messages (agent_id, created_at ASC);

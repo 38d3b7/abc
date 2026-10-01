@@ -8,7 +8,7 @@
  * Model access: Vercel AI SDK through the AI Gateway (AI_GATEWAY_API_KEY).
  */
 
-import { generateText, tool, stepCountIs } from 'ai'
+import { generateText, tool, stepCountIs, type LanguageModel } from 'ai'
 import { z } from 'zod'
 import type { Store, AgentRow } from '../db/store.js'
 import type { PipelineRunner } from '../pipeline/runner.js'
@@ -22,13 +22,18 @@ export interface AgentLoopDeps {
   agent: AgentRow
   prompt: string
   quoteSigner: QuoteSigner
+  /** Test seam: overrides the configured gateway model. */
+  model?: LanguageModel
 }
 
 const SYSTEM = `You are the operator of an agentic business console (ABC) on Arc testnet.
 You act ONLY through the typed intent tools provided. For every action you
 must state a one-sentence rationale (what you are doing and why it serves the
 business). Never invent addresses; use the ones in context. If a tool refuses
-(policy or valuation), do not retry the same call — report it.`
+(policy or valuation), do not retry the same call — report it.
+Your replies render as ledger records in a finance console: write in neutral
+third person ("the agent holds…"), no apologies, no first person, no emoji.
+State numbers with units and name the rule that applied.`
 
 export async function runAgentLoop (deps: AgentLoopDeps): Promise<{ text: string; intentIds: string[] }> {
   const { store, runner, agent, prompt, quoteSigner } = deps
@@ -64,7 +69,7 @@ export async function runAgentLoop (deps: AgentLoopDeps): Promise<{ text: string
   )
 
   const result = await generateText({
-    model: config.agentModel,
+    model: deps.model ?? config.agentModel,
     system: SYSTEM,
     prompt: `Agent "${agent.name}" (id ${agent.id}).\nToken: ${agent.tokenAddress ?? 'not launched'}\nHook: ${agent.hookAddress ?? 'n/a'}\n\nTask: ${prompt}`,
     tools,

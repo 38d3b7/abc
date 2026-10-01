@@ -55,6 +55,19 @@ export interface Automation {
   createdAt: string
 }
 
+export interface AgentMessage {
+  id: string
+  agentId: string
+  role: 'operator' | 'agent'
+  clientKey: string | null
+  replyTo: string | null
+  text: string
+  intentIds: string[]
+  state: 'pending' | 'done' | 'failed'
+  error: string | null
+  createdAt: string
+}
+
 class ApiError extends Error {
   constructor (public status: number, message: string) { super(message) }
 }
@@ -101,6 +114,11 @@ export const api = {
     (await req<{ automation: Automation }>('POST', `/agents/${agentId}/automations`, { kind, spec, intentTemplate }, crypto.randomUUID())).automation,
   setAutomationActive: (id: string, active: boolean) =>
     req<{ ok: true }>('PATCH', `/automations/${id}`, { active }),
+
+  listMessages: async (agentId: string) =>
+    (await req<{ messages: AgentMessage[] }>('GET', `/agents/${agentId}/messages`)).messages,
+  sendMessage: async (agentId: string, text: string) =>
+    req<{ message: AgentMessage; reply: AgentMessage | null }>('POST', `/agents/${agentId}/messages`, { text }, crypto.randomUUID()),
 
   registerCampaign: async (agentId: string, c: {
     tokenAddress: string; hookAddress: string; name?: string; symbol?: string

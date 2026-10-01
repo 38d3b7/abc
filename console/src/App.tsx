@@ -7,13 +7,14 @@ import { fmtUsdc, fmtUsdcFull } from './lib/format'
 import { arcTestnet } from './lib/chain'
 import { Chip } from './components/Chip'
 import { Button } from './components/Button'
+import { Chat } from './sections/Chat'
 import { Overview } from './sections/Overview'
 import { Token } from './sections/Token'
 import { Activity } from './sections/Activity'
 import { Automations } from './sections/Automations'
 import { Settings } from './sections/Settings'
-import { HashLink } from './components/HashLink'
 import { useBalance } from 'wagmi'
+import { truncHash } from './components/HashLink'
 
 /** Selected agent id, persisted across reloads; module-level store so every
  *  useAgent caller agrees without prop drilling. */
@@ -66,34 +67,43 @@ function TopBar () {
 
   return (
     <div className="topbar">
-      {(agents.data?.length ?? 0) > 1 ? (
-        <select
-          className="agent-picker"
-          value={agent.data?.id ?? selectedId}
-          onChange={e => setSelectedAgentId(e.target.value)}
-        >
-          {agents.data!.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-      ) : (
-        <span className="agent-name">{agent.data?.name ?? 'ABC'}</span>
-      )}
-      <Chip tone="acc">{arcTestnet.name}</Chip>
-      {agent.data?.walletAddress ? <HashLink hash={agent.data.walletAddress} /> : null}
-      <div className="spacer" />
-      <div className="balance">
-        <span className="label">Agent USDC</span>
-        <span className="mono" title={balance.data ? fmtUsdcFull(balance.data.value) : undefined}>
-          {balance.data ? `${fmtUsdc(balance.data.value)} USDC` : '—'}
-        </span>
+      <div className="topbar-left">
+        {(agents.data?.length ?? 0) > 1 ? (
+          <select
+            className="agent-picker"
+            value={agent.data?.id ?? selectedId}
+            onChange={e => setSelectedAgentId(e.target.value)}
+          >
+            {agents.data!.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        ) : (
+          <span className="agent-name">{agent.data?.name ?? 'ABC'}</span>
+        )}
+        <Chip tone="acc">{arcTestnet.name}</Chip>
       </div>
-      {isConnected ? (
-        <>
-          <HashLink hash={address!} />
+      <div className="topbar-right">
+        <div className="balance">
+          <span className="label">Agent USDC</span>
+          <span className="mono" title={balance.data ? fmtUsdcFull(balance.data.value) : undefined}>
+            {balance.data ? `${fmtUsdc(balance.data.value)} USDC` : '—'}
+          </span>
+        </div>
+        {isConnected && address ? (
+          <button
+            type="button"
+            className="wallet-pill"
+            title={`${address} — click to copy`}
+            onClick={() => void navigator.clipboard?.writeText(address)}
+          >
+            {truncHash(address)}
+          </button>
+        ) : null}
+        {isConnected ? (
           <Button onClick={() => disconnect()}>Disconnect</Button>
-        </>
-      ) : (
-        <Button variant="primary" onClick={() => connect({ connector: connectors[0] })}>Connect wallet</Button>
-      )}
+        ) : (
+          <Button variant="primary" onClick={() => connect({ connector: connectors[0] })}>Connect wallet</Button>
+        )}
+      </div>
     </div>
   )
 }
@@ -104,6 +114,7 @@ export function App () {
       <TopBar />
       <nav className="nav">
         <div className="nav-section label">Console</div>
+        <NavLink to="/chat" className={({ isActive }) => isActive ? 'current' : ''}>Chat</NavLink>
         <NavLink to="/" end className={({ isActive }) => isActive ? 'current' : ''}>Overview</NavLink>
         <NavLink to="/token" className={({ isActive }) => isActive ? 'current' : ''}>Token</NavLink>
         <NavLink to="/activity" className={({ isActive }) => isActive ? 'current' : ''}>Activity</NavLink>
@@ -112,6 +123,7 @@ export function App () {
       </nav>
       <main className="content">
         <Routes>
+          <Route path="/chat" element={<Chat />} />
           <Route path="/" element={<Overview />} />
           <Route path="/token" element={<Token />} />
           <Route path="/token/:hookAddress" element={<Token />} />

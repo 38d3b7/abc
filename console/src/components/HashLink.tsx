@@ -19,7 +19,7 @@ export function HashLink ({ hash, kind = 'address', left, right }: { hash: strin
       >
         {truncHash(hash, left, right)}
       </span>
-      {' '}<a href={`${EXPLORER}/${kind}/${hash}`} target="_blank" rel="noreferrer" className="mono" style={{ fontSize: 10 }}>↗</a>
+      {' '}<a href={`${EXPLORER}/${kind}/${hash}`} target="_blank" rel="noreferrer" className="hashlink-explorer" title="Open in explorer">↗</a>
     </span>
   )
 }

@@ -17,17 +17,12 @@ import { PgStore } from '../db/pg.js'
 import { PipelineRunner } from '../pipeline/runner.js'
 import { createSigner, createKeeperSigner } from '../signer/index.js'
 import { QuoteSigner } from '../quotes/sign.js'
-import { runAgentLoop } from '../agent/loop.js'
 import { isSent } from '../signer/types.js'
 import { isDue } from './due.js'
+import { QUEUES } from './queues.js'
+import { handleAgentPrompt, type AgentPromptJob } from './handlers.js'
 
-export const QUEUES = {
-  agentPrompt: 'agent-prompt',
-  automationTick: 'automation-tick',
-  automationFire: 'automation-fire',
-  keeperClaimProtocol: 'keeper-claim-protocol',
-  indexDeposits: 'index-deposits'
-} as const
+export { QUEUES }
 
 const HOOK_ABI = parseAbi([
   'function protocolAccrued() view returns (uint256)',
@@ -56,15 +51,13 @@ export async function startWorker (): Promise<void> {
   const boss = new PgBoss(config.databaseUrl)
   await boss.start()
 
-  // ---- agent prompt runs ----
+  // ---- agent prompt runs (chat turns settle their pending reply row) ----
   await boss.createQueue(QUEUES.agentPrompt)
-  await boss.work<{ agentId: string; prompt: string }>(
+  await boss.work<AgentPromptJob>(
     QUEUES.agentPrompt,
     async ([job]) => {
       if (!job) return
-      const agent = await store.getAgent(job.data.agentId)
-      if (!agent) throw new Error(`agent ${job.data.agentId} not found`)
-      await runAgentLoop({ store, runner, agent, prompt: job.data.prompt, quoteSigner })
+      await handleAgentPrompt({ store, runner, quoteSigner }, job.data)
     }
   )
 
