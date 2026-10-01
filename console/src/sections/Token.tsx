@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePublicClient, useWatchBlockNumber } from 'wagmi'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { listCampaigns, readCampaign, type CampaignState } from '../lib/lge'
 import { fmtTokens, fmtUsdc, fmtBlocks } from '../lib/format'
 import { Table } from '../components/Table'
@@ -19,7 +19,11 @@ export function useCampaign (hook: `0x${string}`) {
   return useQuery({
     queryKey: ['campaign', hook, block?.toString() ?? '0'],
     queryFn: () => readCampaign(client!, hook),
-    enabled: Boolean(client)
+    enabled: Boolean(client),
+    // The block in the key makes a new query every ~0.5s; without previous
+    // data as placeholder, `data` flips undefined each block and every
+    // component below unmounts (wiping local state mid-deposit).
+    placeholderData: keepPreviousData
   })
 }
 

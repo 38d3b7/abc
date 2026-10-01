@@ -31,8 +31,12 @@ export function DepositBox ({ s, block }: { s: CampaignState; block: bigint }) {
     try { return parseEther(amount) } catch { return undefined }
   }, [amount])
 
+  // Requote every ~10 blocks (~5s), not every block: with 0.5s blocks the
+  // cleanup cancelled every in-flight read before it resolved and the quote
+  // never landed. Keep the previous quote while requoting — the 5% slippage
+  // headroom covers the drift.
+  const quoteTick = block / 10n
   useEffect(() => {
-    setQuote(null)
     if (!client || !amountWei || block === 0n) return
     let cancelled = false
     client.readContract({
@@ -41,9 +45,15 @@ export function DepositBox ({ s, block }: { s: CampaignState; block: bigint }) {
       functionName: 'calculateUsdcNeeded',
       args: [block, s.startBlock, s.streamBlocks, s.minTokenPrice, s.maxTokenPrice, amountWei]
     }).then(q => { if (!cancelled) setQuote(q as bigint) })
-      .catch(() => { if (!cancelled) setQuote(null) })
+      .catch((e) => {
+        if (!cancelled) {
+          setQuote(null)
+          setError(`Quote failed: ${(e as Error).message.split('\n')[0]}`)
+        }
+      })
     return () => { cancelled = true }
-  }, [client, amountWei, block, s.startBlock, s.streamBlocks, s.minTokenPrice, s.maxTokenPrice])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client, amountWei, quoteTick, s.startBlock, s.streamBlocks, s.minTokenPrice, s.maxTokenPrice])
 
   const withSlippage = quote !== null ? (quote * 105n) / 100n : undefined
 
