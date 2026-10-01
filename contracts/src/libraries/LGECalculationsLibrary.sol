@@ -19,6 +19,9 @@ library LGECalculationsLibrary {
         uint256 minTokenPrice,
         uint256 maxTokenPrice
     ) public pure returns (uint256) {
+        if (currentBlock <= startBlock) {
+            return minTokenPrice; // pre-start reads clamp, never underflow
+        }
         if (currentBlock >= startBlock + streamBlocks) {
             return maxTokenPrice;
         }

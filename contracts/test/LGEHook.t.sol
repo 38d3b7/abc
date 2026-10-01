@@ -326,6 +326,17 @@ contract LGEHookTest is Test, PosmTestSetup {
         assertTrue(latePrice < earlyPrice); // Dutch: USDC cost falls as the rate rises
     }
 
+    /// @dev Pre-start price reads clamp to minPrice instead of underflowing —
+    ///      UIs and the e2e quote before the window opens.
+    function test_priceClampsBeforeStart() public {
+        vm.roll(startBlock - 5);
+        uint256 early = calculateUSDCNeeded(1000e18);
+        vm.roll(startBlock);
+        uint256 atStart = calculateUSDCNeeded(1000e18);
+        assertEq(early, atStart);
+        assertGt(early, 0);
+    }
+
     function test_depositOverloadGuards() public {
         uint256 tokenAmount = 1000e18;
         uint256 usdcNeeded = calculateUSDCNeeded(tokenAmount);
@@ -446,6 +457,42 @@ contract LGEHookTest is Test, PosmTestSetup {
         LGEHook.UserState memory userState = _getUserState(user);
         assertEq(userState.usdcToLiquidityDeposited, 0);
         assertEq(userState.remainingUsdcDeposited, 0);
+    }
+
+    /// @dev The flag must not depend on a finalizing deposit poke: a failed
+    ///      campaign whose participant withdraws directly is finished.
+    function test_withdrawFinalizesFailedLGE() public {
+        vm.roll(startBlock + 100);
+        _depositAs(user, 1000e18);
+
+        vm.roll(startBlock + STREAM_BLOCKS + 1);
+        assertFalse(_hook().isLgeFinished());
+
+        vm.prank(user);
+        _hook().withdraw();
+
+        assertTrue(_hook().isLgeFinished());
+        assertFalse(_hook().isLgeSuccessful());
+    }
+
+    /// @dev Campaigns whose participants never transact again still finalize,
+    ///      via a permissionless poke. claimed == cap always finalizes inside
+    ///      the deposit that reaches it, so only the failed branch is reachable.
+    function test_finalizePermissionlessPoke() public {
+        vm.roll(startBlock + 100);
+        _depositAs(user, 1000e18);
+
+        vm.expectRevert(LGEHook.LGEActive.selector);
+        _hook().finalize();
+
+        vm.roll(startBlock + STREAM_BLOCKS + 1);
+        vm.prank(user2);
+        _hook().finalize();
+        assertTrue(_hook().isLgeFinished());
+        assertFalse(_hook().isLgeSuccessful());
+
+        _hook().finalize(); // idempotent
+        assertTrue(_hook().isLgeFinished());
     }
 
     function test_withdrawTooEarlyRevert() public {

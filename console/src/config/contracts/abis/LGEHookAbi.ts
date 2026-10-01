@@ -1254,6 +1254,13 @@ export const LGEHookAbi = [
   },
   {
     "type": "function",
+    "name": "finalize",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "getHookPermissions",
     "inputs": [],
     "outputs": [
@@ -2462,6 +2469,11 @@ export const LGEHookAbi = [
   {
     "type": "error",
     "name": "InvalidSplits",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "LGEActive",
     "inputs": []
   },
   {

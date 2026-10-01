@@ -64,6 +64,7 @@ contract LGEHook is BaseHook, SafeNativeSender {
     error NoUSDCDeposited();
     error WithdrawTooEarly();
     error LGEFinished();
+    error LGEActive();
     error WrongPool();
     error InvalidPrice();
     error InvalidAmount();
@@ -560,6 +561,14 @@ contract LGEHook is BaseHook, SafeNativeSender {
             revert WithdrawTooEarly();
         }
 
+        // Past the window and not successful: this campaign is failed whether
+        // or not a finalizing deposit ever landed. Flip the flag here so
+        // isLgeFinished never lies to indexers and UIs.
+        if (!isLgeFinished) {
+            isLgeFinished = true;
+            emit LGEFailed();
+        }
+
         uint256 usdcToWithdraw = userStates[msg.sender].usdcToLiquidityDeposited +
             userStates[msg.sender].remainingUsdcDeposited;
 
@@ -569,6 +578,17 @@ contract LGEHook is BaseHook, SafeNativeSender {
         _sendNative(msg.sender, usdcToWithdraw);
 
         emit Withdrawn(msg.sender, usdcToWithdraw);
+    }
+
+    /// @notice Permissionless poke to finalize an expired campaign whose
+    ///         participants never transact again. Only the failed branch is
+    ///         reachable: totalTokensClaimed == cap finalizes inside the
+    ///         deposit that reaches it, so !isLgeFinished implies claimed < cap.
+    function finalize() external {
+        if (isLgeFinished) return;
+        if (block.number < startBlock + streamBlocks) revert LGEActive();
+        isLgeFinished = true;
+        emit LGEFailed();
     }
 
     // ------------------------------------------------------------------

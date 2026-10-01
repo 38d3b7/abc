@@ -4,11 +4,11 @@
   "positionManager": "0x6049c9a0e26405C0985f9E3685C87d0aE917f82B",
   "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   "protocol": "0x8fC24CbF442bE3D749981977e27105cb274c4DEc",
-  "hookMiner": "0xbad7f47056e921405cc4852ec64e5334f54b453f",
-  "vestingVault": "0x0ee0311626e30da388cfcc7f09ba9e491618c970",
-  "inferenceEscrow": "0x29f2a959a5835c286c555dd24789ba6a34a8ee9b",
-  "hookCreationCode": "0x782d58029fe3117a38b4651be4772267788d0229",
-  "lgeManager": "0x4fd11ce1af8ce475835a38a355d69545bed6b5fa",
-  "calculationsLibrary": "0xD4C7B3564E02f2fD8c9cB3f4aAE55DA4E9A1a559",
-  "managerDeployBlock": 64959789
+  "hookMiner": "0x768956e0207f9902f11a4e209ef4353a3ec1d7e0",
+  "vestingVault": "0x191fd96343b41a13f679dcc87423070e1782438a",
+  "inferenceEscrow": "0xe43226c234b0f425e564e909ae383eb734e74811",
+  "hookCreationCode": "0xb2607dd5d2bcf4c6f26d36a32f3fd1df9d3a5c75",
+  "lgeManager": "0x42213058b545625f8be3e80ba086c14e8fd22920",
+  "calculationsLibrary": "0xA6C7f398122707Bd10f917A091D3BC7C2C95d53b",
+  "managerDeployBlock": 64961838
 }

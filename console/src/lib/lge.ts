@@ -43,7 +43,10 @@ export async function listCampaigns (client: PublicClient): Promise<CampaignRef[
         { name: 'hookAddress', type: 'address', indexed: true }
       ]
     },
-    fromBlock: DEPLOY_BLOCK
+    fromBlock: DEPLOY_BLOCK,
+    // Arc's public RPC silently truncates eth_getLogs when toBlock is omitted
+    // (observed 2026-10-01: 2 logs on-chain, 1 returned). Always pass it.
+    toBlock: 'latest'
   })
   return logs.map(l => ({
     creator: l.args.msgSender as Address,
