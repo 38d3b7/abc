@@ -8,6 +8,8 @@ The two incumbents both read as consumer crypto. One leans on saturated, shiftin
 
 ABC is the opposite. It is the back office for an agent that runs a business. The audience is an operator who wants to know, at a glance, what the agent holds, what it has decided, what it spent, and what it is allowed to do next. The console should look like something a finance team would leave open on a second monitor: a ledger with controls, not a chat with a wallet attached.
 
+Amended 1 Oct 2026: the operator instructs the agent through a Chat section. This does not change the position. Chat is an instruction channel rendered to the same standard as everything else — records with states and linked intents, not bubbles with a personality.
+
 The one-line brief: **professional, corporate, crisp.** If a screen would look at home in a bank's treasury tool or an accountant's workpapers, it is right. If it would look at home on a token launch landing page, it is wrong.
 
 ## Principles
@@ -25,16 +27,18 @@ The one-line brief: **professional, corporate, crisp.** If a screen would look a
 
 **Type.** A neutral grotesk for text (Inter or Geist). All amounts, hashes, addresses, and timestamps in a monospace with tabular figures so columns align. Amounts are always shown as currency: `1,250.00 USDC`, with the sub-cent residual visible on hover rather than hidden. Hashes are truncated in the middle with a copy affordance and a link to the explorer.
 
-**Layout.** A fixed left rail with five sections: Overview, Token, Activity, Automations, Settings. A thin top bar carrying the agent name, network badge (`Arc mainnet` or `Arc testnet`), and the one USDC balance. Content is a full-width table or a two-column form. Page headers are a single line; no hero areas.
+**Layout.** A fixed left rail with seven sections: Chat, Overview, Token, Activity, Automations, Skills, Settings. A thin top bar carrying the agent name, network badge (`Arc mainnet` or `Arc testnet`), and the one USDC balance. Content is a full-width table or a two-column form. Page headers are a single line; no hero areas.
 
 **Components.** Status chips are rectangular with a 2 px radius, text in caps, no icons. Buttons are flat with a 1 px border; the primary action is filled in the signal colour. Tables have zebra rows, sticky headers, and right-aligned numbers. Charts, where used, are single-series line or bar in ink on paper with one highlighted value, never stacked rainbows.
 
 ## What each section shows
 
+- **Chat.** How the operator instructs the agent and how the agent answers. An instruction composer, not a conversation theater. Operator instructions render as plain rows. Each agent reply is a ledger record: the reply text, the intents it produced as linked chips with their states, and, when the reply cost inference, the cost beside it. The agent never speaks in first person beyond its quoted rationale.
 - **Overview.** One balance. Three meter buckets (gas, inference, trading) as bars against their period caps. The gas reserve. The last five intents. Nothing else.
 - **Token.** The LGE as a controlled process: parameters, the falling price curve as a single line, progress to the cap, time remaining. After success: the fee ledger as three columns (participants 25%, agent 50%, protocol 25%), the lock progress as booked fees against USDC spent, and claim buttons that show the exact amount they will pay.
 - **Activity.** The intent ledger. Every row: time, intent type, amount, counterparty, state, hash, and the agent's one-line rationale. Expand a row to see the state history and the simulation record. This is the page we show judges first.
 - **Automations.** A table of armed, paused, and completed automations with cadence, budget used against budget, and next run. Create is a form, not a wizard.
+- **Skills.** A table of the agent's installed skills: slug, provider, kind (knowledge or capability), license, source, enabled state, and when it was added. Install is a form (a URL); enable and disable are explicit actions with a change record. Capability skills list the intent types they can raise.
 - **Settings.** Policy as a document: per-transaction limit, daily limit, recipient allowlist with cooldown, confirmation thresholds, pause. Each field shows its current value and when it last changed. Changes require the owner's session.
 
 ## Copy rules
@@ -46,7 +50,7 @@ The one-line brief: **professional, corporate, crisp.** If a screen would look a
 
 ## What it must not look like
 
-A chat app with a balance in the corner. A launchpad with a leaderboard. A dashboard with a dozen colourful KPI tiles. A dark terminal with green text. Anything with a mascot.
+A chat app with a balance in the corner — the Chat section is an instruction channel bound to the ledger; if it reads as a conversation with a mascot, it is wrong. A launchpad with a leaderboard. A dashboard with a dozen colourful KPI tiles. A dark terminal with green text. Anything with a mascot.
 
 ## Reference points
 

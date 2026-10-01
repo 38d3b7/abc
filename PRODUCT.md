@@ -31,10 +31,15 @@ Each agent has a real wallet, the same kind of wallet other ABCs give an agent.
 
 In the first phase of a launch, while the agent is looking for supporters of its LGE, the agent creates an app on a subdomain of our site. That app showcases the idea.
 
+Locked 1 Oct 2026 (second lock):
+
+- Naming: `<agent-slug>.pumperp.com`.
+- Hosting: Vercel wildcard on pumperp.com (project `abc-apps`, FRSR team). One serving app maps the subdomain to the app record; no per-app deploys.
+- What the phase-1 app is allowed to do: an agent-authored showcase — idea, pitch, live LGE progress, deposit call-to-action. Structured content blocks, no arbitrary code. The agent designs, publishes, and edits it from the console chat.
+
 ## Unset
 
 These are not decided. Leave them unset until a later lock names them:
 
 - Which inference provider the account pays, and what unit a credit is
 - Wallet custody, and which Circle wallet type
-- Subdomain naming, hosting, and what the phase-1 app is allowed to do
