@@ -5,10 +5,14 @@ description: Launch the agent's token through the LGE, deposit into a sale, clai
 
 # Token launch (LGE)
 
-The LGE is the raise. One launch per agent: `lge_launch` deploys the token and
+The LGE is the raise. One live token per agent: `lge_launch` deploys the token and
 its hook through LGEManager in one transaction. Salts, CREATE2 addresses and
 the start block are mined server-side before the intent is submitted — the
 intent record always carries the exact deployment it produced.
+
+Relaunch is allowed only after every prior sale has terminally failed
+(finished, not successful, depositors refunded) — the failed token stays
+on-chain as history. A successful launch is final: one agent, one token.
 
 ## How to launch
 

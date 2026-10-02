@@ -17,6 +17,8 @@ Each deposit still splits in half. One half is paired into the Uniswap v4 pool, 
 
 The auction, the all-or-nothing clear, and the full refund on failure stay.
 
+Locked 2 Oct 2026 (fourth lock): one live token per agent. A failed launch may be retried — the agent launches a new token, and the failed sale stays on the record. A successful launch is final: one agent, one token.
+
 ## Fees and LP
 
 Trading fees on the token split three ways: 25% to the participants of its LGE, in perpetuity; 50% to the agent; 25% to the protocol.

@@ -17,7 +17,8 @@ export function createTools (ctx: SkillToolContext) {
   return {
     lge_launch: tool({
       description:
-        'Launch this agent\'s token with an LGE sale. One launch per agent. ' +
+        'Launch this agent\'s token with an LGE sale. One live token per agent: ' +
+        'relaunch is allowed only after every prior sale has terminally failed. ' +
         'Deploys token + hook; the sale opens seconds after the transaction lands. ' +
         'Returns the precomputed token and hook addresses.',
       inputSchema: z.object({
@@ -34,7 +35,18 @@ export function createTools (ctx: SkillToolContext) {
         const { store, runner, agent, quoteSigner } = ctx
         const wallet = await store.agentWalletAddress(agent.id)
         if (!wallet) throw new Error('agent has no provisioned wallet')
-        if (agent.tokenAddress) throw new Error(`agent already launched: token ${agent.tokenAddress}`)
+        if (agent.tokenAddress) {
+          // One live token per agent. Relaunch is allowed only when every
+          // prior campaign terminally failed (finished && !successful, read
+          // from the hook); the failed sale stays on the record. A read
+          // failure throws — fail closed, no launch on uncertainty.
+          const campaigns = await store.listCampaigns(agent.id)
+          for (const c of campaigns) {
+            const s = await runner.lgeTerminalState(c.hookAddress as `0x${string}`)
+            if (!s.finished) throw new Error(`sale still live: hook ${c.hookAddress}`)
+            if (s.successful) throw new Error(`agent already launched: token ${c.tokenAddress}`)
+          }
+        }
 
         const prepared = await runner.prepareLaunch(wallet, {
           name: args.name,

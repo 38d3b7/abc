@@ -20,6 +20,8 @@ import type { SignerAdapter } from '../src/signer/types.js'
 import { assertTransition, IllegalTransition } from '../src/pipeline/states.js'
 import { runAgentLoop } from '../src/agent/loop.js'
 import { prepareLaunch } from '../src/lge/launch.js'
+import { createTools as tokenLaunchTools } from '../skills/token-launch/tool.js'
+import { toFunctionSelector } from 'viem'
 import type { AppRow } from '../src/db/store.js'
 
 const WALLET = '0x00000000000000000000000000000000000000AA'
@@ -261,6 +263,76 @@ describe('lge_launch', () => {
       name: 'Atlas Token',
       symbol: 'ATLAS'
     })
+  })
+})
+
+describe('lge_launch retry guard', () => {
+  // The hook's two bool views, discriminated by selector; anything else
+  // falls through to FLAGS_ZERO so launch mining still works.
+  const SEL_FINISHED = toFunctionSelector('isLgeFinished()')
+  const SEL_SUCCESSFUL = toFunctionSelector('isLgeSuccessful()')
+  const WORD_TRUE = `0x${''.padEnd(63, '0')}1` as `0x${string}`
+
+  function hookStateChain (finished: boolean, successful: boolean): ChainReader {
+    return fakeChain({
+      call: async ({ data }) => {
+        if (data?.startsWith(SEL_FINISHED)) return { data: finished ? WORD_TRUE : FLAGS_ZERO }
+        if (data?.startsWith(SEL_SUCCESSFUL)) return { data: successful ? WORD_TRUE : FLAGS_ZERO }
+        return { data: FLAGS_ZERO }
+      }
+    })
+  }
+
+  const PRIOR = {
+    tokenAddress: '0x0000000000000000000000000000000000000b01',
+    hookAddress: HOOK,
+    cap: '1000', startBlock: '1', streamBlocks: '14400',
+    minTokenPrice: '20000', maxTokenPrice: '40000', feeBps: 100
+  }
+  const ARGS = {
+    name: 'Retry Token', symbol: 'RETRY', supplyTokens: '1000000',
+    windowHours: 2, startRate: '20000', endRate: '40000', feeBps: 100,
+    rationale: 'retry after a failed sale'
+  }
+
+  async function toolCtx (chain: ChainReader) {
+    const store = new MemoryStore()
+    const created = await store.createAgent('Test', 'test')
+    await store.registerWallet(created.id, WALLET, 'local_dev', 'fake')
+    await store.registerCampaign({ agentId: created.id, ...PRIOR })
+    const quoteSigner = await QuoteSigner.create()
+    const runner = new PipelineRunner({
+      store, signer: fakeSigner(), chain, quoteSigner, chainId: 5_042_002
+    })
+    // The loop always works from a freshly-read agent row; mirror that here.
+    const agent = (await store.getAgent(created.id))!
+    const tools = tokenLaunchTools({ store, runner, agent, quoteSigner, config: {} })
+    return { store, agent, tools }
+  }
+
+  it('blocks a relaunch while the prior sale is still live', async () => {
+    const { tools } = await toolCtx(fakeChain()) // default reads: all false = live
+    await expect(tools.lge_launch.execute!(ARGS, {} as never))
+      .rejects.toThrow('sale still live')
+  })
+
+  it('blocks a relaunch after a successful sale', async () => {
+    const { tools } = await toolCtx(hookStateChain(true, true))
+    await expect(tools.lge_launch.execute!(ARGS, {} as never))
+      .rejects.toThrow('already launched')
+  })
+
+  it('allows a relaunch when every prior sale terminally failed', async () => {
+    const { store, agent, tools } = await toolCtx(hookStateChain(true, false))
+    const out = await tools.lge_launch.execute!(ARGS, {} as never) as {
+      state: string; tokenAddress: string
+    }
+    expect(out.state).toBe('FINAL')
+    const campaigns = await store.listCampaigns(agent.id)
+    expect(campaigns).toHaveLength(2) // the failed sale stays on the record
+    const after = await store.getAgent(agent.id)
+    expect(after!.tokenAddress).toBe(out.tokenAddress) // record follows the new campaign
+    expect(after!.tokenAddress).not.toBe(PRIOR.tokenAddress)
   })
 })
 

@@ -26,6 +26,7 @@ import { splitUsd } from '../ledger/usd.js'
 import { EFFECT_INTENTS } from '../intents/types.js'
 import { applyEffect } from './effects.js'
 import { prepareLaunch as mineLaunch, type LaunchRequest, type PreparedLaunch } from '../lge/launch.js'
+import { readLgeTerminalState, type LgeTerminalState } from '../lge/state.js'
 import type { AppRow } from '../db/store.js'
 
 export interface PolicyConfig {
@@ -150,6 +151,12 @@ export class PipelineRunner {
    */
   async prepareLaunch (walletAddress: string, req: LaunchRequest): Promise<PreparedLaunch> {
     return mineLaunch(this.d.chain, this.d.chainId, walletAddress as `0x${string}`, req)
+  }
+
+  /** Terminal state of a launch hook: finished && !successful = failed sale,
+   *  which is the only state an agent may relaunch from. */
+  async lgeTerminalState (hook: `0x${string}`): Promise<LgeTerminalState> {
+    return readLgeTerminalState(this.d.chain, hook)
   }
 
   // ------------------------------------------------------------------
