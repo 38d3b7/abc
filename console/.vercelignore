@@ -1,0 +1,6 @@
+# Never upload local env — Vite inlines VITE_* into the public bundle.
+.env
+.env.*
+!.env.example
+node_modules
+dist
