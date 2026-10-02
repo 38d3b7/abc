@@ -28,11 +28,13 @@
   --accent-soft: var(--brand-soft);
 
   --gradient-brand: linear-gradient(180deg, var(--brand-hi) 0%, var(--brand-lo) 100%);
+  /* Logo plate wash — ~40% lighter than prior metal graduation */
   --gradient-metal-plate: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--metal-hi) 35%, transparent) 0%,
-    color-mix(in srgb, var(--metal-lo) 12%, transparent) 100%
+    color-mix(in srgb, var(--metal-hi) 21%, transparent) 0%,
+    color-mix(in srgb, var(--metal-lo) 7%, transparent) 100%
   );
+  --brand-plate-fill: color-mix(in srgb, var(--brand-soft) 13%, var(--tint));
 
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   --table-head-ink: color-mix(in srgb, var(--metal-lo) 70%, var(--ink-3));
@@ -46,7 +48,7 @@
   border-radius: var(--radius-lg);
   background:
     var(--gradient-metal-plate),
-    color-mix(in srgb, var(--brand-soft) 22%, var(--tint));
+    var(--brand-plate-fill);
   box-shadow: var(--inset-highlight);
 }
 
