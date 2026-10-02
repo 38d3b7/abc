@@ -37,6 +37,11 @@ export const config = {
   keeperKey: process.env.ABC_KEEPER_KEY || '',
   aiGatewayKey: process.env.AI_GATEWAY_API_KEY || '',
   agentModel: process.env.ABC_AGENT_MODEL || 'anthropic/claude-sonnet-4.5',
+  /** Extra gateway ids exposed in the console model picker (comma-separated). */
+  agentModels: (process.env.ABC_AGENT_MODELS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean),
   /** Inference rail (PRODUCT.md third lock). Buyer: the agent's dedicated
    *  inference EOA key, funded by capped draws from its InferenceEscrow
    *  credit. Seller: the executor's charge endpoint, paid to the keeper EOA

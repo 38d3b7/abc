@@ -87,6 +87,10 @@
   margin-bottom: 8px;
 }
 
+.nav-brand.brand-plate {
+  border-bottom: 1px solid var(--rule-strong);
+}
+
 .nav-brand-logo {
   display: block;
   width: 100%;
@@ -141,6 +145,16 @@
   padding: 24px var(--content-pad) 80px;
 }
 
+/* Chat: fill the viewport below the topbar; only the transcript scrolls. */
+.content:has(.page-frame--chat) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 16px;
+  height: calc(100vh - var(--topbar-h));
+  box-sizing: border-box;
+}
+
 .content > * {
   max-width: none;
   width: 100%;
@@ -153,7 +167,20 @@
 }
 
 .page-frame--chat {
-  min-height: calc(100vh - var(--topbar-h) - 48px);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-frame--chat > .page-intro {
+  flex-shrink: 0;
+}
+
+.page-frame--chat > .chat-pane,
+.page-frame--chat > .chat-split {
+  flex: 1;
+  min-height: 0;
 }
 
 .page-intro {
@@ -409,7 +436,7 @@ textarea:focus {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
   align-items: stretch;
-  min-height: calc(100vh - var(--topbar-h) - 200px);
+  min-height: 0;
 }
 
 .chat-split-ledger {

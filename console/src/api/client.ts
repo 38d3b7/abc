@@ -176,8 +176,15 @@ export const api = {
 
   listMessages: async (agentId: string) =>
     (await req<{ messages: AgentMessage[] }>('GET', `/agents/${agentId}/messages`)).messages,
-  sendMessage: async (agentId: string, text: string) =>
-    req<{ message: AgentMessage; reply: AgentMessage | null }>('POST', `/agents/${agentId}/messages`, { text }, crypto.randomUUID()),
+  listAgentModels: async () =>
+    req<{ defaultModel: string; models: { id: string; label: string }[] }>('GET', '/models'),
+  sendMessage: async (agentId: string, text: string, model?: string) =>
+    req<{ message: AgentMessage; reply: AgentMessage | null }>(
+      'POST',
+      `/agents/${agentId}/messages`,
+      { text, ...(model !== undefined ? { model } : {}) },
+      crypto.randomUUID()
+    ),
 
   listSkillCatalog: async () => (await req<{ skills: Skill[] }>('GET', '/skills')).skills,
   listAgentSkills: async (agentId: string) =>

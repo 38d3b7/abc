@@ -26,6 +26,7 @@ import { loadRegistry, resolveAgentSkills, SKILLS_DIR } from '../agent/skills.js
 import { importSkill, ImportRefused, type ImportOptions, type ImportResult } from '../agent/skillImport.js'
 import { pushAppToShowcase } from '../apps/push.js'
 import { registerInferenceSeller, type FacilitatorSeam } from '../inference/seller.js'
+import { listAgentModels, resolveTurnModel } from '../agent/models.js'
 
 function requestHash (body: unknown): string {
   return createHash('sha256').update(JSON.stringify(body)).digest('hex')
@@ -248,6 +249,8 @@ export function createApp ({
     }
   })
 
+  app.get('/models', c => c.json(listAgentModels()))
+
   // ---- messages (operator instruction -> pending agent reply -> worker settles) ----
   app.post('/agents/:id/messages', async c => {
     const agentId = c.req.param('id')
@@ -255,9 +258,15 @@ export function createApp ({
     if (!key) return c.json({ error: 'Idempotency-Key header required' }, 400)
     const agent = await store.getAgent(agentId)
     if (!agent) return c.json({ error: 'not found' }, 404)
-    const body = await c.req.json<{ text?: string }>()
+    const body = await c.req.json<{ text?: string; model?: string }>()
     const text = body.text?.trim()
     if (!text) return c.json({ error: 'text required' }, 400)
+    let modelId: string
+    try {
+      modelId = resolveTurnModel(body.model)
+    } catch {
+      return c.json({ error: 'model not allowed' }, 400)
+    }
 
     const existing = await store.getMessageByClientKey(agentId, key)
     if (existing) {
@@ -279,7 +288,7 @@ export function createApp ({
     }
     const reply = await store.createMessage({ agentId, role: 'agent', replyTo: message.id, state: 'pending' })
     try {
-      await enqueuePrompt({ agentId, prompt: text, replyMessageId: reply.id })
+      await enqueuePrompt({ agentId, prompt: text, modelId, replyMessageId: reply.id })
     } catch (e) {
       // never leave a silent pending row: fail it with the reason
       await store.failMessage(reply.id, `enqueue failed: ${(e as Error).message}`)

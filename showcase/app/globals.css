@@ -26,12 +26,22 @@
   --accent-soft: var(--brand-soft);
 
   --gradient-brand: linear-gradient(180deg, var(--brand-hi) 0%, var(--brand-lo) 100%);
+  --brand-plate-fill: color-mix(in srgb, var(--brand-soft) 13%, var(--tint));
+  --brand-plate-grad-top: color-mix(
+    in srgb,
+    white 40%,
+    color-mix(in srgb, var(--metal-hi) 21%, var(--brand-plate-fill))
+  );
+  --brand-plate-grad-bottom: color-mix(
+    in srgb,
+    white 40%,
+    color-mix(in srgb, var(--metal-lo) 7%, transparent)
+  );
   --gradient-metal-plate: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--metal-hi) 21%, transparent) 0%,
-    color-mix(in srgb, var(--metal-lo) 7%, transparent) 100%
+    var(--brand-plate-grad-top) 0%,
+    var(--brand-plate-grad-bottom) 100%
   );
-  --brand-plate-fill: color-mix(in srgb, var(--brand-soft) 13%, var(--tint));
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
   --radius-sm: 6px;

@@ -34,6 +34,8 @@ export interface AgentLoopDeps {
   agent: AgentRow
   prompt: string
   quoteSigner: QuoteSigner
+  /** Gateway model id for this turn (before test double injection). */
+  modelId?: string
   /** Test seam: overrides the configured gateway model. */
   model?: LanguageModel
   /** Skills catalog location; tests substitute a fixture dir. */
@@ -110,7 +112,8 @@ export async function runAgentLoop (deps: AgentLoopDeps): Promise<{ text: string
 
   // The model: a test double when injected, else the configured gateway
   // model resolved to an instance so the charging middleware can wrap it.
-  const base = deps.model ?? gateway(config.agentModel)
+  const resolvedModelId = deps.modelId ?? config.agentModel
+  const base = deps.model ?? gateway(resolvedModelId)
   const model = deps.inference
     ? wrapLanguageModel({
       model: base as Exclude<LanguageModel, string>,
@@ -119,7 +122,7 @@ export async function runAgentLoop (deps: AgentLoopDeps): Promise<{ text: string
         // token counts backfill after. A charge failure aborts the turn —
         // the agent pays for its own inference or it does not run.
         wrapGenerate: async ({ doGenerate }) => {
-          const { chargeId } = await deps.inference!.charge(agent.id, config.agentModel)
+          const { chargeId } = await deps.inference!.charge(agent.id, resolvedModelId)
           const out = await doGenerate()
           const tokensIn = out.usage?.inputTokens?.total ?? 0
           const tokensOut = out.usage?.outputTokens?.total ?? 0

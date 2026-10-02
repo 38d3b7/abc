@@ -28,13 +28,23 @@
   --accent-soft: var(--brand-soft);
 
   --gradient-brand: linear-gradient(180deg, var(--brand-hi) 0%, var(--brand-lo) 100%);
-  /* Logo plate wash — ~40% lighter than prior metal graduation */
+  --brand-plate-fill: color-mix(in srgb, var(--brand-soft) 13%, var(--tint));
+  /* Logo plate metal wash — top lifted 40% toward white; bottom unchanged */
+  --brand-plate-grad-top: color-mix(
+    in srgb,
+    white 40%,
+    color-mix(in srgb, var(--metal-hi) 21%, var(--brand-plate-fill))
+  );
+  --brand-plate-grad-bottom: color-mix(
+    in srgb,
+    white 40%,
+    color-mix(in srgb, var(--metal-lo) 7%, transparent)
+  );
   --gradient-metal-plate: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--metal-hi) 21%, transparent) 0%,
-    color-mix(in srgb, var(--metal-lo) 7%, transparent) 100%
+    var(--brand-plate-grad-top) 0%,
+    var(--brand-plate-grad-bottom) 100%
   );
-  --brand-plate-fill: color-mix(in srgb, var(--brand-soft) 13%, var(--tint));
 
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   --table-head-ink: color-mix(in srgb, var(--metal-lo) 70%, var(--ink-3));
@@ -45,8 +55,13 @@
 }
 
 .brand-plate {
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 40%, transparent) 0%,
+      transparent 40%
+    ),
     var(--gradient-metal-plate),
     var(--brand-plate-fill);
   box-shadow: var(--inset-highlight);

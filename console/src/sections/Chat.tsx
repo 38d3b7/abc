@@ -9,10 +9,9 @@ import { Button } from '../components/Button'
 import { Select } from '../components/Select'
 import { fmtTime } from '../lib/format'
 import { PageShell } from '../components/PageShell'
+import { InstallSkillDrawer } from '../components/InstallSkillDrawer'
 
-const CHAT_MODELS = [
-  { id: 'default', label: 'Agent default' }
-] as const
+const MODEL_STORAGE_KEY = 'abc.chatModel'
 
 /** Message states to chip tones (CONSOLE.md palette: amber awaits, red fails). */
 function messageTone (state: AgentMessage['state']): Tone {
@@ -32,10 +31,13 @@ interface ChatPaneProps {
   setDraft: (v: string) => void
   model: string
   setModel: (v: string) => void
+  modelOptions: { id: string; label: string }[]
+  modelsLoading: boolean
   busy: boolean
   error: string | null
   canSend: boolean
   onSend: (e: FormEvent) => void
+  onOpenSkills: () => void
 }
 
 /** Scrollable ledger + bottom docked composer (instruction channel, not bubbles). */
@@ -48,10 +50,13 @@ function ChatPane ({
   setDraft,
   model,
   setModel,
+  modelOptions,
+  modelsLoading,
   busy,
   error,
   canSend,
-  onSend
+  onSend,
+  onOpenSkills
 }: ChatPaneProps) {
   const transcriptRef = useRef<HTMLDivElement>(null)
 
@@ -114,9 +119,10 @@ function ChatPane ({
         <button
           type="button"
           className="chat-composer-icon"
-          aria-label="Add context"
-          title="Add context (coming soon)"
-          disabled
+          aria-label="Install skill"
+          title="Install skill"
+          disabled={!canSend || busy}
+          onClick={onOpenSkills}
         >
           +
         </button>
@@ -125,9 +131,10 @@ function ChatPane ({
           aria-label="Model"
           value={model}
           onChange={e => setModel(e.target.value)}
-          disabled={!canSend || busy}
+          disabled={!canSend || busy || modelsLoading}
         >
-          {CHAT_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+          <option value="default">Agent default</option>
+          {modelOptions.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
         </Select>
         <textarea
           className="chat-composer-input"
@@ -164,9 +171,21 @@ export function Chat () {
   const agent = useAgent()
   const qc = useQueryClient()
   const [draft, setDraft] = useState('')
-  const [model, setModel] = useState<string>(CHAT_MODELS[0].id)
+  const [model, setModel] = useState(() => localStorage.getItem(MODEL_STORAGE_KEY) ?? 'default')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [skillsOpen, setSkillsOpen] = useState(false)
+
+  const agentModels = useQuery({
+    queryKey: ['agent-models'],
+    queryFn: () => api.listAgentModels(),
+    retry: false,
+    staleTime: 60_000
+  })
+
+  useEffect(() => {
+    localStorage.setItem(MODEL_STORAGE_KEY, model)
+  }, [model])
 
   const messages = useQuery({
     queryKey: ['messages', agent.data?.id],
@@ -200,6 +219,7 @@ export function Chat () {
 
   const rows = messages.data ?? []
   const canSend = Boolean(agent.data)
+  const modelOptions = agentModels.data?.models ?? []
 
   async function send (e: FormEvent) {
     e.preventDefault()
@@ -208,7 +228,7 @@ export function Chat () {
     setBusy(true)
     setError(null)
     try {
-      await api.sendMessage(agent.data.id, text)
+      await api.sendMessage(agent.data.id, text, model)
       setDraft('')
       await qc.invalidateQueries({ queryKey: ['messages', agent.data.id] })
     } catch (err) {
@@ -231,10 +251,13 @@ export function Chat () {
     setDraft,
     model,
     setModel,
+    modelOptions,
+    modelsLoading: agentModels.isLoading,
     busy,
     error,
     canSend,
-    onSend: (e: FormEvent) => void send(e)
+    onSend: (e: FormEvent) => void send(e),
+    onOpenSkills: () => setSkillsOpen(true)
   }
 
   return (
@@ -260,6 +283,9 @@ export function Chat () {
           </div>
           )
         : <ChatPane {...paneProps} />}
+      {skillsOpen && agent.data ? (
+        <InstallSkillDrawer agentId={agent.data.id} onClose={() => setSkillsOpen(false)} />
+      ) : null}
     </PageShell>
   )
 }

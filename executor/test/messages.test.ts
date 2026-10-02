@@ -193,7 +193,20 @@ describe('message routes', () => {
     const { message, reply } = (await res.json()) as PostResult
     expect(message).toMatchObject({ role: 'operator', text: 'launch status?', clientKey: 'k1' })
     expect(reply).toMatchObject({ role: 'agent', state: 'pending', replyTo: message.id })
-    expect(enqueued).toEqual([{ agentId: agent.id, prompt: 'launch status?', replyMessageId: reply.id }])
+    expect(enqueued).toEqual([{ agentId: agent.id, prompt: 'launch status?', modelId: 'anthropic/claude-sonnet-4.5', replyMessageId: reply.id }])
+  })
+
+  it('passes an explicit model id through to the worker job', async () => {
+    const agent = await store.createAgent('Test', 'test')
+    const res = await post(agent.id, { text: 'hi', model: 'default' }, 'k-model')
+    expect(res.status).toBe(201)
+    expect(enqueued[0]?.modelId).toBe('anthropic/claude-sonnet-4.5')
+  })
+
+  it('rejects a model outside the allowlist', async () => {
+    const agent = await store.createAgent('Test', 'test')
+    expect((await post(agent.id, { text: 'hi', model: 'evil/model' }, 'k-bad')).status).toBe(400)
+    expect(enqueued).toHaveLength(0)
   })
 
   it('replays the same key without re-enqueueing', async () => {

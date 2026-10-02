@@ -13,6 +13,8 @@ import type { InferenceBuyer } from '../inference/client.js'
 export interface AgentPromptJob {
   agentId: string
   prompt: string
+  /** Gateway model id for this turn; worker default is config.agentModel. */
+  modelId?: string
   /** The pending agent reply row this turn settles (chat POST opens it). */
   replyMessageId?: string
 }
@@ -43,6 +45,7 @@ export async function handleAgentPrompt (deps: AgentPromptDeps, job: AgentPrompt
       agent,
       prompt: job.prompt,
       quoteSigner: deps.quoteSigner,
+      ...(job.modelId !== undefined ? { modelId: job.modelId } : {}),
       ...(deps.model !== undefined ? { model: deps.model } : {}),
       ...(deps.inference !== undefined ? { inference: deps.inference } : {})
     })
