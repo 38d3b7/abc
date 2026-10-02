@@ -4,19 +4,19 @@
 
 :root {
   /* surfaces — cool silver neutrals (logo chrome), not warm beige */
-  --paper: #f2f4f8;
+  --paper: #f4f6f9;
   --surface: #ffffff;
-  --tint: #e9ecf2;
-  --tint-2: #dee3eb;
-  --detail-surface: #e8f0f8;
+  --tint: #eceff4;
+  --tint-2: #e3e7ee;
+  --detail-surface: #ebf2f9;
 
   /* ink (brand.css deepens --ink) */
-  --ink-2: #383840;
-  --ink-3: #6e6e78;
+  --ink-2: #56565d;
+  --ink-3: #84848c;
 
   /* rules — machined silver edges */
-  --rule: #d4dae3;
-  --rule-strong: #b9c2ce;
+  --rule: #dae0e7;
+  --rule-strong: #c4cbd5;
 
   /* status: pale tinted background + light border + darker text */
   --ok-bg: #edf5ee;

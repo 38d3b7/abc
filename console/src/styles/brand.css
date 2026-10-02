@@ -5,22 +5,22 @@
   --ink: #0a0b0e;
 
   /* Align work-layer surfaces with logo metal (overrides warm tokens if reintroduced) */
-  --paper: #f2f4f8;
+  --paper: #f4f6f9;
   --surface: #ffffff;
-  --tint: #e9ecf2;
-  --tint-2: #dee3eb;
-  --detail-surface: #e8f0f8;
-  --rule: #d4dae3;
-  --rule-strong: #b9c2ce;
+  --tint: #eceff4;
+  --tint-2: #e3e7ee;
+  --detail-surface: #ebf2f9;
+  --rule: #dae0e7;
+  --rule-strong: #c4cbd5;
 
-  --metal-hi: #e8eaee;
-  --metal: #9aa3ad;
-  --metal-lo: #4a5058;
+  --metal-hi: #ebedf1;
+  --metal: #a9b1b9;
+  --metal-lo: #656a71;
 
   --brand-hi: #5ec8f2;
   --brand: #2b7fd4;
   --brand-lo: #1a4d9e;
-  --brand-soft: #e8f4fc;
+  --brand-soft: #ebf6fc;
 
   /* Legacy aliases — work layer still references these */
   --accent: var(--brand);
