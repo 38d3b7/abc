@@ -12,6 +12,7 @@ import {VestingVault} from "../src/VestingVault.sol";
 import {InferenceEscrow} from "../src/InferenceEscrow.sol";
 import {HookCreationCode} from "../src/HookCreationCode.sol";
 import {HookMiner} from "../src/libraries/HookMiner.sol";
+import {Deploy} from "./utils/Deploy.sol";
 
 contract LGEManagerTest is Test, Deployers {
     uint160 private immutable FLAGS =
@@ -40,6 +41,7 @@ contract LGEManagerTest is Test, Deployers {
 
     function setUp() public {
         deployFreshManagerAndRouters();
+        Deploy.lgeCalculationsLibrary();
 
         vestingVault = new VestingVault();
         inferenceEscrow = new InferenceEscrow(owner);

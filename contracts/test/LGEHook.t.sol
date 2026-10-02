@@ -20,6 +20,7 @@ import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Actions} from "@uniswap/v4-periphery/src/libraries/Actions.sol";
 
 import {PosmTestSetup} from "./utils/PosmTestSetup.sol";
+import {Deploy} from "./utils/Deploy.sol";
 import {LGEManager} from "../src/LGEManager.sol";
 import {LGEHook} from "../src/hooks/LGEHook.sol";
 import {LGEToken} from "../src/LGEToken.sol";
@@ -91,6 +92,7 @@ contract LGEHookTest is Test, PosmTestSetup {
     function setUp() public {
         deployFreshManagerAndRouters();
         deployPosm(manager);
+        Deploy.lgeCalculationsLibrary();
 
         vestingVault = new VestingVault();
         inferenceEscrow = new InferenceEscrow(owner);
