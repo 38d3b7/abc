@@ -8,6 +8,8 @@ import { Button } from '../components/Button'
 import { Drawer } from '../components/Drawer'
 import { KeyValue } from '../components/KeyValue'
 import { fmtTime } from '../lib/format'
+import { Select } from '../components/Select'
+import { PageShell } from '../components/PageShell'
 
 function specSummary (a: Automation): string {
   switch (a.kind) {
@@ -31,6 +33,8 @@ export function Automations () {
     retry: false
   })
 
+  const rows = automations.data ?? []
+
   async function toggle (a: Automation) {
     setError(null)
     try {
@@ -41,50 +45,51 @@ export function Automations () {
     }
   }
 
+  const toolbar = (
+    <div className="page-toolbar">
+      <span className="record-count">
+        {automations.isLoading ? 'Loading…' : `${rows.length} automation${rows.length === 1 ? '' : 's'}`}
+      </span>
+      <span className="spacer" />
+      <Button variant="primary" onClick={() => setCreateOpen(true)} disabled={!agent.data}>New automation</Button>
+    </div>
+  )
+
   return (
-    <>
-      <header className="page-head">
-        <h1>Automations</h1>
-        <p className="sub">Standing instructions the worker fires and re-validates at fire time.</p>
-      </header>
-
-      <div className="page-toolbar">
-        <span className="record-count">
-          {automations.isLoading ? 'Loading…' : `${(automations.data ?? []).length} automation${(automations.data ?? []).length === 1 ? '' : 's'}`}
-        </span>
-        <span className="spacer" />
-        <Button variant="primary" onClick={() => setCreateOpen(true)} disabled={!agent.data}>New automation</Button>
-      </div>
-
+    <PageShell
+      title="Automations"
+      lead="Standing instructions the worker fires and re-validates at fire time."
+      toolbar={toolbar}
+    >
       {error ? <p className="small" style={{ color: 'var(--bad-ink)' }}>{error}</p> : null}
 
       <div className="table-section">
-      <Table
-        columns={[
-          { head: 'Created', cell: r => <span className="mono">{fmtTime(Math.floor(new Date(r.createdAt).getTime() / 1000))}</span> },
-          { head: 'Kind', cell: r => <span className="mono">{r.kind}</span> },
-          { head: 'Cadence / trigger', cell: r => <span className="small">{specSummary(r)}</span> },
-          { head: 'Intent', cell: r => <span className="mono">{String((r.intentTemplate as { type?: string }).type ?? '—')}</span> },
-          { head: 'Last fired', cell: r => r.lastFiredAt ? <span className="mono">{fmtTime(Math.floor(new Date(r.lastFiredAt).getTime() / 1000))}</span> : <span className="muted">never</span> },
-          { head: 'State', cell: r => r.active ? <Chip tone="ok">Armed</Chip> : <Chip tone="warn">Paused</Chip> },
-          { head: '', cell: r => <Button onClick={() => void toggle(r)}>{r.active ? 'Pause' : 'Resume'}</Button> }
-        ]}
-        rows={automations.data ?? []}
-        keyOf={r => r.id}
-        empty={automations.isLoading ? 'Loading…' : agent.isError ? 'Executor unreachable.' : 'No automations.'}
-        detail={r => (
-          <section className="detail-section">
-            <span className="detail-section-title">Intent template</span>
-            <KeyValue entries={Object.entries((r.intentTemplate as { params?: Record<string, unknown> }).params ?? {}).map(([k, v]) => [k, String(v)])} />
-          </section>
-        )}
-      />
+        <Table
+          columns={[
+            { head: 'Created', role: 'mono', cell: r => fmtTime(Math.floor(new Date(r.createdAt).getTime() / 1000)) },
+            { head: 'Kind', role: 'mono', cell: r => r.kind },
+            { head: 'Cadence / trigger', role: 'muted', cell: r => specSummary(r) },
+            { head: 'Intent', role: 'mono', cell: r => String((r.intentTemplate as { type?: string }).type ?? '—') },
+            { head: 'Last fired', role: 'mono', cell: r => r.lastFiredAt ? fmtTime(Math.floor(new Date(r.lastFiredAt).getTime() / 1000)) : <span className="muted">never</span> },
+            { head: 'State', cell: r => r.active ? <Chip tone="ok">Armed</Chip> : <Chip tone="warn">Paused</Chip> },
+            { head: '', cell: r => <Button onClick={() => void toggle(r)}>{r.active ? 'Pause' : 'Resume'}</Button> }
+          ]}
+          rows={rows}
+          keyOf={r => r.id}
+          empty={automations.isLoading ? 'Loading…' : agent.isError ? 'Executor unreachable.' : 'No automations.'}
+          detail={r => (
+            <section className="detail-section">
+              <span className="detail-section-title">Intent template</span>
+              <KeyValue entries={Object.entries((r.intentTemplate as { params?: Record<string, unknown> }).params ?? {}).map(([k, v]) => [k, String(v)])} />
+            </section>
+          )}
+        />
       </div>
 
       {createOpen && agent.data ? (
         <CreateAutomation agentId={agent.data.id} onClose={() => setCreateOpen(false)} />
       ) : null}
-    </>
+    </PageShell>
   )
 }
 
@@ -119,10 +124,10 @@ function CreateAutomation ({ agentId, onClose }: { agentId: string; onClose: () 
   return (
     <Drawer title="New automation" onClose={onClose}>
       <div className="form-row"><span className="label">Trigger</span>
-        <select value={kind} onChange={e => setKind(e.target.value as Automation['kind'])}>
+        <Select value={kind} onChange={e => setKind(e.target.value as Automation['kind'])}>
           <option value="cron">Cron (interval)</option>
           <option value="fee_accrued">Fees accrued above threshold</option>
-        </select>
+        </Select>
       </div>
       {kind === 'cron' ? (
         <div className="form-row"><span className="label">Interval (seconds)</span>
@@ -133,11 +138,11 @@ function CreateAutomation ({ agentId, onClose }: { agentId: string; onClose: () 
           <input type="number" value={thresholdUsdc} onChange={e => setThresholdUsdc(e.target.value)} min="1" /></div>
       ) : null}
       <div className="form-row"><span className="label">Intent to fire</span>
-        <select value={intentType} onChange={e => setIntentType(e.target.value)}>
+        <Select value={intentType} onChange={e => setIntentType(e.target.value)}>
           <option value="claim_fees">claim_fees</option>
           <option value="get_balances">get_balances</option>
           <option value="fund_gas">fund_gas</option>
-        </select>
+        </Select>
       </div>
       <div className="panel-body">
         {error ? <p className="small" style={{ color: 'var(--bad-ink)' }}>{error}</p> : null}

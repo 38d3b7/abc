@@ -1,9 +1,19 @@
 import { Fragment, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
 
+export type ColumnRole = 'primary' | 'mono' | 'muted' | 'num'
+
 export interface Column<T> {
   head: string
+  /** @deprecated use role="num" */
   num?: boolean
+  role?: ColumnRole
   cell: (row: T) => ReactNode
+}
+
+function colClass (c: { num?: boolean; role?: ColumnRole }): string {
+  const role = c.role ?? (c.num ? 'num' : undefined)
+  if (!role) return ''
+  return `col-${role}`
 }
 
 interface Props<T> {
@@ -55,7 +65,7 @@ export function Table<T> ({ columns, rows, keyOf, detail, empty = 'No rows.', pa
           <thead>
             <tr>
               {detail ? <th className="expand-cell" aria-label="Expand" /> : null}
-              {columns.map((c, i) => <th key={i} className={c.num ? 'num' : ''}>{c.head}</th>)}
+              {columns.map((c, i) => <th key={i} className={colClass(c)}>{c.head}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -86,7 +96,7 @@ export function Table<T> ({ columns, rows, keyOf, detail, empty = 'No rows.', pa
                         </button>
                       </td>
                     ) : null}
-                    {columns.map((c, i) => <td key={i} className={c.num ? 'num' : ''}>{c.cell(r)}</td>)}
+                    {columns.map((c, i) => <td key={i} className={colClass(c)}>{c.cell(r)}</td>)}
                   </tr>
                   {detail && isOpen ? (
                     <tr className="row-detail">

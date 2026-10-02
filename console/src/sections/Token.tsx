@@ -8,8 +8,10 @@ import { Table } from '../components/Table'
 import { Button } from '../components/Button'
 import { Chip } from '../components/Chip'
 import { HashLink } from '../components/HashLink'
+import { Select } from '../components/Select'
 import { LaunchWizard } from './token/LaunchWizard'
 import { CampaignDetail } from './token/CampaignDetail'
+import { PageShell } from '../components/PageShell'
 
 /** Shared campaign query, refreshed each new block (~0.5s on Arc). */
 export function useCampaign (hook: `0x${string}`) {
@@ -97,30 +99,35 @@ export function Token () {
     ? 'Loading…'
     : `${filtered.length} launch${filtered.length === 1 ? '' : 'es'}`
 
+  const toolbar = (
+    <div className="page-toolbar">
+      <input
+        type="search"
+        className="mono-input"
+        placeholder="Search hook or token address…"
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        aria-label="Search launches"
+      />
+      <Select
+        value={stateFilter}
+        onChange={e => setStateFilter(e.target.value)}
+        aria-label="Filter by state"
+      >
+        {LAUNCH_STATE_FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+      </Select>
+      <span className="record-count">{recordLabel}</span>
+      <span className="spacer" />
+      <Button variant="primary" onClick={() => setWizardOpen(true)}>New launch</Button>
+    </div>
+  )
+
   return (
-    <>
-      <header className="page-head">
-        <h1>Token</h1>
-        <p className="sub">Liquidity Generation Events on this console&apos;s manager. A token URL is public and doubles as the participant deposit page.</p>
-      </header>
-
-      <div className="page-toolbar">
-        <input
-          type="search"
-          className="mono-input"
-          placeholder="Search name, symbol, hook…"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          aria-label="Search launches"
-        />
-        <select value={stateFilter} onChange={e => setStateFilter(e.target.value)} aria-label="Filter by state">
-          {LAUNCH_STATE_FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
-        <span className="record-count">{recordLabel}</span>
-        <span className="spacer" />
-        <Button variant="primary" onClick={() => setWizardOpen(true)}>New launch</Button>
-      </div>
-
+    <PageShell
+      title="Token"
+      lead="Liquidity generation events. Each row is a launch; the campaign link opens the public deposit page."
+      toolbar={toolbar}
+    >
       {wizardOpen ? (
         <LaunchWizard
           onClose={() => setWizardOpen(false)}
@@ -133,30 +140,30 @@ export function Token () {
           columns={[
             {
               head: 'Token',
+              role: 'primary',
               cell: r => <TokenNameCell hook={r.hook} fallback={r.token} />
             },
-            { head: 'Hook', cell: r => <HashLink hash={r.hook} /> },
             { head: 'State', cell: r => <CampaignStateCell hook={r.hook} /> },
-            { head: 'Stream duration', cell: r => <StreamDurationCell hook={r.hook} /> }
+            { head: 'Stream duration', role: 'mono', cell: r => <StreamDurationCell hook={r.hook} /> }
           ]}
           rows={filtered}
           keyOf={r => r.hook}
           detail={r => <CampaignPreview hook={r.hook} />}
           empty={campaigns.isLoading || stateFilterLoading ? 'Loading…' : 'No launches match this filter.'}
         />
+        <p className="table-footnote">Expand a row for on-chain figures and hook address.</p>
       </div>
-      <p className="muted small">Expand a row for figures; open the campaign link for the deposit page.</p>
-    </>
+    </PageShell>
   )
 }
 
 function TokenNameCell ({ hook, fallback }: { hook: `0x${string}`; fallback: string }) {
   const c = useCampaign(hook)
-  if (!c.data) return <HashLink hash={fallback} />
+  if (!c.data) return <span className="col-mono muted">{fallback.slice(0, 10)}…</span>
   return (
     <Link to={`/token/${hook}`} className="campaign-link">
       <span className="token-name">{c.data.tokenName}</span>
-      <span className="ticker mono">${c.data.tokenSymbol}</span>
+      <span className="ticker">${c.data.tokenSymbol}</span>
     </Link>
   )
 }
@@ -170,7 +177,7 @@ function CampaignStateCell ({ hook }: { hook: `0x${string}` }) {
 function StreamDurationCell ({ hook }: { hook: `0x${string}` }) {
   const c = useCampaign(hook)
   if (!c.data) return <span className="muted">…</span>
-  return <span className="mono">{fmtBlocks(c.data.streamBlocks)}</span>
+  return <>{fmtBlocks(c.data.streamBlocks)}</>
 }
 
 function CampaignPreview ({ hook }: { hook: `0x${string}` }) {
@@ -180,6 +187,10 @@ function CampaignPreview ({ hook }: { hook: `0x${string}` }) {
   const soldPct = s.cap > 0n ? Number((s.totalTokensClaimed * 10000n) / s.cap) / 100 : 0
   return (
     <div className="detail-grid">
+      <section className="detail-section">
+        <span className="detail-section-title">Hook</span>
+        <div className="detail-value"><HashLink hash={hook} /></div>
+      </section>
       <section className="detail-section">
         <span className="detail-section-title">Sold</span>
         <div className="detail-value">{fmtTokens(s.totalTokensClaimed)} / {fmtTokens(s.cap)} ({soldPct}%)</div>

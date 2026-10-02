@@ -7,6 +7,8 @@ import { Chip } from '../components/Chip'
 import { Button } from '../components/Button'
 import { Drawer } from '../components/Drawer'
 import { fmtTime } from '../lib/format'
+import { Select } from '../components/Select'
+import { PageShell } from '../components/PageShell'
 
 /** Skills: the agent's installed skills as a table — slug, provider, kind,
  *  license, source, enabled state, added-at. Install is a form (registry
@@ -35,33 +37,37 @@ export function Skills () {
     }
   }
 
+  const rows = skills.data ?? []
+
+  const toolbar = (
+    <div className="page-toolbar">
+      <span className="record-count">
+        {skills.isLoading ? 'Loading…' : `${rows.length} installed`}
+      </span>
+      <span className="spacer" />
+      <Button variant="primary" onClick={() => setInstallOpen(true)} disabled={!agent.data}>Install skill</Button>
+    </div>
+  )
+
   return (
-    <>
-      <header className="page-head">
-        <h1>Skills</h1>
-        <p className="sub">What the agent knows (knowledge) and what it can do (capability). Installed skills load into every agent turn.</p>
-      </header>
-
-      <div className="page-toolbar">
-        <span className="record-count">
-          {skills.isLoading ? 'Loading…' : `${(skills.data ?? []).length} installed`}
-        </span>
-        <span className="spacer" />
-        <Button variant="primary" onClick={() => setInstallOpen(true)} disabled={!agent.data}>Install skill</Button>
-      </div>
-
+    <PageShell
+      title="Skills"
+      lead="Knowledge and capabilities installed on the agent. Enabled skills load into every turn."
+      toolbar={toolbar}
+    >
       {error ? <p className="small" style={{ color: 'var(--bad-ink)' }}>{error}</p> : null}
 
       <div className="table-section">
         <Table
           columns={[
-            { head: 'Added', cell: s => <span className="mono">{fmtTime(Math.floor(new Date(s.addedAt).getTime() / 1000))}</span> },
-            { head: 'Slug', cell: s => <span className="mono">{s.slug}</span> },
-            { head: 'Provider', cell: s => <span className="small">{s.provider}</span> },
+            { head: 'Added', role: 'mono', cell: s => fmtTime(Math.floor(new Date(s.addedAt).getTime() / 1000)) },
+            { head: 'Slug', role: 'primary', cell: s => s.slug },
+            { head: 'Provider', role: 'muted', cell: s => s.provider },
             { head: 'Kind', cell: s => <Chip tone={s.kind === 'capability' ? 'acc' : 'plain'}>{s.kind}</Chip> },
-            { head: 'License', cell: s => <span className="mono">{s.licenseSpdx}</span> },
+            { head: 'License', role: 'mono', cell: s => s.licenseSpdx },
             {
               head: 'Source',
+              role: 'muted',
               cell: s => (
                 <a className="hashlink" href={s.sourceUrl} target="_blank" rel="noreferrer">
                   {s.referenceOnly ? 'upstream (reference-only)' : 'vendored'}
@@ -70,14 +76,15 @@ export function Skills () {
             },
             {
               head: 'Intents it can raise',
+              role: 'mono',
               cell: s => s.kind === 'capability' && s.tools.length > 0
-                ? <span className="mono small">{s.tools.join(', ')}</span>
+                ? s.tools.join(', ')
                 : <span className="muted">—</span>
             },
             { head: 'State', cell: s => s.enabled ? <Chip tone="ok">Enabled</Chip> : <Chip tone="warn">Disabled</Chip> },
             { head: '', cell: s => <Button onClick={() => void toggle(s)}>{s.enabled ? 'Disable' : 'Enable'}</Button> }
           ]}
-          rows={skills.data ?? []}
+          rows={rows}
           keyOf={s => s.slug}
           empty={skills.isLoading ? 'Loading…' : agent.isError ? 'Executor unreachable.' : 'No skills installed. The agent runs on the base intent set until you install some.'}
         />
@@ -86,7 +93,7 @@ export function Skills () {
       {installOpen && agent.data ? (
         <InstallSkill agentId={agent.data.id} onClose={() => setInstallOpen(false)} />
       ) : null}
-    </>
+    </PageShell>
   )
 }
 
@@ -155,9 +162,9 @@ function InstallSkill ({ agentId, onClose }: { agentId: string; onClose: () => v
         <span className="detail-section-title">From the registry</span>
         <Table
           columns={[
-            { head: 'Slug', cell: s => <span className="mono">{s.slug}</span> },
-            { head: 'Kind', cell: s => <span className="small">{s.kind}</span> },
-            { head: 'License', cell: s => <span className="mono">{s.licenseSpdx}</span> },
+            { head: 'Slug', role: 'primary', cell: s => s.slug },
+            { head: 'Kind', role: 'muted', cell: s => s.kind },
+            { head: 'License', role: 'mono', cell: s => s.licenseSpdx },
             {
               head: '',
               cell: s => installedSlugs.has(s.slug)
@@ -182,9 +189,9 @@ function InstallSkill ({ agentId, onClose }: { agentId: string; onClose: () => v
         <div className="form-row"><span className="label">Provider</span>
           <input type="text" value={provider} onChange={e => setProvider(e.target.value)} placeholder="e.g. Clawpump" /></div>
         <div className="form-row"><span className="label">License (SPDX)</span>
-          <select value={license} onChange={e => setLicense(e.target.value)}>
+          <Select value={license} onChange={e => setLicense(e.target.value)}>
             {LICENSE_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
-          </select></div>
+          </Select></div>
         <div className="panel-body">
           {error ? <p className="small" style={{ color: 'var(--bad-ink)' }}>{error}</p> : null}
           {notice ? <p className="small" style={{ color: 'var(--ok-ink)' }}>{notice}</p> : null}

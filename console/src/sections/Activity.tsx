@@ -7,6 +7,8 @@ import { Chip, stateTone } from '../components/Chip'
 import { HashLink } from '../components/HashLink'
 import { KeyValue } from '../components/KeyValue'
 import { fmtTime } from '../lib/format'
+import { Select } from '../components/Select'
+import { PageShell, PageSection } from '../components/PageShell'
 
 const PAGE_SIZE = 25
 
@@ -91,42 +93,45 @@ export function Activity () {
     })
   }, [intents.data, query, stateFilter])
 
+  const inferenceRows = inference.data ?? []
+
   const recordLabel = intents.isLoading
     ? 'Loading…'
     : `${filtered.length} record${filtered.length === 1 ? '' : 's'}`
 
+  const toolbar = (
+    <div className="page-toolbar">
+      <input
+        type="search"
+        className="mono-input"
+        placeholder="Search type, state, hash…"
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        aria-label="Search intents"
+      />
+      <Select value={stateFilter} onChange={e => setStateFilter(e.target.value)} aria-label="Filter by state">
+        {STATE_FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+      </Select>
+      <span className="record-count">{recordLabel}</span>
+    </div>
+  )
+
   return (
-    <>
-      <header className="page-head">
-        <h1>Activity</h1>
-        <p className="sub">The intent ledger. Expand a row for its state timeline and signed rationale.</p>
-      </header>
-
-      <div className="page-toolbar">
-        <input
-          type="search"
-          className="mono-input"
-          placeholder="Search type, state, hash…"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          aria-label="Search intents"
-        />
-        <select value={stateFilter} onChange={e => setStateFilter(e.target.value)} aria-label="Filter by state">
-          {STATE_FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
-        <span className="record-count">{recordLabel}</span>
-      </div>
-
+    <PageShell
+      title="Activity"
+      lead="The intent ledger. Expand a row for its state timeline and signed rationale."
+      toolbar={toolbar}
+    >
       <div className="table-section">
         <Table
           columns={[
-            { head: 'Time', cell: r => <span className="mono">{fmtTime(Math.floor(new Date(r.createdAt).getTime() / 1000))}</span> },
-            { head: 'Type', cell: r => <span className="mono">{r.type}</span> },
-            { head: 'Amount', num: true, cell: r => <span className="mono">{amountOf(r)}</span> },
-            { head: 'Counterparty', cell: r => { const c = counterpartyOf(r); return c ? <HashLink hash={c} /> : <span className="muted">—</span> } },
+            { head: 'Time', role: 'mono', cell: r => fmtTime(Math.floor(new Date(r.createdAt).getTime() / 1000)) },
+            { head: 'Type', role: 'mono', cell: r => r.type },
+            { head: 'Amount', role: 'num', cell: r => amountOf(r) },
+            { head: 'Counterparty', role: 'mono', cell: r => { const c = counterpartyOf(r); return c ? <HashLink hash={c} /> : <span className="muted">—</span> } },
             { head: 'State', cell: r => <Chip tone={stateTone(r.state)}>{r.state}</Chip> },
-            { head: 'Tx', cell: r => r.txHash ? <HashLink hash={r.txHash} kind="tx" /> : <span className="muted">—</span> },
-            { head: 'Rationale', cell: r => <span className="small muted">{r.rationale ?? '—'}</span> }
+            { head: 'Tx', role: 'mono', cell: r => r.txHash ? <HashLink hash={r.txHash} kind="tx" /> : <span className="muted">—</span> },
+            { head: 'Rationale', role: 'muted', cell: r => r.rationale ?? '—' }
           ]}
           rows={filtered}
           keyOf={r => r.id}
@@ -170,27 +175,33 @@ export function Activity () {
         />
       </div>
 
-      <header className="page-head" style={{ marginTop: '2rem' }}>
-        <h2>Inference payments</h2>
-        <p className="sub">One row per model call, paid by the agent over the x402 Gateway rail from its own raise.</p>
-      </header>
-      <div className="table-section">
-        <Table<InferencePayment>
-          columns={[
-            { head: 'Time', cell: r => <span className="mono">{fmtTime(Math.floor(new Date(r.createdAt).getTime() / 1000))}</span> },
-            { head: 'Model', cell: r => <span className="mono">{r.model}</span> },
-            { head: 'Price', num: true, cell: r => <span className="mono">${(Number(r.priceUsdc6) / 1e6).toFixed(4)}</span> },
-            { head: 'Tokens', num: true, cell: r => <span className="mono">{r.tokensIn != null ? `${r.tokensIn}→${r.tokensOut ?? 0}` : '—'}</span> },
-            { head: 'State', cell: r => <Chip tone={r.state === 'SETTLED' ? 'ok' : r.state === 'UNCERTAIN' ? 'warn' : 'bad'}>{r.state}</Chip> },
-            { head: 'Nonce', cell: r => <span className="mono small muted">{r.eip3009Nonce.slice(0, 14)}…</span> },
-            { head: 'Settlement', cell: r => r.settlementRef ? <HashLink hash={r.settlementRef} kind="tx" /> : <span className="muted">batched</span> }
-          ]}
-          rows={inference.data ?? []}
-          keyOf={r => r.id}
-          pageSize={PAGE_SIZE}
-          empty={inference.isLoading ? 'Loading…' : 'No paid calls yet.'}
-        />
-      </div>
-    </>
+      <PageSection
+        title="Inference payments"
+        lead="One row per model call, paid by the agent over the x402 Gateway rail from its own raise."
+      >
+        <div className="page-toolbar">
+          <span className="record-count">
+            {inference.isLoading ? 'Loading…' : `${inferenceRows.length} payment${inferenceRows.length === 1 ? '' : 's'}`}
+          </span>
+        </div>
+        <div className="table-section">
+          <Table<InferencePayment>
+            columns={[
+              { head: 'Time', role: 'mono', cell: r => fmtTime(Math.floor(new Date(r.createdAt).getTime() / 1000)) },
+              { head: 'Model', role: 'primary', cell: r => r.model },
+              { head: 'Price', role: 'num', cell: r => `$${(Number(r.priceUsdc6) / 1e6).toFixed(4)}` },
+              { head: 'Tokens', role: 'num', cell: r => r.tokensIn != null ? `${r.tokensIn}→${r.tokensOut ?? 0}` : '—' },
+              { head: 'State', cell: r => <Chip tone={r.state === 'SETTLED' ? 'ok' : r.state === 'UNCERTAIN' ? 'warn' : 'bad'}>{r.state}</Chip> },
+              { head: 'Nonce', role: 'muted', cell: r => `${r.eip3009Nonce.slice(0, 14)}…` },
+              { head: 'Settlement', role: 'mono', cell: r => r.settlementRef ? <HashLink hash={r.settlementRef} kind="tx" /> : <span className="muted">batched</span> }
+            ]}
+            rows={inferenceRows}
+            keyOf={r => r.id}
+            pageSize={PAGE_SIZE}
+            empty={inference.isLoading ? 'Loading…' : 'No paid calls yet.'}
+          />
+        </div>
+      </PageSection>
+    </PageShell>
   )
 }

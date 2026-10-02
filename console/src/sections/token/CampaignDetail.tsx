@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { usePublicClient, useWatchBlockNumber } from 'wagmi'
 import { useState } from 'react'
 import { useCampaign, campaignChip } from '../Token'
@@ -10,6 +11,7 @@ import { HashLink } from '../../components/HashLink'
 import { DepositBox } from './DepositBox'
 import { SuccessView } from './SuccessView'
 import { FailedView } from './FailedView'
+import { PageShell, PageStatus } from '../../components/PageShell'
 
 export function CampaignDetail ({ hook }: { hook: `0x${string}` }) {
   const campaign = useCampaign(hook)
@@ -19,10 +21,15 @@ export function CampaignDetail ({ hook }: { hook: `0x${string}` }) {
   void client
 
   if (campaign.error) {
-    return <div className="page-head"><h1>Token</h1><span className="sub">Failed to load campaign: {(campaign.error as Error).message}</span></div>
+    return (
+      <PageStatus
+        title="Token"
+        message={`Failed to load campaign: ${(campaign.error as Error).message}`}
+      />
+    )
   }
   if (!campaign.data) {
-    return <div className="page-head"><h1>Token</h1><span className="sub">Loading…</span></div>
+    return <PageStatus title="Token" message="Loading…" />
   }
   const s = campaign.data
   const endBlock = s.startBlock + s.streamBlocks
@@ -30,33 +37,47 @@ export function CampaignDetail ({ hook }: { hook: `0x${string}` }) {
   const soldFrac = s.cap > 0n ? Number(s.totalTokensClaimed) / Number(s.cap) : 0
   const blocksLeft = block > 0n && endBlock > block ? endBlock - block : 0n
 
-  return (
+  const titleAside = (
     <>
-      <div className="page-head">
-        <h1>{s.tokenName} <span className="muted mono">${s.tokenSymbol}</span></h1>
-        {campaignChip(s)}
-        <HashLink hash={hook} />
-        <HashLink hash={s.token} />
-      </div>
-
-      <StatStrip stats={[
-        { label: 'Raised', value: `${fmtUsdc(s.totalUsdcRaised)} USDC` },
-        { label: 'Sold', value: `${fmtTokens(s.totalTokensClaimed)} / ${fmtTokens(s.cap)}` },
-        { label: 'Current rate', value: `${Number(s.currentPrice).toLocaleString('en-US')} tok/USDC` },
-        { label: 'Implied price', value: `${priceToUsdcPerToken(s.currentPrice)} USDC` },
-        live
-          ? { label: 'Time left', value: fmtBlocks(blocksLeft) }
-          : { label: 'Hook fee', value: `${s.feeBps / 100}%` }
-      ]} />
-
-      {live || (!s.isLgeFinished && !s.isLgeSuccessful) ? (
-        <LiveView s={s} block={block} soldFrac={soldFrac} />
-      ) : s.isLgeSuccessful ? (
-        <SuccessView s={s} />
-      ) : (
-        <FailedView s={s} />
-      )}
+      {campaignChip(s)}
+      <Link to="/token" className="small">All launches</Link>
     </>
+  )
+
+  return (
+    <PageShell
+      title={`${s.tokenName}`}
+      lead={
+        <>
+          <span className="ticker">${s.tokenSymbol}</span>
+          {' · '}
+          <HashLink hash={hook} />
+          {' · '}
+          <HashLink hash={s.token} />
+        </>
+      }
+      titleAside={titleAside}
+    >
+      <div className="content-stack">
+        <StatStrip stats={[
+          { label: 'Raised', value: `${fmtUsdc(s.totalUsdcRaised)} USDC` },
+          { label: 'Sold', value: `${fmtTokens(s.totalTokensClaimed)} / ${fmtTokens(s.cap)}` },
+          { label: 'Current rate', value: `${Number(s.currentPrice).toLocaleString('en-US')} tok/USDC` },
+          { label: 'Implied price', value: `${priceToUsdcPerToken(s.currentPrice)} USDC` },
+          live
+            ? { label: 'Time left', value: fmtBlocks(blocksLeft) }
+            : { label: 'Hook fee', value: `${s.feeBps / 100}%` }
+        ]} />
+
+        {live || (!s.isLgeFinished && !s.isLgeSuccessful) ? (
+          <LiveView s={s} block={block} soldFrac={soldFrac} />
+        ) : s.isLgeSuccessful ? (
+          <SuccessView s={s} />
+        ) : (
+          <FailedView s={s} />
+        )}
+      </div>
+    </PageShell>
   )
 }
 
@@ -64,7 +85,7 @@ function LiveView ({ s, block, soldFrac }: { s: CampaignState; block: bigint; so
   const started = block >= s.startBlock
   return (
     <>
-      <div className="panel mt16">
+      <div className="panel">
         <div className="panel-head">
           <h2>Rising rate</h2>
           <span className="muted small">
@@ -88,7 +109,7 @@ function LiveView ({ s, block, soldFrac }: { s: CampaignState; block: bigint; so
         </div>
       </div>
 
-      <div className="panel mt16">
+      <div className="panel">
         <div className="panel-head"><h2>Deposit</h2></div>
         <div className="panel-body">
           <DepositBox s={s} block={block} />

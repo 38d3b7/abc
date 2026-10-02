@@ -7,6 +7,7 @@ import { Table } from '../components/Table'
 import { Chip, stateTone, type Tone } from '../components/Chip'
 import { Button } from '../components/Button'
 import { fmtTime } from '../lib/format'
+import { PageShell } from '../components/PageShell'
 
 /** Message states to chip tones (CONSOLE.md palette: amber awaits, red fails). */
 function messageTone (state: AgentMessage['state']): Tone {
@@ -35,7 +36,6 @@ export function Chat () {
     refetchInterval: 3000
   })
 
-  // intent chips resolve against the same ledger Activity shows
   const intents = useQuery({
     queryKey: ['intents', agent.data?.id],
     queryFn: () => api.listIntents(agent.data!.id),
@@ -44,6 +44,8 @@ export function Chat () {
     refetchInterval: 5000
   })
   const intentById = new Map<string, Intent>((intents.data ?? []).map(i => [i.id, i]))
+
+  const rows = messages.data ?? []
 
   async function send (e: FormEvent) {
     e.preventDefault()
@@ -62,14 +64,9 @@ export function Chat () {
     }
   }
 
-  return (
+  const composer = (
     <>
-      <header className="page-head">
-        <h1>Chat</h1>
-        <p className="sub">Instructions to the agent. Each reply is a ledger record: the text, the intents it produced, and its state.</p>
-      </header>
-
-      <form className="chat-composer" onSubmit={e => void send(e)}>
+      <form className="chat-composer page-toolbar--composer" onSubmit={e => void send(e)}>
         <input
           type="text"
           value={draft}
@@ -82,17 +79,32 @@ export function Chat () {
         </Button>
       </form>
       {error ? <p className="small" style={{ color: 'var(--bad-ink)' }}>{error}</p> : null}
+    </>
+  )
+
+  return (
+    <PageShell
+      title="Chat"
+      lead="Instructions to the agent. Each reply is a ledger record: text, linked intents, and state."
+      toolbar={composer}
+    >
+      <div className="page-toolbar">
+        <span className="record-count">
+          {messages.isLoading ? 'Loading…' : `${rows.length} record${rows.length === 1 ? '' : 's'}`}
+        </span>
+      </div>
 
       <div className="table-section">
         <Table
           columns={[
-            { head: 'Time', cell: m => <span className="mono">{fmtTime(Math.floor(new Date(m.createdAt).getTime() / 1000))}</span> },
-            { head: 'From', cell: m => <span className="mono">{m.role === 'operator' ? 'Operator' : 'Agent'}</span> },
+            { head: 'Time', role: 'mono', cell: m => fmtTime(Math.floor(new Date(m.createdAt).getTime() / 1000)) },
+            { head: 'From', role: 'muted', cell: m => (m.role === 'operator' ? 'Operator' : 'Agent') },
             {
               head: 'Record',
+              role: 'primary',
               cell: m => m.state === 'failed'
                 ? <span className="small" style={{ color: 'var(--bad-ink)' }}>{m.error ?? 'failed'}</span>
-                : <span className="small">{m.text || <span className="muted">—</span>}</span>
+                : (m.text || <span className="muted">—</span>)
             },
             {
               head: 'Intents',
@@ -116,11 +128,11 @@ export function Chat () {
                 : <Chip tone={messageTone(m.state)}>{m.state}</Chip>
             }
           ]}
-          rows={messages.data ?? []}
+          rows={rows}
           keyOf={m => m.id}
           empty={messages.isLoading ? 'Loading…' : agent.isError ? 'Executor unreachable.' : 'No instructions yet.'}
         />
       </div>
-    </>
+    </PageShell>
   )
 }

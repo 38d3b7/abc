@@ -4,20 +4,20 @@
 
 :root {
   /* surfaces */
-  --paper: #f7f7f5;
+  --paper: #f6f6f4;
   --surface: #ffffff;
-  --tint: #f2f2ef;
-  --tint-2: #e8e8e3;
+  --tint: #f0f0ec;
+  --tint-2: #e6e6e0;
   --detail-surface: #eef2f7;
 
   /* ink */
-  --ink: #141418;
-  --ink-2: #3d3d47;
-  --ink-3: #767680;
+  --ink: #121216;
+  --ink-2: #383840;
+  --ink-3: #6e6e78;
 
   /* rules */
-  --rule: #e2e1dc;
-  --rule-strong: #cac9c2;
+  --rule: #e0dfda;
+  --rule-strong: #c8c7c0;
 
   /* the one accent: desaturated steel blue */
   --accent: #2e5a8f;
@@ -37,16 +37,20 @@
 
   /* type */
   --sans: "Inter", "Helvetica Neue", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "SF Mono", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* geometry */
-  --nav-w: 188px;
-  --topbar-h: 48px;
-  --radius: 2px;
-  --pad: 16px;
-  --content-pad: 28px;
+  /* scale */
+  --text-title: 26px;
   --text: 14px;
   --text-sm: 13px;
+  --text-caption: 12px;
+
+  /* geometry */
+  --nav-w: 200px;
+  --topbar-h: 52px;
+  --radius: 2px;
+  --pad: 16px;
+  --content-pad: 32px;
 }
 
 * { box-sizing: border-box; }
@@ -61,10 +65,10 @@ body {
   font-size: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv01", "cv02";
 }
 
-/* machine-generated data is always mono with tabular figures */
-.mono, td.num, .stat-value, code {
+.mono, td.col-mono, td.num, .stat-value, code {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--text-sm);
@@ -74,38 +78,37 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 h1 {
-  font-size: 25px;
+  font-size: var(--text-title);
   font-weight: 600;
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: var(--ink);
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 h2 {
-  font-size: 12px;
+  font-size: var(--text-caption);
   font-weight: 600;
   margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
   color: var(--ink-2);
 }
 
-.page-lead {
-  margin: 6px 0 0;
+.page-lead,
+.page-head .sub {
+  margin: 8px 0 0;
   font-size: var(--text);
   color: var(--ink-2);
-  max-width: 52rem;
-  line-height: 1.45;
+  max-width: 42rem;
+  line-height: 1.5;
 }
 
-/* the label-over-datum rhythm */
+/* captions in forms / stat strips — not table headers */
 .label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: var(--text-caption);
+  letter-spacing: 0.02em;
   color: var(--ink-3);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 :focus-visible {

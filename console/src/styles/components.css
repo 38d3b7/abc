@@ -56,12 +56,11 @@ table.table { width: 100%; border-collapse: collapse; }
 
 .table th {
   text-align: left;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: var(--text-caption);
+  letter-spacing: 0.01em;
   color: var(--ink-3);
-  font-weight: 600;
-  padding: 10px 14px;
+  font-weight: 500;
+  padding: 11px 16px;
   background: var(--tint);
   border-bottom: 1px solid var(--rule-strong);
   position: sticky;
@@ -69,17 +68,36 @@ table.table { width: 100%; border-collapse: collapse; }
   white-space: nowrap;
 }
 
-.table th.num { text-align: right; }
+.table th.col-num,
+.table td.col-num { text-align: right; }
 
 .table td {
-  padding: 11px 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--rule);
   font-size: var(--text);
   vertical-align: middle;
   color: var(--ink);
 }
 
-.table td.num { text-align: right; }
+.table td.col-primary,
+.table td.col-primary .token-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.table td.col-mono,
+.table th.col-mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.table td.col-muted,
+.table th.col-muted {
+  color: var(--ink-3);
+  font-size: var(--text-sm);
+}
 
 .table tbody tr:nth-child(even) td { background: #fafaf8; }
 
@@ -187,11 +205,16 @@ table.table { width: 100%; border-collapse: collapse; }
 .detail-section-title {
   display: block;
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: var(--text-caption);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.02em;
   color: var(--ink-2);
+}
+
+.table-footnote {
+  margin: 10px 0 0;
+  font-size: var(--text-caption);
+  color: var(--ink-3);
 }
 
 .detail-section .mono,
@@ -253,10 +276,9 @@ table.table { width: 100%; border-collapse: collapse; }
   padding: 6px 0;
   border-bottom: 1px solid var(--rule);
   color: var(--ink-3);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
+  font-size: var(--text-caption);
+  letter-spacing: 0.02em;
+  font-weight: 500;
 }
 
 .kv > dd {
@@ -397,6 +419,10 @@ table.table { width: 100%; border-collapse: collapse; }
 .toast.ok { border-left-color: var(--ok-ink); }
 
 /* chat composer: an instruction form, not a conversation input */
+.page-toolbar--composer {
+  margin-bottom: 12px;
+}
+
 .chat-composer {
   display: flex;
   gap: 8px;

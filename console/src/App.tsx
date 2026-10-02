@@ -16,6 +16,7 @@ import { Skills } from './sections/Skills'
 import { Settings } from './sections/Settings'
 import { useBalance } from 'wagmi'
 import { truncHash } from './components/HashLink'
+import { Select } from './components/Select'
 
 /** Selected agent id, persisted across reloads; module-level store so every
  *  useAgent caller agrees without prop drilling. */
@@ -119,13 +120,14 @@ function TopBar () {
     <div className="topbar">
       <div className="topbar-left">
         {(agents.data?.length ?? 0) > 1 ? (
-          <select
-            className="agent-picker"
+          <Select
+            className="agent-picker compact"
             value={agent.data?.id ?? selectedId}
             onChange={e => setSelectedAgentId(e.target.value)}
+            aria-label="Active agent"
           >
             {agents.data!.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+          </Select>
         ) : (
           <span className="agent-name">{agent.data?.name ?? 'ABC'}</span>
         )}
@@ -164,7 +166,11 @@ export function App () {
     <div className="shell">
       <TopBar />
       <nav className="nav">
-        <div className="nav-section label">Console</div>
+        <div className="nav-brand">
+          <span className="nav-product">ABC</span>
+          <span className="nav-product-sub">Agentic business console</span>
+        </div>
+        <div className="nav-section">Navigate</div>
         <NavLink to="/chat" className={({ isActive }) => isActive ? 'current' : ''}>Chat</NavLink>
         <NavLink to="/" end className={({ isActive }) => isActive ? 'current' : ''}>Overview</NavLink>
         <NavLink to="/token" className={({ isActive }) => isActive ? 'current' : ''}>Token</NavLink>
