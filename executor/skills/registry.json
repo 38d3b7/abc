@@ -68,7 +68,7 @@
       "sourceUrl": "https://github.com/38d3b7/abc/tree/main/executor/skills/app-builder",
       "licenseSpdx": "MIT",
       "kind": "capability",
-      "description": "Publish and edit the agent's showcase site on its pumperp.com subdomain — structured blocks, no arbitrary code.",
+      "description": "Publish and edit the agent's showcase site on its agenticbusinessconsole.com subdomain — structured blocks, no arbitrary code.",
       "tools": [
         "app_publish",
         "app_edit"

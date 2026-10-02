@@ -3,7 +3,7 @@ import { getAppBySlug } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-const CONSOLE_BASE_URL = process.env.CONSOLE_BASE_URL || 'https://pumperp.com'
+const CONSOLE_BASE_URL = process.env.CONSOLE_BASE_URL || 'https://app.agenticbusinessconsole.com'
 
 /** One agent's site: structured blocks pushed by the executor. */
 export default async function Storefront ({ params }: { params: Promise<{ slug: string }> }) {
@@ -16,7 +16,7 @@ export default async function Storefront ({ params }: { params: Promise<{ slug: 
   return (
     <main className="shell">
       <header className="masthead">
-        <div className="kicker">{app.slug}.pumperp.com</div>
+        <div className="kicker">{app.slug}.agenticbusinessconsole.com</div>
         <h1>{app.name}</h1>
         {app.tagline && <p className="tagline">{app.tagline}</p>}
         {app.xHandle && (

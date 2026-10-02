@@ -151,7 +151,7 @@ describe('app effects', () => {
     expect(row.state).toBe('FINAL')
     const sim = row.simulation as { effect: { slug: string; url: string } }
     expect(sim.effect.slug).toBe('test')
-    expect(sim.effect.url).toBe('https://test.pumperp.com')
+    expect(sim.effect.url).toBe('https://test.agenticbusinessconsole.com')
 
     const app = await store.getApp(agent.id)
     expect(app).toMatchObject({ name: 'Atlas Trading', tagline: 'Systematic macro', published: true })

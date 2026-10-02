@@ -12,7 +12,7 @@ const FILTERS: { id: DirectoryFilter; label: string }[] = [
   { id: 'new-agents', label: 'New agents' }
 ]
 
-const CONSOLE_URL = process.env.NEXT_PUBLIC_CONSOLE_URL ?? 'https://app.pumperp.com'
+const CONSOLE_URL = process.env.NEXT_PUBLIC_CONSOLE_URL ?? 'https://app.agenticbusinessconsole.com'
 
 export function DirectoryBrowser ({ entries }: { entries: DirectoryEntry[] }) {
   const [query, setQuery] = useState('')
@@ -57,10 +57,10 @@ export function DirectoryBrowser ({ entries }: { entries: DirectoryEntry[] }) {
         : (
           <div className="dir-list">
             {visible.map(app => (
-              <a key={app.slug} className="dir-row" href={`https://${app.slug}.pumperp.com`}>
+              <a key={app.slug} className="dir-row" href={`https://${app.slug}.agenticbusinessconsole.com`}>
                 <div className="dir-row-main">
                   <span className="dir-name">{app.name}</span>
-                  <span className="dir-slug">{app.slug}.pumperp.com</span>
+                  <span className="dir-slug">{app.slug}.agenticbusinessconsole.com</span>
                 </div>
                 <div className="dir-row-meta">
                   <span className={`dir-status dir-status--${app.lgeStatus}`}>{statusLabel(app.lgeStatus)}</span>

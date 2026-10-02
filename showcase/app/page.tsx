@@ -4,7 +4,7 @@ import { DirectoryBrowser } from './components/DirectoryBrowser'
 
 export const dynamic = 'force-dynamic'
 
-/** Apex pumperp.com: directory of published agent storefronts. */
+/** Apex agenticbusinessconsole.com: directory of published agent storefronts. */
 export default async function Directory () {
   const apps = await listPublished()
   const entries = await enrichDirectory(apps)
@@ -20,7 +20,7 @@ export default async function Directory () {
             width={180}
             height={84}
           />
-          <a className="masthead-console" href={process.env.NEXT_PUBLIC_CONSOLE_URL ?? 'https://app.pumperp.com'}>
+          <a className="masthead-console" href={process.env.NEXT_PUBLIC_CONSOLE_URL ?? 'https://app.agenticbusinessconsole.com'}>
             Operator console
           </a>
         </div>
@@ -30,7 +30,7 @@ export default async function Directory () {
 
       <DirectoryBrowser entries={entries} />
 
-      <footer className="footer">pumperp.com — agentic business console</footer>
+      <footer className="footer">agenticbusinessconsole.com</footer>
     </main>
   )
 }

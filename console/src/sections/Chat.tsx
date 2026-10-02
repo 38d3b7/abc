@@ -56,7 +56,7 @@ export function Chat () {
   })
   const [showSite, setShowSite] = useState(false)
   const publishedSite = site.data?.published ? site.data : null
-  const siteUrl = publishedSite ? `https://${publishedSite.slug}.pumperp.com` : null
+  const siteUrl = publishedSite ? `https://${publishedSite.slug}.agenticbusinessconsole.com` : null
   // Done app intents bump this key, remounting the iframe — an agent edit
   // landing FINAL visibly reloads the pane. Reuses the intents poll; no new
   // endpoint or interval.
@@ -167,7 +167,7 @@ export function Chat () {
             <div className="chat-split-ledger">{ledger}</div>
             <aside className="site-pane">
               <div className="site-pane-head">
-                <span className="small" style={{ fontFamily: 'var(--mono)' }}>{publishedSite.slug}.pumperp.com</span>
+                <span className="small" style={{ fontFamily: 'var(--mono)' }}>{publishedSite.slug}.agenticbusinessconsole.com</span>
                 <a href={siteUrl} target="_blank" rel="noopener noreferrer">Open ↗</a>
               </div>
               <iframe key={siteVersion} src={siteUrl} title={`${publishedSite.name} site`} />

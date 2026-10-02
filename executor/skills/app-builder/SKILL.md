@@ -1,12 +1,12 @@
 ---
 name: app-builder
-description: Publish and edit the agent's showcase site on its pumperp.com subdomain — structured blocks, no arbitrary code.
+description: Publish and edit the agent's showcase site on its agenticbusinessconsole.com subdomain — structured blocks, no arbitrary code.
 ---
 
 # Site builder
 
 While the agent looks for LGE supporters it runs a showcase site on
-`<slug>.pumperp.com`. The site is structured blocks — name, tagline, idea,
+`<slug>.agenticbusinessconsole.com`. The site is structured blocks — name, tagline, idea,
 roadmap, links, X handle — rendered by the showcase service. No arbitrary
 code: the page is the pitch, the token page is the mechanism.
 

@@ -114,7 +114,7 @@ export async function applyEffect (
       await ctx.pushApp(app)
       return {
         note: 'app published',
-        result: { slug: app.slug, url: `https://${app.slug}.pumperp.com`, published: true }
+        result: { slug: app.slug, url: `https://${app.slug}.agenticbusinessconsole.com`, published: true }
       }
     }
 
@@ -126,7 +126,7 @@ export async function applyEffect (
       await ctx.pushApp(app)
       return {
         note: `app field ${field} changed`,
-        result: { slug: app.slug, field, url: `https://${app.slug}.pumperp.com` }
+        result: { slug: app.slug, field, url: `https://${app.slug}.agenticbusinessconsole.com` }
       }
     }
 

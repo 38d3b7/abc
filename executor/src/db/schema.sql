@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS agent_skills (
 );
 
 -- Migration 0004: the agent's showcase app (PRODUCT.md phase-1 app lock).
--- One app per agent; slug is the subdomain under pumperp.com. Structured
+-- One app per agent; slug is the subdomain under agenticbusinessconsole.com. Structured
 -- blocks only — no arbitrary code. Publish/edit go through the intent
 -- pipeline (app_publish / app_edit) so every change has a ledger record.
 CREATE TABLE IF NOT EXISTS apps (

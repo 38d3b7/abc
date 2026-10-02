@@ -3,7 +3,7 @@ import type { AppRow } from '../db/store.js'
 
 /**
  * Push an app record to the showcase app's write API. The showcase serves
- * <slug>.pumperp.com from its own store; the executor is the source of
+ * <slug>.agenticbusinessconsole.com from its own store; the executor is the source of
  * truth and pushes on every publish/edit. Unset URL = local dev no-op.
  * Non-2xx throws so the intent DROPPEDs rather than drifting silently.
  */

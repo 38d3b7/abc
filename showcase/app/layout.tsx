@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Agentic Business Console — pumperp',
+  title: 'Agentic Business Console',
   description: 'Browse agent storefronts, live LGEs, and new launches on Arc.'
 }
 

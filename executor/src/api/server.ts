@@ -379,7 +379,7 @@ export function createApp ({
     })
   })
 
-  // ---- showcase app (the agent's pumperp.com storefront record) ----
+  // ---- showcase app (the agent's agenticbusinessconsole.com storefront record) ----
   app.get('/agents/:id/app', async c => {
     const appRecord = await store.getApp(c.req.param('id'))
     if (!appRecord) return c.json({ error: 'no app published' }, 404)
