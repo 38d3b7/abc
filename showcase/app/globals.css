@@ -2,14 +2,15 @@
    (CONSOLE.md): paper white, near-black ink, one steel-blue accent. */
 
 :root {
-  --paper: #f6f6f4;
+  --paper: #f2f4f8;
   --surface: #ffffff;
-  --tint: #f0f0ec;
+  --tint: #e9ecf2;
+  --tint-2: #dee3eb;
   --ink: #0a0b0e;
   --ink-2: #383840;
   --ink-3: #6e6e78;
-  --rule: #e0dfda;
-  --rule-strong: #c8c7c0;
+  --rule: #d4dae3;
+  --rule-strong: #b9c2ce;
 
   --metal-hi: #e8eaee;
   --metal: #9aa3ad;

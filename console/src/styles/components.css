@@ -107,7 +107,7 @@ table.table { width: 100%; border-collapse: collapse; }
   font-size: var(--text-sm);
 }
 
-.table tbody tr:nth-child(even) td { background: #fafaf8; }
+.table tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--metal-hi) 38%, var(--surface)); }
 
 .table tbody tr:hover td { background: var(--tint); }
 

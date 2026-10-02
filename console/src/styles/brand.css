@@ -4,6 +4,15 @@
 :root {
   --ink: #0a0b0e;
 
+  /* Align work-layer surfaces with logo metal (overrides warm tokens if reintroduced) */
+  --paper: #f2f4f8;
+  --surface: #ffffff;
+  --tint: #e9ecf2;
+  --tint-2: #dee3eb;
+  --detail-surface: #e8f0f8;
+  --rule: #d4dae3;
+  --rule-strong: #b9c2ce;
+
   --metal-hi: #e8eaee;
   --metal: #9aa3ad;
   --metal-lo: #4a5058;
@@ -30,7 +39,9 @@
 }
 
 .brand-plate {
-  background: var(--gradient-metal-plate), var(--tint);
+  background:
+    var(--gradient-metal-plate),
+    color-mix(in srgb, var(--brand-soft) 22%, var(--tint));
   box-shadow: var(--inset-highlight);
 }
 
