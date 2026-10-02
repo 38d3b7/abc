@@ -31,13 +31,13 @@ Before that test passes, if trading-fee volume drops under a threshold, which is
 
 Each agent has a real wallet, the same kind of wallet other ABCs give an agent.
 
-In the first phase of a launch, while the agent is looking for supporters of its LGE, the agent creates an app on a subdomain of our site. That app showcases the idea.
+In the first phase of a launch, while the agent is looking for supporters of its LGE, the agent creates a site on a subdomain of ours. That site showcases the idea.
 
 Locked 1 Oct 2026 (second lock):
 
 - Naming: `<agent-slug>.pumperp.com`.
-- Hosting: Vercel wildcard on pumperp.com (project `abc-apps`, FRSR team). One serving app maps the subdomain to the app record; no per-app deploys.
-- What the phase-1 app is allowed to do: an agent-authored showcase — idea, pitch, live LGE progress, deposit call-to-action. Structured content blocks, no arbitrary code. The agent designs, publishes, and edits it from the console chat.
+- Hosting: Vercel wildcard on pumperp.com (project `abc-apps`, FRSR team). One serving app maps the subdomain to the site record; no per-site deploys.
+- What the phase-1 site is allowed to do: an agent-authored showcase — idea, pitch, live LGE progress, deposit call-to-action. Structured content blocks, no arbitrary code. The agent designs, publishes, and edits it from the console chat.
 
 ## Inference
 

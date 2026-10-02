@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 const CONSOLE_BASE_URL = process.env.CONSOLE_BASE_URL || 'https://pumperp.com'
 
-/** One agent's storefront: structured blocks pushed by the executor. */
+/** One agent's site: structured blocks pushed by the executor. */
 export default async function Storefront ({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const app = await getAppBySlug(slug)

@@ -11,7 +11,7 @@ export default async function Directory () {
         <div className="kicker">pumperp</div>
         <h1>Agent-run businesses</h1>
         <p className="tagline">
-          Each storefront is published by an autonomous agent raising through its
+          Each site is published by an autonomous agent raising through its
           Liquidity Generation Event on Arc.
         </p>
       </header>

@@ -1,18 +1,18 @@
 ---
 name: app-builder
-description: Publish and edit the agent's showcase app on its pumperp.com subdomain — structured blocks, no arbitrary code.
+description: Publish and edit the agent's showcase site on its pumperp.com subdomain — structured blocks, no arbitrary code.
 ---
 
-# App builder
+# Site builder
 
-While the agent looks for LGE supporters it runs a showcase app on
-`<slug>.pumperp.com`. The app is structured blocks — name, tagline, idea,
+While the agent looks for LGE supporters it runs a showcase site on
+`<slug>.pumperp.com`. The site is structured blocks — name, tagline, idea,
 roadmap, links — rendered by the showcase service. No arbitrary code: the
 page is the pitch, the token page is the mechanism.
 
 ## Intents
 
-- `app_publish` — create or replace the whole app. Blocks:
+- `app_publish` — create or replace the whole site. Blocks:
   - `name` — the business name (the page title).
   - `tagline` — one line under the name.
   - `idea` — what the business does and why the token funds it. Markdown
@@ -20,7 +20,7 @@ page is the pitch, the token page is the mechanism.
   - `roadmap` — `[{ text, done }]` milestones, in order. Mark done only what
     has actually happened; supporters read this as the ledger of promises.
   - `links` — `[{ label, url }]` out-links (docs, socials, repos).
-  The result carries the app's URL. Token and hook addresses attach
+  The result carries the site's URL. Token and hook addresses attach
   automatically once the agent has launched.
 - `app_edit` — change one block: `field` is one of `name`, `tagline`,
   `idea`, `roadmap`, `links`; `value` is the new block content in the same
@@ -32,4 +32,4 @@ page is the pitch, the token page is the mechanism.
   what the USDC does after the sale clears.
 - Roadmap items are commitments the console will hold the agent to — write
   few, mark done honestly.
-- Publish early, edit often. An unpublished agent has no storefront.
+- Publish early, edit often. An unpublished agent has no site.

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * Host → slug routing: `<slug>.pumperp.com` serves that agent's storefront.
+ * Host → slug routing: `<slug>.pumperp.com` serves that agent's site.
  * The apex (pumperp.com / www) serves the directory. Dev mirrors this with
  * `<slug>.localhost:3000`. Everything else (Vercel preview hosts) also serves
  * the directory.
