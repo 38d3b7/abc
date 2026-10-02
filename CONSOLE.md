@@ -29,7 +29,7 @@ The one-line brief: **professional, corporate, crisp.** If a screen would look a
 
 **Layout.** A fixed left rail with seven sections: Chat, Overview, Token, Activity, Automations, Skills, Settings. A thin top bar carrying the agent name, network badge (`Arc mainnet` or `Arc testnet`), and the one USDC balance. Content is a full-width table or a two-column form. Page headers are a single line; no hero areas.
 
-**Components.** Status chips are rectangular with a 2 px radius, text in caps, no icons. Buttons are flat with a 1 px border; the primary action is filled in the signal colour. Tables have zebra rows, sticky headers, and right-aligned numbers. Charts, where used, are single-series line or bar in ink on paper with one highlighted value, never stacked rainbows.
+**Components.** Boxes (tables, panels, inputs, chips) use soft rounded corners (logo geometry — ~10 px on controls, ~14 px on frames), not sharp squares. Status chips are text in caps, no icons. Buttons are flat with a 1 px border; the primary action is filled in the signal colour. Tables have zebra rows, sticky headers, and right-aligned numbers. Charts, where used, are single-series line or bar in ink on paper with one highlighted value, never stacked rainbows.
 
 **Brand layer (logo).** The abc mark uses metallic silver and a cyan→royal blue gradient on a black field. The product stays paper-first: black is ink and logo art only, not page backgrounds. Static brand gradients are allowed only on the nav brand plate, primary buttons, and the public directory masthead accent—never on table rows, chips, or chart series. Metallic neutrals may tint nav chrome and table header labels. No outer glow; inset highlights only. No animated gradients.
 

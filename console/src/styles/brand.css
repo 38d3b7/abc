@@ -36,9 +36,14 @@
 
   --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   --table-head-ink: color-mix(in srgb, var(--metal-lo) 70%, var(--ink-3));
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
 }
 
 .brand-plate {
+  border-radius: var(--radius-lg);
   background:
     var(--gradient-metal-plate),
     color-mix(in srgb, var(--brand-soft) 22%, var(--tint));
@@ -65,5 +70,5 @@
   height: 2px;
   margin-top: 12px;
   background: var(--gradient-brand);
-  border-radius: 1px;
+  border-radius: var(--radius-sm);
 }

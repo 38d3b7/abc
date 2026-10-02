@@ -116,9 +116,11 @@
 .nav a {
   display: block;
   padding: 9px var(--pad);
+  margin-right: 8px;
   color: var(--ink-2);
   font-size: var(--text);
   border-left: 3px solid transparent;
+  border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 .nav a:hover {
@@ -250,7 +252,8 @@
 .panel {
   background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
 .panel + .panel { margin-top: 16px; }

@@ -54,9 +54,9 @@
 
 /* Table */
 .table-wrap {
-  overflow-x: auto;
+  overflow: auto;
   border: 1px solid var(--rule-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
 }
 
@@ -111,7 +111,7 @@ table.table { width: 100%; border-collapse: collapse; }
 
 .table tbody tr:hover td { background: var(--tint); }
 
-.table tbody tr.row-expandable:hover td { background: #ecece7; }
+.table tbody tr.row-expandable:hover td { background: var(--tint); }
 
 .table tbody tr.selected td { background: var(--accent-soft); }
 
@@ -251,8 +251,9 @@ table.table { width: 100%; border-collapse: collapse; }
   display: flex;
   flex-wrap: wrap;
   border: 1px solid var(--rule-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
+  overflow: hidden;
 }
 
 .stat-cell {
@@ -320,6 +321,8 @@ table.table { width: 100%; border-collapse: collapse; }
   width: min(480px, 92vw);
   background: var(--surface);
   border-left: 1px solid var(--rule-strong);
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
   z-index: 41;
   display: flex;
   flex-direction: column;
@@ -340,7 +343,7 @@ table.table { width: 100%; border-collapse: collapse; }
 .progress {
   height: 8px;
   border: 1px solid var(--rule-strong);
-  border-radius: var(--radius);
+  border-radius: 999px;
   background: var(--surface);
   overflow: hidden;
 }

@@ -42,7 +42,10 @@
   /* geometry */
   --nav-w: 200px;
   --topbar-h: 52px;
-  --radius: 2px;
+  /* Logo geometry — soft rounds on boxes, not sharp ledger squares */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
   --pad: 16px;
   --content-pad: 32px;
 }
