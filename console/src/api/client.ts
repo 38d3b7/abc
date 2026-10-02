@@ -125,9 +125,29 @@ async function req<T> (method: string, path: string, body?: unknown, idempotency
   return res.json() as Promise<T>
 }
 
+/** The agent's published site record (executor apps table; camelCase). */
+export interface AgentSite {
+  id: string
+  agentId: string
+  slug: string
+  name: string
+  tagline: string
+  published: boolean
+  updatedAt: string
+}
+
 export const api = {
   listAgents: async () => (await req<{ agents: Agent[] }>('GET', '/agents')).agents,
   getAgent: async (id: string) => (await req<{ agent: Agent }>('GET', `/agents/${id}`)).agent,
+  /** The agent's site record, or null when none has been published yet. */
+  getApp: async (id: string): Promise<AgentSite | null> => {
+    try {
+      return await req<AgentSite>('GET', `/agents/${id}/app`)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null
+      throw e
+    }
+  },
   createAgent: async (name: string) =>
     (await req<{ agent: Agent }>('POST', '/agents', { name }, crypto.randomUUID())).agent,
   updateAgentPolicy: async (id: string, policy: Agent['policy']) =>

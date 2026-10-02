@@ -45,6 +45,24 @@ export function Chat () {
   })
   const intentById = new Map<string, Intent>((intents.data ?? []).map(i => [i.id, i]))
 
+  // The agent's published site record (null until its first app_publish).
+  // Polls alongside intents so the toggle enables itself when a publish lands.
+  const site = useQuery({
+    queryKey: ['agent-app', agent.data?.id],
+    queryFn: () => api.getApp(agent.data!.id),
+    enabled: Boolean(agent.data),
+    retry: false,
+    refetchInterval: 5000
+  })
+  const [showSite, setShowSite] = useState(false)
+  const publishedSite = site.data?.published ? site.data : null
+  const siteUrl = publishedSite ? `https://${publishedSite.slug}.pumperp.com` : null
+  // Done app intents bump this key, remounting the iframe — an agent edit
+  // landing FINAL visibly reloads the pane. Reuses the intents poll; no new
+  // endpoint or interval.
+  const siteVersion = (intents.data ?? []).filter(i =>
+    (i.type === 'app_publish' || i.type === 'app_edit') && i.state === 'FINAL').length
+
   const rows = messages.data ?? []
 
   async function send (e: FormEvent) {
@@ -82,12 +100,12 @@ export function Chat () {
     </>
   )
 
-  return (
-    <PageShell
-      title="Chat"
-      lead="Instructions to the agent. Each reply is a ledger record: text, linked intents, and state."
-      toolbar={composer}
-    >
+  const siteToggle = siteUrl
+    ? <Button onClick={() => setShowSite(v => !v)}>{showSite ? 'Hide site' : 'View site'}</Button>
+    : <Button disabled title="The agent has not published its site yet">Site not published</Button>
+
+  const ledger = (
+    <>
       <div className="page-toolbar">
         <span className="record-count">
           {messages.isLoading ? 'Loading…' : `${rows.length} record${rows.length === 1 ? '' : 's'}`}
@@ -133,6 +151,30 @@ export function Chat () {
           empty={messages.isLoading ? 'Loading…' : agent.isError ? 'Executor unreachable.' : 'No instructions yet.'}
         />
       </div>
+    </>
+  )
+
+  return (
+    <PageShell
+      title="Chat"
+      lead="Instructions to the agent. Each reply is a ledger record: text, linked intents, and state."
+      toolbar={composer}
+      titleAside={siteToggle}
+    >
+      {showSite && siteUrl && publishedSite
+        ? (
+          <div className="chat-split">
+            <div className="chat-split-ledger">{ledger}</div>
+            <aside className="site-pane">
+              <div className="site-pane-head">
+                <span className="small" style={{ fontFamily: 'var(--mono)' }}>{publishedSite.slug}.pumperp.com</span>
+                <a href={siteUrl} target="_blank" rel="noopener noreferrer">Open ↗</a>
+              </div>
+              <iframe key={siteVersion} src={siteUrl} title={`${publishedSite.name} site`} />
+            </aside>
+          </div>
+          )
+        : ledger}
     </PageShell>
   )
 }
