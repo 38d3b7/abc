@@ -15,7 +15,7 @@ export default async function Directory () {
         <div className="masthead-logo-row">
           <img
             className="masthead-logo"
-            src="/brand/abc-logo.png"
+            src="/brand/abc-logo-cutout.png"
             alt="abc"
             width={180}
             height={84}

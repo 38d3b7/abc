@@ -169,7 +169,7 @@ export function App () {
         <div className="nav-brand brand-plate">
           <img
             className="nav-brand-logo"
-            src="/brand/abc-logo.png"
+            src="/brand/abc-logo-cutout.png"
             alt="abc"
             width={148}
             height={69}
