@@ -1,7 +1,7 @@
 import { NavLink, Route, Routes } from 'react-router-dom'
-import { useMemo, useSyncExternalStore } from 'react'
+import { useMemo, useState, useSyncExternalStore } from 'react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Agent } from './api/client'
 import { fmtUsdc, fmtUsdcFull } from './lib/format'
 import { arcTestnet } from './lib/chain'
@@ -54,6 +54,55 @@ export function useAgent () {
   return { ...agents, data }
 }
 
+/** One-click agent creation: name in, the server derives the slug and
+ *  provisions the wallet in the same request; the new agent is selected. */
+function NewAgentButton () {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const qc = useQueryClient()
+
+  const submit = async () => {
+    if (!name.trim() || busy) return
+    setBusy(true)
+    setErr('')
+    try {
+      const agent = await api.createAgent(name.trim())
+      await qc.invalidateQueries({ queryKey: ['agents'] })
+      setSelectedAgentId(agent.id)
+      setName('')
+      setOpen(false)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'create failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!open) return <Button onClick={() => setOpen(true)}>New agent</Button>
+  return (
+    <span className="new-agent">
+      <input
+        className="mono-input"
+        placeholder="Agent name"
+        value={name}
+        autoFocus
+        onChange={e => setName(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') void submit()
+          if (e.key === 'Escape') setOpen(false)
+        }}
+      />
+      <Button variant="primary" disabled={busy || !name.trim()} onClick={() => void submit()}>
+        {busy ? 'Creating…' : 'Create'}
+      </Button>
+      <Button onClick={() => setOpen(false)}>Cancel</Button>
+      {err ? <span className="muted small">{err}</span> : null}
+    </span>
+  )
+}
+
 function TopBar () {
   const agent = useAgent()
   const agents = useAgents()
@@ -80,6 +129,7 @@ function TopBar () {
         ) : (
           <span className="agent-name">{agent.data?.name ?? 'ABC'}</span>
         )}
+        <NewAgentButton />
         <Chip tone="acc">{arcTestnet.name}</Chip>
       </div>
       <div className="topbar-right">

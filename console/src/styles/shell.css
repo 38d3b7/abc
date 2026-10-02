@@ -28,6 +28,13 @@
 
 .topbar-right { flex-shrink: 0; }
 
+.new-agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.new-agent input.mono-input { width: 180px; }
+
 .topbar .agent-name {
   font-weight: 600;
   font-size: var(--text);
