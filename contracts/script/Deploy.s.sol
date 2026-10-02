@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
 import {LGEManager} from "../src/LGEManager.sol";
+import {HookCreationCode} from "../src/HookCreationCode.sol";
 import {HookMinerWrapper} from "../src/utils/HookMinerWrapper.sol";
+import {VestingVault} from "../src/VestingVault.sol";
+import {InferenceEscrow} from "../src/InferenceEscrow.sol";
 
 /// @title Deploy
 /// @notice Env-driven deployment of the LGE infrastructure contracts.
@@ -16,6 +19,7 @@ import {HookMinerWrapper} from "../src/utils/HookMinerWrapper.sol";
 ///   POOL_MANAGER      - Uniswap v4 PoolManager address
 ///   POSITION_MANAGER  - Uniswap v4 PositionManager address
 ///   PERMIT2           - Permit2 address
+///   PROTOCOL          - protocol fee recipient / splits admin
 ///
 /// Prerequisite: LGECalculationsLibrary must already be deployed on the target
 /// chain and the build linked against it, e.g.:
@@ -33,18 +37,34 @@ contract Deploy is Script {
         address poolManager = vm.envAddress("POOL_MANAGER");
         address positionManager = vm.envAddress("POSITION_MANAGER");
         address permit2 = vm.envAddress("PERMIT2");
+        address protocol = vm.envAddress("PROTOCOL");
 
         vm.startBroadcast(deployerKey);
 
         HookMinerWrapper hookMiner = new HookMinerWrapper();
-        LGEManager manager = new LGEManager(poolManager, positionManager, permit2);
+        VestingVault vestingVault = new VestingVault();
+        InferenceEscrow inferenceEscrow = new InferenceEscrow(protocol);
+        HookCreationCode hookCreationCode = new HookCreationCode();
+        LGEManager manager = new LGEManager(
+            poolManager,
+            positionManager,
+            permit2,
+            address(vestingVault),
+            address(inferenceEscrow),
+            protocol,
+            address(hookCreationCode)
+        );
 
         vm.stopBroadcast();
 
         console.log("HookMinerWrapper:", address(hookMiner));
+        console.log("VestingVault:", address(vestingVault));
+        console.log("InferenceEscrow:", address(inferenceEscrow));
+        console.log("HookCreationCode:", address(hookCreationCode));
         console.log("LGEManager:", address(manager));
         console.log("  poolManager:", poolManager);
         console.log("  positionManager:", positionManager);
         console.log("  permit2:", permit2);
+        console.log("  protocol:", protocol);
     }
 }
