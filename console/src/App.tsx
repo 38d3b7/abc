@@ -1,10 +1,11 @@
 import { NavLink, Route, Routes } from 'react-router-dom'
 import { useMemo, useState, useSyncExternalStore } from 'react'
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Agent } from './api/client'
 import { fmtUsdc, fmtUsdcFull } from './lib/format'
 import { arcTestnet } from './lib/chain'
+import { clearSession, getSession, login, subscribeSession } from './auth/session'
 import { Chip } from './components/Chip'
 import { Button } from './components/Button'
 import { Chat } from './sections/Chat'
@@ -105,12 +106,69 @@ function NewAgentButton () {
   )
 }
 
+/** The SIWE session, re-rendering on login/logout/expiry. */
+function useSession () {
+  return useSyncExternalStore(subscribeSession, getSession)
+}
+
+/** Full-screen gate: connect a wallet, then sign one message to log in.
+ *  Nothing behind the gate renders (or polls the API) until a session
+ *  exists. */
+function LoginGate () {
+  const { address, isConnected } = useAccount()
+  const { connect, connectors, isPending: connecting } = useConnect()
+  const { signMessageAsync } = useSignMessage()
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const signIn = async () => {
+    if (!address || busy) return
+    setBusy(true)
+    setErr('')
+    try {
+      await login(address, (message) => signMessageAsync({ message }))
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'sign-in failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="login-gate">
+      <div className="login-card">
+        <img src="/brand/abc-logo-cutout.png" alt="abc" width={148} height={69} />
+        <h1>Agentic Business Console</h1>
+        <p className="muted">
+          Your wallet is your account. Connect it and sign one message — no password, no email.
+        </p>
+        {!isConnected ? (
+          <div className="login-actions">
+            {connectors.map(c => (
+              <Button key={c.uid} variant="primary" disabled={connecting} onClick={() => connect({ connector: c })}>
+                Connect {c.name}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <div className="login-actions">
+            <span className="mono muted">{address}</span>
+            <Button variant="primary" disabled={busy} onClick={() => void signIn()}>
+              {busy ? 'Check your wallet…' : 'Sign in'}
+            </Button>
+          </div>
+        )}
+        {err ? <p className="login-error">{err}</p> : null}
+      </div>
+    </div>
+  )
+}
+
 function TopBar () {
   const agent = useAgent()
   const agents = useAgents()
   const selectedId = useSelectedAgentId()
-  const { address, isConnected } = useAccount()
-  const { connect, connectors } = useConnect()
+  const { address } = useAccount()
   const { disconnect } = useDisconnect()
   const balance = useBalance({
     address: (agent.data?.walletAddress ?? undefined) as `0x${string}` | undefined,
@@ -142,7 +200,7 @@ function TopBar () {
             {balance.data ? `${fmtUsdc(balance.data.value)} USDC` : '—'}
           </span>
         </div>
-        {isConnected && address ? (
+        {address ? (
           <button
             type="button"
             className="wallet-pill"
@@ -152,17 +210,22 @@ function TopBar () {
             {truncHash(address)}
           </button>
         ) : null}
-        {isConnected ? (
-          <Button onClick={() => disconnect()}>Disconnect</Button>
-        ) : (
-          <Button variant="primary" onClick={() => connect({ connector: connectors[0] })}>Connect wallet</Button>
-        )}
+        <Button onClick={() => { clearSession(); disconnect() }}>Sign out</Button>
       </div>
     </div>
   )
 }
 
 export function App () {
+  const session = useSession()
+  const { address } = useAccount()
+  // Wallet account switched under a live session: the token belongs to the
+  // old address, so drop it and sign in again as the new one.
+  if (session && address && session.address !== address.toLowerCase()) {
+    clearSession()
+    return <LoginGate />
+  }
+  if (!session) return <LoginGate />
   return (
     <div className="shell">
       <TopBar />

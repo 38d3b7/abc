@@ -1,11 +1,12 @@
 /**
  * Executor API client. The console talks to the executor over HTTP with the
- * operator API key; on-chain data goes through wagmi directly.
- * Shapes mirror the executor's Store rows (camelCase).
+ * user's SIWE session token (Bearer); on-chain data goes through wagmi
+ * directly. Shapes mirror the executor's Store rows (camelCase).
  */
 
+import { getToken, clearSession } from '../auth/session'
+
 const BASE = (import.meta.env.VITE_EXECUTOR_URL as string | undefined) ?? 'http://localhost:8787'
-const KEY = (import.meta.env.VITE_ABC_API_KEY as string | undefined) ?? ''
 
 export interface Agent {
   id: string
@@ -109,15 +110,20 @@ class ApiError extends Error {
 }
 
 async function req<T> (method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
+  const token = getToken()
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
       'content-type': 'application/json',
-      ...(KEY ? { 'x-abc-key': KEY } : {}),
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {})
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {})
   })
+  if (res.status === 401) {
+    // Expired or invalid session: drop it so the login gate re-appears.
+    clearSession()
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText)
     throw new ApiError(res.status, text)

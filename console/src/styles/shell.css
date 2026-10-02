@@ -506,3 +506,48 @@ textarea:focus {
   .site-pane { position: static; }
   .site-pane iframe { height: 60vh; }
 }
+
+/* ---- login gate ---- */
+.login-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+}
+
+.login-card {
+  width: 380px;
+  max-width: 92vw;
+  padding: 32px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+  align-items: center;
+}
+
+.login-card h1 {
+  font-size: var(--text-title);
+  margin: 0;
+}
+
+.login-card p { margin: 0; }
+
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+}
+
+.login-actions .mono { font-size: var(--text-sm); word-break: break-all; }
+
+.login-error {
+  color: var(--bad-ink);
+  font-size: var(--text-sm);
+}
