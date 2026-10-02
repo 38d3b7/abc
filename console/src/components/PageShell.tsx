@@ -5,13 +5,14 @@ interface PageShellProps {
   lead?: ReactNode
   titleAside?: ReactNode
   toolbar?: ReactNode
+  className?: string
   children: ReactNode
 }
 
 /** Standard page layout: intro block, optional toolbar, content. */
-export function PageShell ({ title, lead, titleAside, toolbar, children }: PageShellProps) {
+export function PageShell ({ title, lead, titleAside, toolbar, className = '', children }: PageShellProps) {
   return (
-    <div className="page-frame">
+    <div className={`page-frame${className ? ` ${className}` : ''}`}>
       <header className="page-intro">
         <div className="page-title-row">
           <h1>{title}</h1>

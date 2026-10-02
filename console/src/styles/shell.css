@@ -152,6 +152,10 @@
   gap: 0;
 }
 
+.page-frame--chat {
+  min-height: calc(100vh - var(--topbar-h) - 48px);
+}
+
 .page-intro {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--rule);
@@ -404,10 +408,21 @@ textarea:focus {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+  min-height: calc(100vh - var(--topbar-h) - 200px);
 }
 
-.chat-split-ledger { min-width: 0; }
+.chat-split-ledger {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-split-ledger .chat-pane {
+  flex: 1;
+  min-height: 0;
+}
 
 .site-pane {
   background: var(--surface);
