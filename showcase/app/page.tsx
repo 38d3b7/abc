@@ -17,8 +17,8 @@ export default async function Directory () {
             className="masthead-logo"
             src="/brand/abc-logo.png"
             alt="abc"
-            width={160}
-            height={56}
+            width={180}
+            height={84}
           />
           <a className="masthead-console" href={process.env.NEXT_PUBLIC_CONSOLE_URL ?? 'https://app.pumperp.com'}>
             Operator console

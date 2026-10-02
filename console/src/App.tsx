@@ -172,7 +172,7 @@ export function App () {
             src="/brand/abc-logo.png"
             alt="abc"
             width={148}
-            height={52}
+            height={69}
           />
           <span className="nav-product-sub">Agentic business console</span>
         </div>
