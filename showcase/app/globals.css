@@ -2,20 +2,39 @@
    (CONSOLE.md): paper white, near-black ink, one steel-blue accent. */
 
 :root {
-  --paper: #f7f7f5;
+  --paper: #f6f6f4;
   --surface: #ffffff;
-  --tint: #f2f2ef;
-  --ink: #141418;
-  --ink-2: #3d3d47;
-  --ink-3: #767680;
-  --rule: #e2e1dc;
-  --rule-strong: #cac9c2;
-  --accent: #2e5a8f;
-  --accent-ink: #1f4469;
-  --accent-soft: #e8eef6;
+  --tint: #f0f0ec;
+  --ink: #0a0b0e;
+  --ink-2: #383840;
+  --ink-3: #6e6e78;
+  --rule: #e0dfda;
+  --rule-strong: #c8c7c0;
+
+  --metal-hi: #e8eaee;
+  --metal: #9aa3ad;
+  --metal-lo: #4a5058;
+
+  --brand-hi: #5ec8f2;
+  --brand: #2b7fd4;
+  --brand-lo: #1a4d9e;
+  --brand-soft: #e8f4fc;
+
+  --accent: var(--brand);
+  --accent-ink: var(--brand-lo);
+  --accent-soft: var(--brand-soft);
+
+  --gradient-brand: linear-gradient(180deg, var(--brand-hi) 0%, var(--brand-lo) 100%);
+  --gradient-metal-plate: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--metal-hi) 35%, transparent) 0%,
+    color-mix(in srgb, var(--metal-lo) 12%, transparent) 100%
+  );
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
   --ok-ink: #2e6b3e;
   --sans: "Inter", "Helvetica Neue", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "SF Mono", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 * { box-sizing: border-box; }
@@ -37,6 +56,10 @@ a { color: var(--accent-ink); }
   padding: 48px 24px 96px;
 }
 
+.shell--wide {
+  max-width: 880px;
+}
+
 .masthead {
   border-bottom: 1px solid var(--rule-strong);
   padding-bottom: 20px;
@@ -46,22 +69,61 @@ a { color: var(--accent-ink); }
 .masthead .kicker {
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  color: var(--metal);
 }
 
 .masthead h1 {
   font-size: 30px;
   font-weight: 650;
-  letter-spacing: -0.01em;
-  margin: 8px 0 4px;
+  letter-spacing: -0.03em;
+  margin: 12px 0 0;
 }
 
-.masthead .tagline {
-  color: var(--ink-2);
-  font-size: 16px;
-  margin: 0;
+.masthead-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.masthead-logo {
+  display: block;
+  max-width: 160px;
+  height: auto;
+}
+
+.masthead-accent-line {
+  height: 2px;
+  margin-top: 14px;
+  background: var(--gradient-brand);
+  border-radius: 1px;
+}
+
+.masthead-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.masthead-console {
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--brand-lo);
+  border-radius: 2px;
+  padding: 8px 14px;
+  color: #fff;
+  background: var(--gradient-brand);
+  box-shadow: var(--inset-highlight);
+}
+
+.masthead-console:hover {
+  background: linear-gradient(180deg, var(--brand) 0%, #143d7a 100%);
+  border-color: #143d7a;
+  text-decoration: none;
 }
 
 .section {
@@ -149,16 +211,167 @@ a { color: var(--accent-ink); }
 }
 
 /* directory (apex) */
+.dir-toolbar {
+  margin-bottom: 20px;
+}
+
+.dir-search {
+  width: 100%;
+  max-width: 420px;
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+
+.dir-search:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+
+.dir-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dir-filter {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.dir-filter:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.dir-filter.active {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-lo);
+  box-shadow: inset 0 -2px 0 var(--brand-hi), inset 0 -3px 0 var(--brand-lo);
+}
+
+.dir-count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.dir-empty {
+  color: var(--ink-3);
+  padding: 24px 0;
+}
+
+.dir-list {
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  background: var(--surface);
+}
+
 .dir-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
-  padding: 12px 0;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--rule);
   text-decoration: none;
   color: inherit;
 }
+
+.dir-row:last-child { border-bottom: 0; }
+
+.dir-row:hover {
+  background: var(--tint);
+}
+
 .dir-row:hover .dir-name { color: var(--accent-ink); }
-.dir-name { font-weight: 600; }
-.dir-tag { color: var(--ink-3); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dir-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dir-name { font-weight: 600; font-size: 15px; }
+
+.dir-slug {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.dir-row-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.dir-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+
+.dir-status--live {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-lo);
+}
+
+.dir-status--successful {
+  background: #edf5ee;
+  border-color: #cfdfd2;
+  color: #2e6b3e;
+}
+
+.dir-status--failed {
+  background: #f9ecea;
+  border-color: #e7cdca;
+  color: #a03a30;
+}
+
+.dir-status--none {
+  color: var(--ink-3);
+}
+
+.dir-tag {
+  color: var(--ink-3);
+  font-size: 12px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.dir-console-link {
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--ink-2);
+}

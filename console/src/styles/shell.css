@@ -83,26 +83,25 @@
 }
 
 .nav-brand {
-  padding: 18px var(--pad) 14px;
-  border-bottom: 1px solid var(--rule);
+  padding: 14px var(--pad) 12px;
   margin-bottom: 8px;
 }
 
-.nav-product {
+.nav-brand-logo {
   display: block;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-  line-height: 1.2;
+  width: 100%;
+  max-width: 148px;
+  height: auto;
+  margin-bottom: 8px;
 }
 
 .nav-product-sub {
   display: block;
-  margin-top: 2px;
   font-size: var(--text-caption);
-  color: var(--ink-3);
-  font-weight: 400;
+  color: var(--ink-2);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
 .nav .nav-section {

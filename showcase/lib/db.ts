@@ -19,6 +19,7 @@ export interface ShowcaseApp {
   tokenAddress: string | null
   hookAddress: string | null
   published: boolean
+  createdAt: string
   updatedAt: string
 }
 
@@ -45,6 +46,7 @@ interface Row {
   token_address: string | null
   hook_address: string | null
   published: boolean
+  created_at: Date
   updated_at: Date
 }
 
@@ -69,6 +71,7 @@ function toApp (r: Row): ShowcaseApp {
     tokenAddress: r.token_address,
     hookAddress: r.hook_address,
     published: r.published,
+    createdAt: r.created_at.toISOString(),
     updatedAt: r.updated_at.toISOString()
   }
 }

@@ -19,7 +19,7 @@
 .chip.ok   { background: var(--ok-bg);   border-color: var(--ok-border);   color: var(--ok-ink); }
 .chip.warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-ink); }
 .chip.bad  { background: var(--bad-bg);  border-color: var(--bad-border);  color: var(--bad-ink); }
-.chip.acc  { background: var(--accent-soft); border-color: #c9d8e8; color: var(--accent-ink); }
+.chip.acc  { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-lo); }
 
 /* Buttons: flat, rectangular, bordered */
 .btn {
@@ -38,9 +38,17 @@
 .btn:hover { background: var(--tint); }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn:disabled:hover { background: var(--surface); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn.primary:hover { background: var(--accent-ink); }
-.btn.primary:disabled:hover { background: var(--accent); }
+.btn.primary {
+  background: var(--gradient-brand);
+  border-color: var(--brand-lo);
+  color: #fff;
+  box-shadow: var(--inset-highlight);
+}
+.btn.primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--brand) 0%, #143d7a 100%);
+  border-color: #143d7a;
+}
+.btn.primary:disabled:hover { background: var(--gradient-brand); }
 .btn.danger { color: var(--bad-ink); border-color: var(--bad-border); }
 .btn.danger:hover { background: var(--bad-bg); }
 
@@ -58,7 +66,7 @@ table.table { width: 100%; border-collapse: collapse; }
   text-align: left;
   font-size: var(--text-caption);
   letter-spacing: 0.01em;
-  color: var(--ink-3);
+  color: var(--table-head-ink, var(--ink-3));
   font-weight: 500;
   padding: 11px 16px;
   background: var(--tint);

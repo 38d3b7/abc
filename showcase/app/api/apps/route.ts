@@ -44,6 +44,7 @@ export async function POST (req: NextRequest): Promise<NextResponse> {
     tokenAddress: typeof body.tokenAddress === 'string' ? body.tokenAddress : null,
     hookAddress: typeof body.hookAddress === 'string' ? body.hookAddress : null,
     published: body.published === true,
+    createdAt: typeof body.createdAt === 'string' ? body.createdAt : new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
 

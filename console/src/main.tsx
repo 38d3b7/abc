@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { wagmiConfig } from './wagmi'
 import { App } from './App'
 import './styles/tokens.css'
+import './styles/brand.css'
 import './styles/shell.css'
 import './styles/components.css'
 

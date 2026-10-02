@@ -166,8 +166,14 @@ export function App () {
     <div className="shell">
       <TopBar />
       <nav className="nav">
-        <div className="nav-brand">
-          <span className="nav-product">ABC</span>
+        <div className="nav-brand brand-plate">
+          <img
+            className="nav-brand-logo"
+            src="/brand/abc-logo.png"
+            alt="abc"
+            width={148}
+            height={52}
+          />
           <span className="nav-product-sub">Agentic business console</span>
         </div>
         <div className="nav-section">Navigate</div>

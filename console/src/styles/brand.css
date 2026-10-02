@@ -1,0 +1,58 @@
+/* Brand layer — logo-derived ramps and static gradients (CONSOLE.md).
+   Use only on nav, primary actions, and public masthead — not data tables. */
+
+:root {
+  --ink: #0a0b0e;
+
+  --metal-hi: #e8eaee;
+  --metal: #9aa3ad;
+  --metal-lo: #4a5058;
+
+  --brand-hi: #5ec8f2;
+  --brand: #2b7fd4;
+  --brand-lo: #1a4d9e;
+  --brand-soft: #e8f4fc;
+
+  /* Legacy aliases — work layer still references these */
+  --accent: var(--brand);
+  --accent-ink: var(--brand-lo);
+  --accent-soft: var(--brand-soft);
+
+  --gradient-brand: linear-gradient(180deg, var(--brand-hi) 0%, var(--brand-lo) 100%);
+  --gradient-metal-plate: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--metal-hi) 35%, transparent) 0%,
+    color-mix(in srgb, var(--metal-lo) 12%, transparent) 100%
+  );
+
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --table-head-ink: color-mix(in srgb, var(--metal-lo) 70%, var(--ink-3));
+}
+
+.brand-plate {
+  background: var(--gradient-metal-plate), var(--tint);
+  box-shadow: var(--inset-highlight);
+}
+
+.btn-brand-gradient {
+  background: var(--gradient-brand);
+  border-color: var(--brand-lo);
+  color: #fff;
+  box-shadow: var(--inset-highlight);
+}
+
+.btn-brand-gradient:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--brand) 0%, #143d7a 100%);
+  border-color: #143d7a;
+}
+
+.btn-brand-gradient:disabled:hover {
+  background: var(--gradient-brand);
+}
+
+.masthead-accent-line {
+  height: 2px;
+  margin-top: 12px;
+  background: var(--gradient-brand);
+  border-radius: 1px;
+}
