@@ -108,6 +108,7 @@ interface AgentDbRow {
   token_address: string | null
   hook_address: string | null
   wallet_address: string | null
+  owner_address: string | null
   policy: Record<string, unknown>
   created_at: Date
 }
@@ -149,6 +150,7 @@ function toAgent (r: AgentDbRow): AgentRow {
     id: r.id, name: r.name, slug: r.slug,
     tokenAddress: r.token_address, hookAddress: r.hook_address,
     walletAddress: r.wallet_address,
+    ownerAddress: r.owner_address ?? null,
     policy: r.policy, createdAt: r.created_at.toISOString()
   }
 }
@@ -160,10 +162,10 @@ export class PgStore implements Store {
     this.pool = new pg.Pool({ connectionString })
   }
 
-  async createAgent (name: string, slug: string): Promise<AgentRow> {
+  async createAgent (name: string, slug: string, ownerAddress?: string | null): Promise<AgentRow> {
     const res = await this.pool.query<AgentDbRow>(
-      `INSERT INTO agents (name, slug) VALUES ($1, $2) RETURNING *, NULL AS wallet_address`,
-      [name, slug]
+      `INSERT INTO agents (name, slug, owner_address) VALUES ($1, $2, $3) RETURNING *, NULL AS wallet_address`,
+      [name, slug, ownerAddress ?? null]
     )
     return toAgent(res.rows[0]!)
   }
@@ -173,9 +175,24 @@ export class PgStore implements Store {
     return res.rows[0] ? toAgent(res.rows[0]) : null
   }
 
-  async listAgents (): Promise<AgentRow[]> {
-    const res = await this.pool.query<AgentDbRow>(`${AGENT_SELECT} ORDER BY a.created_at ASC`)
+  async listAgents (ownerAddress?: string): Promise<AgentRow[]> {
+    if (ownerAddress === undefined) {
+      const res = await this.pool.query<AgentDbRow>(`${AGENT_SELECT} ORDER BY a.created_at ASC`)
+      return res.rows.map(toAgent)
+    }
+    const res = await this.pool.query<AgentDbRow>(
+      `${AGENT_SELECT} WHERE lower(a.owner_address) = lower($1) ORDER BY a.created_at ASC`,
+      [ownerAddress]
+    )
     return res.rows.map(toAgent)
+  }
+
+  async countAgentsByOwner (ownerAddress: string): Promise<number> {
+    const res = await this.pool.query<{ count: string }>(
+      'SELECT count(*) AS count FROM agents WHERE lower(owner_address) = lower($1)',
+      [ownerAddress]
+    )
+    return Number(res.rows[0]!.count)
   }
 
   async updateAgentPolicy (id: string, policy: Record<string, unknown>): Promise<AgentRow | null> {
@@ -603,6 +620,34 @@ export class PgStore implements Store {
     return res.rows.map(PgStore.toInferencePayment)
   }
 
+  async insertNonce (nonce: string): Promise<void> {
+    await this.pool.query('INSERT INTO siwe_nonces (nonce) VALUES ($1) ON CONFLICT DO NOTHING', [nonce])
+  }
+
+  async consumeNonce (nonce: string, maxAgeSeconds: number): Promise<boolean> {
+    // DELETE ... RETURNING is the atomic single-use consume; the age predicate
+    // is the TTL. A replayed or expired nonce deletes nothing and returns 0.
+    const res = await this.pool.query(
+      `DELETE FROM siwe_nonces
+       WHERE nonce = $1 AND created_at > now() - make_interval(secs => $2)
+       RETURNING nonce`,
+      [nonce, maxAgeSeconds]
+    )
+    return res.rowCount === 1
+  }
+
+  async hitRateLimit (scope: string, address: string, windowStart: Date): Promise<number> {
+    const res = await this.pool.query<{ count: number }>(
+      `INSERT INTO rate_limits (scope, address, window_start, count)
+       VALUES ($1, lower($2), $3, 1)
+       ON CONFLICT (scope, address, window_start)
+       DO UPDATE SET count = rate_limits.count + 1
+       RETURNING count`,
+      [scope, address, windowStart]
+    )
+    return res.rows[0]!.count
+  }
+
   async close (): Promise<void> {
     await this.pool.end()
   }
@@ -621,6 +666,11 @@ export class PgStore implements Store {
 
   async markAutomationFired (id: string): Promise<void> {
     await this.pool.query('UPDATE automations SET last_fired_at = now() WHERE id = $1', [id])
+  }
+
+  async getAutomationAgentId (id: string): Promise<string | null> {
+    const res = await this.pool.query('SELECT agent_id FROM automations WHERE id = $1', [id])
+    return (res.rows[0]?.agent_id as string | undefined) ?? null
   }
 
   /** Worker-side scan: every active automation, with the agent's hook for

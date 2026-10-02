@@ -73,6 +73,9 @@ export interface AgentRow {
   hookAddress: string | null
   /** First provisioned wallet address, when one exists (wallets table). */
   walletAddress: string | null
+  /** SIWE wallet of the user who created the agent. NULL = created via the
+   *  operator backchannel (X-ABC-Key); visible to admins only. */
+  ownerAddress: string | null
   policy: Record<string, unknown>
   createdAt: string
 }
@@ -227,9 +230,11 @@ export interface NewMessage {
 }
 
 export interface Store {
-  createAgent (name: string, slug: string): Promise<AgentRow>
+  createAgent (name: string, slug: string, ownerAddress?: string | null): Promise<AgentRow>
   getAgent (id: string): Promise<AgentRow | null>
-  listAgents (): Promise<AgentRow[]>
+  /** ownerAddress given: only that owner's agents. Omitted: all (operator/admin). */
+  listAgents (ownerAddress?: string): Promise<AgentRow[]>
+  countAgentsByOwner (ownerAddress: string): Promise<number>
   updateAgentPolicy (id: string, policy: Record<string, unknown>): Promise<AgentRow | null>
   /** Record the provisioned wallet for an agent (idempotent per provider). */
   registerWallet (agentId: string, address: string, provider: 'circle_sca' | 'local_dev' | 'agent_stack', providerRef: string): Promise<void>
@@ -241,6 +246,8 @@ export interface Store {
   listAutomations (agentId: string): Promise<AutomationRow[]>
   createAutomation (a: NewAutomation): Promise<AutomationRow>
   setAutomationActive (id: string, active: boolean): Promise<void>
+  /** Owning agent of an automation — ownership checks on automation-pathed routes. */
+  getAutomationAgentId (id: string): Promise<string | null>
 
   createIntent (n: NewIntent): Promise<IntentRow>
   getIntent (id: string): Promise<IntentRow | null>
@@ -294,6 +301,16 @@ export interface Store {
    *  successful re-settle, and backfill the batch settlement reference. */
   setInferencePaymentState (id: string, state: InferencePaymentRow['state'], settlementRef?: string | null): Promise<InferencePaymentRow>
   listInferencePayments (agentId: string, limit?: number): Promise<InferencePaymentRow[]>
+
+  /** SIWE login nonces. consumeNonce is atomic single-use: true iff this
+   *  call consumed a fresh nonce (created within maxAgeSeconds). */
+  insertNonce (nonce: string): Promise<void>
+  consumeNonce (nonce: string, maxAgeSeconds: number): Promise<boolean>
+
+  /** Fixed-window rate limiting. Atomically increments and returns the new
+   *  count for (scope, address, windowStart); the caller compares to the
+   *  limit. */
+  hitRateLimit (scope: string, address: string, windowStart: Date): Promise<number>
 
   close (): Promise<void>
 }

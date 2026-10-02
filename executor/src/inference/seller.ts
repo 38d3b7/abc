@@ -95,7 +95,7 @@ function serialize (row: InferencePaymentRow): Record<string, unknown> {
   return { ...row, priceUsdc6: row.priceUsdc6.toString() }
 }
 
-export function registerInferenceSeller (app: Hono, deps: InferenceSellerDeps): void {
+export function registerInferenceSeller (app: Hono<any>, deps: InferenceSellerDeps): void {
   const req = requirements(deps.sellerAddress, deps.priceUsdc6)
 
   app.post('/inference/charge', async c => {

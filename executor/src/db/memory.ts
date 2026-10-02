@@ -24,10 +24,11 @@ export class MemoryStore implements Store {
   private wallets = new Map<string, { address: string; provider: string; providerRef: string }>()
   private messages = new Map<string, MessageRow>()
 
-  createAgent (name: string, slug: string): Promise<AgentRow> {
+  createAgent (name: string, slug: string, ownerAddress?: string | null): Promise<AgentRow> {
     const row: AgentRow = {
       id: randomUUID(), name, slug,
-      tokenAddress: null, hookAddress: null, walletAddress: null, policy: {},
+      tokenAddress: null, hookAddress: null, walletAddress: null,
+      ownerAddress: ownerAddress ?? null, policy: {},
       createdAt: new Date().toISOString()
     }
     this.agents.set(row.id, row)
@@ -39,12 +40,20 @@ export class MemoryStore implements Store {
     return Promise.resolve(r ? structuredClone(r) : null)
   }
 
-  listAgents (): Promise<AgentRow[]> {
+  listAgents (ownerAddress?: string): Promise<AgentRow[]> {
     return Promise.resolve(
       [...this.agents.values()]
+        .filter(a => ownerAddress === undefined || a.ownerAddress?.toLowerCase() === ownerAddress.toLowerCase())
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
         .map(a => structuredClone(a))
     )
+  }
+
+  countAgentsByOwner (ownerAddress: string): Promise<number> {
+    const n = [...this.agents.values()]
+      .filter(a => a.ownerAddress?.toLowerCase() === ownerAddress.toLowerCase())
+      .length
+    return Promise.resolve(n)
   }
 
   updateAgentPolicy (id: string, policy: Record<string, unknown>): Promise<AgentRow | null> {
@@ -123,6 +132,10 @@ export class MemoryStore implements Store {
     const r = this.automations.get(id)
     if (r) r.active = active
     return Promise.resolve()
+  }
+
+  getAutomationAgentId (id: string): Promise<string | null> {
+    return Promise.resolve(this.automations.get(id)?.agentId ?? null)
   }
 
   createIntent (n: NewIntent): Promise<IntentRow> {
@@ -444,6 +457,28 @@ export class MemoryStore implements Store {
         .slice(0, limit)
         .map(p => structuredClone(p))
     )
+  }
+
+  private nonces = new Map<string, number>() // nonce -> createdAt ms
+  private rateLimits = new Map<string, number>() // scope|address|windowStart -> count
+
+  insertNonce (nonce: string): Promise<void> {
+    this.nonces.set(nonce, Date.now())
+    return Promise.resolve()
+  }
+
+  consumeNonce (nonce: string, maxAgeSeconds: number): Promise<boolean> {
+    const created = this.nonces.get(nonce)
+    if (created === undefined) return Promise.resolve(false)
+    this.nonces.delete(nonce) // single-use, fresh or not
+    return Promise.resolve(Date.now() - created < maxAgeSeconds * 1000)
+  }
+
+  hitRateLimit (scope: string, address: string, windowStart: Date): Promise<number> {
+    const key = `${scope}|${address.toLowerCase()}|${windowStart.toISOString()}`
+    const n = (this.rateLimits.get(key) ?? 0) + 1
+    this.rateLimits.set(key, n)
+    return Promise.resolve(n)
   }
 
   close (): Promise<void> {

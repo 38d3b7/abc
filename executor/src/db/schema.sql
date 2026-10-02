@@ -208,3 +208,26 @@ CREATE INDEX IF NOT EXISTS inference_payments_agent_created ON inference_payment
 -- Nullable; agent-declared (no verification yet — that tier is parked).
 -- Stored normalized by the intent schema: no '@', lowercase.
 ALTER TABLE apps ADD COLUMN IF NOT EXISTS x_handle text;
+
+-- Migration 0007: permissionless console access (SIWE). Every agent belongs
+-- to the wallet that created it; pre-0007 rows backfill to the operator
+-- wallet. NULL owner = operator-backchannel creation (X-ABC-Key), visible
+-- to admins only.
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS owner_address text;
+CREATE INDEX IF NOT EXISTS agents_owner ON agents (owner_address);
+UPDATE agents SET owner_address = '0xc6b6469995a2292d719f2206242319e49a612696' WHERE owner_address IS NULL;
+
+-- Single-use SIWE nonces, 10-minute TTL (consumed = deleted).
+CREATE TABLE IF NOT EXISTS siwe_nonces (
+  nonce       text PRIMARY KEY,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- Fixed-window rate-limit counters (permissionless abuse guardrails).
+CREATE TABLE IF NOT EXISTS rate_limits (
+  scope        text NOT NULL,
+  address      text NOT NULL,
+  window_start timestamptz NOT NULL,
+  count        integer NOT NULL DEFAULT 0,
+  PRIMARY KEY (scope, address, window_start)
+);

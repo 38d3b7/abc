@@ -6,17 +6,19 @@
  */
 
 import { Hono } from 'hono'
+import type { Context } from 'hono'
 import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
 import { createHash } from 'node:crypto'
-import type { Store } from '../db/store.js'
+import type { Store, AgentRow } from '../db/store.js'
+import { newNonce, verifySiweLogin, issueSession, verifySession } from './auth.js'
 import { PgStore } from '../db/pg.js'
 import { PipelineRunner } from '../pipeline/runner.js'
 import { createSigner } from '../signer/index.js'
 import type { SignerAdapter } from '../signer/types.js'
 import { QuoteSigner } from '../quotes/sign.js'
 import { config, arcTestnet } from '../config.js'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, http, type PublicClient } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { BatchFacilitatorClient } from '@circle-fin/x402-batching/server'
 import { splitUsd } from '../ledger/usd.js'
@@ -32,10 +34,26 @@ function requestHash (body: unknown): string {
   return createHash('sha256').update(JSON.stringify(body)).digest('hex')
 }
 
+/** Who is calling: the operator backchannel (X-ABC-Key; local dev, scripts,
+ *  keeper), or a SIWE session wallet. Admins (ABC_ADMIN_ADDRESSES) see and
+ *  operate every agent; users only their own. */
+export type Caller =
+  | { kind: 'operator' }
+  | { kind: 'admin' | 'user'; address: string }
+
+/** Permissionless guardrails (users only; operator/admin are exempt). */
+const MAX_AGENTS_PER_OWNER = 3
+const CHAT_LIMIT_PER_HOUR = 30
+const LAUNCH_LIMIT_PER_DAY = 2
+
 export interface ApiDeps {
   store: Store
   runner: PipelineRunner
   signer: SignerAdapter
+  /** Public client for SIWE signature verification (EOA paths verify
+   *  locally; ERC-6492 contract accounts resolve against the chain).
+   *  Defaults to an Arc testnet client. */
+  chain?: PublicClient
   /** Send side of the agent-prompt queue; tests inject an in-memory capture. */
   enqueuePrompt?: (job: AgentPromptJob) => Promise<void>
   /** Skills catalog location; tests substitute a fixture dir. */
@@ -51,16 +69,21 @@ export interface ApiDeps {
   }
 }
 
+/** Hono env carrying the resolved caller through middleware -> routes. */
+export type AppEnv = { Variables: { caller: Caller } }
+
 export function createApp ({
   store,
   runner,
   signer,
+  chain,
   enqueuePrompt = enqueueAgentPrompt,
   skillsDir = SKILLS_DIR,
   importSkillFromUrl = importSkill,
   inferenceSeller
-}: ApiDeps): Hono {
-  const app = new Hono()
+}: ApiDeps): Hono<AppEnv> {
+  const app = new Hono<AppEnv>()
+  const siweChain = chain ?? createPublicClient({ chain: arcTestnet, transport: http() })
 
   /** The agent's wallet is executor-provisioned, never caller-supplied:
    *  resolve from the wallets table, provisioning lazily on first use. */
@@ -104,45 +127,103 @@ export function createApp ({
     allowHeaders: ['content-type', 'x-abc-key', 'idempotency-key']
   }))
 
+  // Auth: SIWE session (console users) or X-ABC-Key (operator backchannel:
+  // local dev, scripts). Open paths: /health, /inference/* (the x402 payment
+  // is its own auth), /auth/* (login).
   app.use('*', async (c, next) => {
     if (c.req.path === '/health') return next()
-    // The inference charge rail authenticates with the x402 payment itself
-    // (and the usage backfill with the charge id as a bearer capability), so
-    // it is exempt from the owner key.
     if (c.req.path.startsWith('/inference/')) return next()
-    if (c.req.header('X-ABC-Key') !== config.apiKey) {
-      return c.json({ error: 'unauthorized' }, 401)
+    if (c.req.path.startsWith('/auth/')) return next()
+    if (c.req.header('X-ABC-Key') === config.apiKey) {
+      c.set('caller', { kind: 'operator' })
+      return next()
     }
+    const auth = c.req.header('Authorization')
+    const address = auth?.startsWith('Bearer ') ? verifySession(config.sessionSecret, auth.slice(7)) : null
+    if (!address) return c.json({ error: 'unauthorized' }, 401)
+    c.set('caller', { kind: config.adminAddresses.includes(address) ? 'admin' : 'user', address })
     return next()
   })
 
+  function getCaller (c: Context): Caller {
+    return c.get('caller')
+  }
+
+  /** Only the owner (or operator/admin) may see an agent; everyone else gets
+   *  a 404 so existence stays hidden. */
+  function owns (caller: Caller, agent: AgentRow): boolean {
+    return caller.kind !== 'user' || agent.ownerAddress?.toLowerCase() === caller.address
+  }
+
+  async function scopedAgent (id: string, caller: Caller): Promise<AgentRow | null> {
+    const agent = await store.getAgent(id)
+    return agent && owns(caller, agent) ? agent : null
+  }
+
+  async function scopedIntent (id: string, caller: Caller) {
+    const intent = await store.getIntent(id)
+    if (!intent) return null
+    return (await scopedAgent(intent.agentId, caller)) ? intent : null
+  }
+
+  /** Fixed-window limiter; users only (operator/admin are exempt). */
+  async function overLimit (scope: string, caller: Caller, limit: number, windowSeconds: number): Promise<boolean> {
+    if (caller.kind !== 'user') return false
+    const windowStart = new Date(Math.floor(Date.now() / (windowSeconds * 1000)) * windowSeconds * 1000)
+    return (await store.hitRateLimit(scope, caller.address, windowStart)) > limit
+  }
+
   app.get('/health', c => c.json({ ok: true }))
+
+  // ---- auth (SIWE login; open paths) ----
+  app.get('/auth/nonce', async c => {
+    const nonce = newNonce()
+    await store.insertNonce(nonce)
+    return c.json({ nonce })
+  })
+
+  app.post('/auth/verify', async c => {
+    const body = await c.req.json<{ message?: string; signature?: `0x${string}` }>()
+      .catch(() => ({}) as { message?: string; signature?: `0x${string}` })
+    if (!body.message || !body.signature) return c.json({ error: 'message and signature required' }, 400)
+    const address = await verifySiweLogin(store, siweChain, body.message, body.signature)
+    if (!address) return c.json({ error: 'invalid login' }, 401)
+    return c.json({ token: issueSession(config.sessionSecret, address), address })
+  })
 
   // ---- agents ----
   app.post('/agents', async c => {
+    const caller = getCaller(c)
     const body = await c.req.json<{ name: string; slug?: string }>()
     if (!body.name) return c.json({ error: 'name required' }, 400)
+    const owner = caller.kind === 'operator' ? null : caller.address
+    if (caller.kind === 'user' && (await store.countAgentsByOwner(caller.address)) >= MAX_AGENTS_PER_OWNER) {
+      return c.json({ error: `agent limit reached (${MAX_AGENTS_PER_OWNER} per wallet)` }, 429)
+    }
     const slug = body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    const agent = await store.createAgent(body.name, slug)
+    const agent = await store.createAgent(body.name, slug, owner)
     const w = await signer.ensureWallet(agent.id)
     await store.registerWallet(agent.id, w.address, signer.name as 'circle_sca' | 'local_dev' | 'agent_stack', w.providerRef)
     return c.json({ agent: { ...agent, walletAddress: w.address } }, 201)
   })
 
   app.get('/agents', async c => {
-    const agents = await store.listAgents()
+    const caller = getCaller(c)
+    const agents = caller.kind === 'user' ? await store.listAgents(caller.address) : await store.listAgents()
     return c.json({ agents })
   })
 
   app.get('/agents/:id', async c => {
-    const agent = await store.getAgent(c.req.param('id'))
+    const agent = await scopedAgent(c.req.param('id'), getCaller(c))
     if (!agent) return c.json({ error: 'not found' }, 404)
     return c.json({ agent })
   })
 
   app.patch('/agents/:id', async c => {
+    const caller = getCaller(c)
     const body = await c.req.json<{ policy: Record<string, unknown> }>()
     if (!body.policy || typeof body.policy !== 'object') return c.json({ error: 'policy object required' }, 400)
+    if (!(await scopedAgent(c.req.param('id'), caller))) return c.json({ error: 'not found' }, 404)
     const agent = await store.updateAgentPolicy(c.req.param('id'), body.policy)
     if (!agent) return c.json({ error: 'not found' }, 404)
     return c.json({ agent })
@@ -152,6 +233,7 @@ export function createApp ({
   app.post('/agents/:id/campaigns', async c => {
     const key = c.req.header('Idempotency-Key')
     if (!key) return c.json({ error: 'Idempotency-Key header required' }, 400)
+    if (!(await scopedAgent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const body = await c.req.json<{
       tokenAddress: string; hookAddress: string; name?: string; symbol?: string
       cap: string; startBlock: string; streamBlocks: string
@@ -176,6 +258,7 @@ export function createApp ({
 
   // ---- automations ----
   app.get('/agents/:id/automations', async c => {
+    if (!(await scopedAgent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const automations = await store.listAutomations(c.req.param('id'))
     return c.json({ automations })
   })
@@ -183,6 +266,7 @@ export function createApp ({
   app.post('/agents/:id/automations', async c => {
     const key = c.req.header('Idempotency-Key')
     if (!key) return c.json({ error: 'Idempotency-Key header required' }, 400)
+    if (!(await scopedAgent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const body = await c.req.json<{ kind: 'cron' | 'price' | 'fee_accrued'; spec: Record<string, unknown>; intentTemplate: Record<string, unknown> }>()
     if (!body.kind || !body.spec || !body.intentTemplate) return c.json({ error: 'kind, spec and intentTemplate required' }, 400)
     const automation = await store.createAutomation({
@@ -195,8 +279,11 @@ export function createApp ({
   })
 
   app.patch('/automations/:id', async c => {
+    const caller = getCaller(c)
     const body = await c.req.json<{ active: boolean }>()
     if (typeof body.active !== 'boolean') return c.json({ error: 'active boolean required' }, 400)
+    const agentId = await store.getAutomationAgentId(c.req.param('id'))
+    if (!agentId || !(await scopedAgent(agentId, caller))) return c.json({ error: 'not found' }, 404)
     await store.setAutomationActive(c.req.param('id'), body.active)
     return c.json({ ok: true })
   })
@@ -206,6 +293,7 @@ export function createApp ({
     const agentId = c.req.param('id')
     const key = c.req.header('Idempotency-Key')
     if (!key) return c.json({ error: 'Idempotency-Key header required' }, 400)
+    if (!(await scopedAgent(agentId, getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const body = await c.req.json<{ walletAddress?: string; type: string; params: Record<string, unknown>; rationale?: { text: string; signature: string } }>()
     const resolved = await resolveWallet(agentId, body.walletAddress)
     if ('error' in resolved) return c.json({ error: resolved.error }, resolved.status)
@@ -225,17 +313,19 @@ export function createApp ({
   })
 
   app.get('/agents/:id/intents', async c => {
+    if (!(await scopedAgent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const intents = await store.listIntents(c.req.param('id'))
     return c.json({ intents })
   })
 
   app.get('/intents/:id', async c => {
-    const intent = await store.getIntent(c.req.param('id'))
+    const intent = await scopedIntent(c.req.param('id'), getCaller(c))
     if (!intent) return c.json({ error: 'not found' }, 404)
     return c.json({ intent })
   })
 
   app.post('/intents/:id/confirm', async c => {
+    if (!(await scopedIntent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const body = await c.req.json<{ confirmedBy: string }>().catch(() => ({ confirmedBy: 'operator' }))
     try {
       const intent = await runner.confirm(c.req.param('id'), body.confirmedBy ?? 'operator')
@@ -247,7 +337,12 @@ export function createApp ({
 
   // ---- quotes (two-step flow) ----
   app.post('/agents/:id/quotes', async c => {
+    const caller = getCaller(c)
+    if (!(await scopedAgent(c.req.param('id'), caller))) return c.json({ error: 'not found' }, 404)
     const body = await c.req.json<{ walletAddress?: string; type: string; params: Record<string, unknown> }>()
+    if (body.type === 'lge_launch' && await overLimit('launch', caller, LAUNCH_LIMIT_PER_DAY, 86_400)) {
+      return c.json({ error: `launch rate limit reached (${LAUNCH_LIMIT_PER_DAY} per day)` }, 429)
+    }
     const resolved = await resolveWallet(c.req.param('id'), body.walletAddress)
     if ('error' in resolved) return c.json({ error: resolved.error }, resolved.status)
     const res = await runner.quoteIntent(c.req.param('id'), resolved.wallet, body.type, body.params)
@@ -256,6 +351,7 @@ export function createApp ({
   })
 
   app.post('/intents/:id/execute', async c => {
+    if (!(await scopedIntent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const body = await c.req.json<{ quoteId: string }>()
     try {
       const intent = await runner.executeQuote(c.req.param('id'), body.quoteId)
@@ -270,10 +366,14 @@ export function createApp ({
   // ---- messages (operator instruction -> pending agent reply -> worker settles) ----
   app.post('/agents/:id/messages', async c => {
     const agentId = c.req.param('id')
+    const caller = getCaller(c)
     const key = c.req.header('Idempotency-Key')
     if (!key) return c.json({ error: 'Idempotency-Key header required' }, 400)
-    const agent = await store.getAgent(agentId)
+    const agent = await scopedAgent(agentId, caller)
     if (!agent) return c.json({ error: 'not found' }, 404)
+    if (await overLimit('chat', caller, CHAT_LIMIT_PER_HOUR, 3600)) {
+      return c.json({ error: `chat rate limit reached (${CHAT_LIMIT_PER_HOUR} per hour)` }, 429)
+    }
     const body = await c.req.json<{ text?: string; model?: string }>()
     const text = body.text?.trim()
     if (!text) return c.json({ error: 'text required' }, 400)
@@ -314,7 +414,7 @@ export function createApp ({
   })
 
   app.get('/agents/:id/messages', async c => {
-    const agent = await store.getAgent(c.req.param('id'))
+    const agent = await scopedAgent(c.req.param('id'), getCaller(c))
     if (!agent) return c.json({ error: 'not found' }, 404)
     const limit = Number(c.req.query('limit') ?? 200)
     const messages = await store.listMessages(agent.id, Number.isFinite(limit) ? limit : 200)
@@ -329,14 +429,14 @@ export function createApp ({
   })
 
   app.get('/agents/:id/skills', async c => {
-    const agent = await store.getAgent(c.req.param('id'))
+    const agent = await scopedAgent(c.req.param('id'), getCaller(c))
     if (!agent) return c.json({ error: 'not found' }, 404)
     const installs = await store.listAgentSkills(agent.id)
     return c.json({ skills: resolveAgentSkills(loadRegistry(skillsDir), installs) })
   })
 
   app.post('/agents/:id/skills', async c => {
-    const agent = await store.getAgent(c.req.param('id'))
+    const agent = await scopedAgent(c.req.param('id'), getCaller(c))
     if (!agent) return c.json({ error: 'not found' }, 404)
     const body = await c.req.json<{ slug?: string }>()
     if (!body.slug) return c.json({ error: 'slug required' }, 400)
@@ -348,7 +448,7 @@ export function createApp ({
   })
 
   app.post('/agents/:id/skills/install-url', async c => {
-    const agent = await store.getAgent(c.req.param('id'))
+    const agent = await scopedAgent(c.req.param('id'), getCaller(c))
     if (!agent) return c.json({ error: 'not found' }, 404)
     const body = await c.req.json<{ url?: string; licenseSpdx?: string; provider?: string; slug?: string }>()
     if (!body.url || !body.licenseSpdx || !body.provider) {
@@ -377,6 +477,7 @@ export function createApp ({
   app.patch('/agents/:id/skills/:slug', async c => {
     const body = await c.req.json<{ enabled?: boolean }>()
     if (typeof body.enabled !== 'boolean') return c.json({ error: 'enabled boolean required' }, 400)
+    if (!(await scopedAgent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const row = await store.setAgentSkillEnabled(c.req.param('id'), c.req.param('slug'), body.enabled)
     if (!row) return c.json({ error: 'not installed' }, 404)
     return c.json({ skill: row })
@@ -384,6 +485,7 @@ export function createApp ({
 
   // ---- ledger ----
   app.get('/agents/:id/ledger', async c => {
+    if (!(await scopedAgent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const buckets = ['gas', 'inference', 'trading', 'treasury'] as const
     const balances: Record<string, string> = {}
     for (const b of buckets) {
@@ -395,6 +497,7 @@ export function createApp ({
   })
 
   app.get('/agents/:id/ledger/entries', async c => {
+    if (!(await scopedAgent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const entries = await store.listLedger(c.req.param('id'))
     return c.json({
       entries: entries.map(e => ({
@@ -406,18 +509,20 @@ export function createApp ({
 
   // ---- showcase app (the agent's agenticbusinessconsole.com storefront record) ----
   app.get('/agents/:id/app', async c => {
+    if (!(await scopedAgent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     const appRecord = await store.getApp(c.req.param('id'))
     if (!appRecord) return c.json({ error: 'no app published' }, 404)
     return c.json(appRecord)
   })
 
   app.get('/agents/:id/campaigns', async c => {
+    if (!(await scopedAgent(c.req.param('id'), getCaller(c)))) return c.json({ error: 'not found' }, 404)
     return c.json({ campaigns: await store.listCampaigns(c.req.param('id')) })
   })
 
   // ---- inference rail (x402 seller; PRODUCT.md third lock) ----
   app.get('/agents/:id/inference', async c => {
-    const agent = await store.getAgent(c.req.param('id'))
+    const agent = await scopedAgent(c.req.param('id'), getCaller(c))
     if (!agent) return c.json({ error: 'not found' }, 404)
     const payments = await store.listInferencePayments(agent.id)
     return c.json({
@@ -461,7 +566,7 @@ export async function serveApi (port = 8787): Promise<void> {
     }
   }
 
-  const app = createApp({ store, runner, signer, ...(inferenceSeller ? { inferenceSeller } : {}) })
+  const app = createApp({ store, runner, signer, chain, ...(inferenceSeller ? { inferenceSeller } : {}) })
   serve({ fetch: app.fetch, port })
   console.log(`[api] executor listening on :${port}`)
 }

@@ -61,6 +61,21 @@ export const config = {
     .split(',')
     .map(s => s.trim())
     .filter(Boolean),
+  /** HMAC secret for SIWE session tokens. The default is dev-only, like
+   *  apiKey; production sets a real one. */
+  sessionSecret: process.env.ABC_SESSION_SECRET || 'dev-session-secret',
+  /** Wallets (lowercase, comma-separated) that see and operate every agent,
+   *  including operator-backchannel (NULL-owner) ones. */
+  adminAddresses: (process.env.ABC_ADMIN_ADDRESSES || '')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean),
+  /** Accepted SIWE message domains (comma-separated). localhost with any
+   *  port is always accepted (local console dev). */
+  siweDomains: (process.env.ABC_SIWE_DOMAINS || 'app.agenticbusinessconsole.com')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean),
   isProduction: process.env.NODE_ENV === 'production',
   requireEnv: required
 } as const
