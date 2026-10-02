@@ -292,6 +292,7 @@ export class PipelineRunner {
     const wallet = await this.d.store.agentWallet(row.agentId)
     const result = await this.d.signer.send(tx, {
       agentId: row.agentId,
+      ...(wallet?.provider ? { provider: wallet.provider } : {}),
       ...(wallet?.providerRef ? { providerRef: wallet.providerRef } : {})
     })
     row = await this.mustGet(row.id)

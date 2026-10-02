@@ -28,7 +28,10 @@ export interface SignerAdapter {
   readonly name: string
   /** Provision (lazily) and return the wallet address for an agent. */
   ensureWallet (agentId: string, providerRef?: string): Promise<{ address: string; providerRef: string }>
-  send (tx: FinalTx, ctx: { agentId: string; providerRef?: string }): Promise<SendResult>
+  /** provider is the wallet's registered custody (wallets.provider); the
+   *  composite signer dispatches on it so pre-Circle local_dev wallets keep
+   *  working beside Circle-custodied ones. */
+  send (tx: FinalTx, ctx: { agentId: string; provider?: string; providerRef?: string }): Promise<SendResult>
 }
 
 export function isSent (r: SendResult): r is SentTx {
