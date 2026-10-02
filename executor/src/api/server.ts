@@ -79,11 +79,27 @@ export function createApp ({
     return { wallet }
   }
 
+  // Chrome Private Network Access: a public-origin page (e.g. the deployed
+  // console) calling this loopback executor sends
+  // Access-Control-Request-Private-Network on the preflight, and Chrome
+  // blocks the request without this echo even after the user clicks Allow
+  // on the "access other apps and services on this device" prompt.
+  // Registered BEFORE cors because hono/cors short-circuits OPTIONS without
+  // calling next() — middleware after it never sees preflights.
+  app.use('*', async (c, next) => {
+    await next()
+    if (c.req.method === 'OPTIONS' && c.req.header('access-control-request-private-network') === 'true') {
+      c.res.headers.set('Access-Control-Allow-Private-Network', 'true')
+    }
+  })
   // CORS before auth so browser preflights (OPTIONS, no X-ABC-Key) are
-  // answered here instead of 401ing. The console is a local operator tool:
-  // allow localhost/127.0.0.1 on any port, nothing else.
+  // answered here instead of 401ing. localhost/127.0.0.1 on any port is
+  // always allowed (local dev); deployed console origins come from
+  // ABC_ALLOWED_ORIGINS.
+  const allowedOrigins = new Set(config.allowedOrigins.map(o => o.toLowerCase()))
   app.use('*', cors({
-    origin: (o) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o) ? o : null,
+    origin: (o) =>
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o) || allowedOrigins.has(o.toLowerCase()) ? o : null,
     allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['content-type', 'x-abc-key', 'idempotency-key']
   }))

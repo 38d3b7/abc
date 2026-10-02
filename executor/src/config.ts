@@ -55,6 +55,12 @@ export const config = {
   /** Showcase app write API. Unset = local dev (push is a no-op). */
   appsPushUrl: process.env.ABC_APPS_PUSH_URL || '',
   appsPushKey: process.env.ABC_APPS_PUSH_KEY || '',
+  /** Extra browser origins allowed by CORS (comma-separated), e.g. the
+   *  deployed console. localhost/127.0.0.1 on any port is always allowed. */
+  allowedOrigins: (process.env.ABC_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean),
   isProduction: process.env.NODE_ENV === 'production',
   requireEnv: required
 } as const
