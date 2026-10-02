@@ -9,6 +9,7 @@ import { Chip, stateTone } from '../components/Chip'
 import { HashLink } from '../components/HashLink'
 import { ProgressBar } from '../components/ProgressBar'
 import { PageShell, PageStatus } from '../components/PageShell'
+import { executorUnreachableMessage } from '../lib/executorError'
 
 function parseBalance (json: string | undefined): bigint {
   if (!json) return 0n
@@ -44,7 +45,7 @@ export function Overview () {
     return (
       <PageStatus
         title="Overview"
-        message={`Executor unreachable${(agent.error as Error).message.includes('fetch') ? ' at its API address' : ''}. Start the executor and set VITE_EXECUTOR_URL / VITE_ABC_API_KEY.`}
+        message={executorUnreachableMessage(agent.error)}
       />
     )
   }

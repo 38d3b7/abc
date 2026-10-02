@@ -33,7 +33,28 @@
   align-items: center;
   gap: 8px;
 }
-.new-agent input.mono-input { width: 180px; }
+
+/* Match agent picker + primary button: compact height, --radius corners */
+.topbar .topbar-field {
+  width: 180px;
+  max-width: 40vw;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.topbar .topbar-field:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: var(--accent);
+}
 
 .topbar .agent-name {
   font-weight: 600;

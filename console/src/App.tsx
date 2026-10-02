@@ -85,7 +85,8 @@ function NewAgentButton () {
   return (
     <span className="new-agent">
       <input
-        className="mono-input"
+        type="text"
+        className="mono-input topbar-field"
         placeholder="Agent name"
         value={name}
         autoFocus
@@ -174,7 +175,7 @@ export function App () {
             width={148}
             height={69}
           />
-          <span className="nav-product-sub">Agentic business console</span>
+          <span className="nav-product-sub">Agentic Business Console</span>
         </div>
         <div className="nav-section">Navigate</div>
         <NavLink to="/chat" className={({ isActive }) => isActive ? 'current' : ''}>Chat</NavLink>
