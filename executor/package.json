@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.9"
+  },
   "description": "ABC executor: typed-intent pipeline, signer adapters, worker, agent loop",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
