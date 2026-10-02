@@ -114,6 +114,9 @@ export function DepositBox ({ s, block }: { s: CampaignState; block: bigint }) {
         <span className="mono">{fmtTokens(remaining)} ${s.tokenSymbol}</span>
       </div>
       <div className="panel-body">
+        <p className="small muted">
+          Need test USDC? <a href="https://faucet.circle.com" target="_blank" rel="noreferrer">faucet.circle.com</a> — select Arc Testnet.
+        </p>
         {error ? <p className="small" style={{ color: 'var(--bad-ink)' }}>{error}</p> : null}
         {done ? <p className="small" style={{ color: 'var(--ok-ink)' }}>Deposit confirmed. <a href={`https://explorer.testnet.arc.io/tx/${done}`} target="_blank" rel="noreferrer">View transaction</a></p> : null}
         {!isConnected ? (
