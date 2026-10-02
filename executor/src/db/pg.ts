@@ -493,12 +493,12 @@ export class PgStore implements Store {
 
   private static toApp (r: {
     id: string; agent_id: string; slug: string; name: string; tagline: string; idea: string
-    roadmap: AppRow['roadmap']; links: AppRow['links']; token_address: string | null
+    roadmap: AppRow['roadmap']; links: AppRow['links']; x_handle: string | null; token_address: string | null
     hook_address: string | null; published: boolean; created_at: Date; updated_at: Date
   }): AppRow {
     return {
       id: r.id, agentId: r.agent_id, slug: r.slug, name: r.name, tagline: r.tagline, idea: r.idea,
-      roadmap: r.roadmap, links: r.links, tokenAddress: r.token_address, hookAddress: r.hook_address,
+      roadmap: r.roadmap, links: r.links, xHandle: r.x_handle, tokenAddress: r.token_address, hookAddress: r.hook_address,
       published: r.published, createdAt: r.created_at.toISOString(), updatedAt: r.updated_at.toISOString()
     }
   }
@@ -520,17 +520,17 @@ export class PgStore implements Store {
     refs: { tokenAddress: string | null; hookAddress: string | null }
   ): Promise<AppRow> {
     const res = await this.pool.query(
-      `INSERT INTO apps (agent_id, slug, name, tagline, idea, roadmap, links, token_address, hook_address, published)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true)
+      `INSERT INTO apps (agent_id, slug, name, tagline, idea, roadmap, links, x_handle, token_address, hook_address, published)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true)
        ON CONFLICT (agent_id) DO UPDATE SET
          name = EXCLUDED.name, tagline = EXCLUDED.tagline, idea = EXCLUDED.idea,
-         roadmap = EXCLUDED.roadmap, links = EXCLUDED.links,
+         roadmap = EXCLUDED.roadmap, links = EXCLUDED.links, x_handle = EXCLUDED.x_handle,
          token_address = EXCLUDED.token_address, hook_address = EXCLUDED.hook_address,
          published = true, updated_at = now()
        RETURNING *`,
       [
         agentId, slug, blocks.name, blocks.tagline, blocks.idea,
-        JSON.stringify(blocks.roadmap), JSON.stringify(blocks.links),
+        JSON.stringify(blocks.roadmap), JSON.stringify(blocks.links), blocks.xHandle,
         refs.tokenAddress, refs.hookAddress
       ]
     )
@@ -538,12 +538,14 @@ export class PgStore implements Store {
   }
 
   async updateAppField (agentId: string, field: keyof AppBlocks, value: unknown): Promise<AppRow | null> {
-    if (!['name', 'tagline', 'idea', 'roadmap', 'links'].includes(field)) {
+    // camelCase block field -> snake_case column (xHandle is the one that differs)
+    const column = { name: 'name', tagline: 'tagline', idea: 'idea', roadmap: 'roadmap', links: 'links', xHandle: 'x_handle' }[field]
+    if (!column) {
       throw new Error(`unknown app field: ${field}`)
     }
     const stored = field === 'roadmap' || field === 'links' ? JSON.stringify(value) : value
     const res = await this.pool.query(
-      `UPDATE apps SET ${field} = $2, updated_at = now() WHERE agent_id = $1 RETURNING *`,
+      `UPDATE apps SET ${column} = $2, updated_at = now() WHERE agent_id = $1 RETURNING *`,
       [agentId, stored]
     )
     return res.rows[0] ? PgStore.toApp(res.rows[0]) : null

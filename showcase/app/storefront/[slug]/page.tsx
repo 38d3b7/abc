@@ -19,6 +19,11 @@ export default async function Storefront ({ params }: { params: Promise<{ slug: 
         <div className="kicker">{app.slug}.pumperp.com</div>
         <h1>{app.name}</h1>
         {app.tagline && <p className="tagline">{app.tagline}</p>}
+        {app.xHandle && (
+          <p className="x-handle">
+            <a href={`https://x.com/${app.xHandle}`} rel="noopener noreferrer" target="_blank">@{app.xHandle}</a>
+          </p>
+        )}
       </header>
 
       {ideaParagraphs.length > 0 && (

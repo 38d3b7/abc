@@ -149,6 +149,7 @@ export interface AppRow {
   idea: string
   roadmap: AppBlock[]
   links: AppLink[]
+  xHandle: string | null
   tokenAddress: string | null
   hookAddress: string | null
   published: boolean
@@ -162,6 +163,7 @@ export interface AppBlocks {
   idea: string
   roadmap: AppBlock[]
   links: AppLink[]
+  xHandle: string | null
 }
 
 export interface AgentSkillRow {

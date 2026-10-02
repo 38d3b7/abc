@@ -361,6 +361,7 @@ export class MemoryStore implements Store {
       idea: blocks.idea,
       roadmap: structuredClone(blocks.roadmap),
       links: structuredClone(blocks.links),
+      xHandle: blocks.xHandle ?? null,
       tokenAddress: refs.tokenAddress,
       hookAddress: refs.hookAddress,
       published: true,

@@ -16,6 +16,7 @@ export interface ShowcaseApp {
   idea: string
   roadmap: Array<{ text: string; done: boolean }>
   links: Array<{ label: string; url: string }>
+  xHandle: string | null
   tokenAddress: string | null
   hookAddress: string | null
   published: boolean
@@ -43,6 +44,7 @@ interface Row {
   idea: string
   roadmap: Array<{ text: string; done: boolean }>
   links: Array<{ label: string; url: string }>
+  x_handle: string | null
   token_address: string | null
   hook_address: string | null
   published: boolean
@@ -68,6 +70,7 @@ function toApp (r: Row): ShowcaseApp {
     idea: r.idea,
     roadmap: jsonColumn<ShowcaseApp['roadmap']>(r.roadmap),
     links: jsonColumn<ShowcaseApp['links']>(r.links),
+    xHandle: r.x_handle ?? null,
     tokenAddress: r.token_address,
     hookAddress: r.hook_address,
     published: r.published,
@@ -90,9 +93,9 @@ export async function listPublished (): Promise<ShowcaseApp[]> {
 export async function upsertApp (app: ShowcaseApp): Promise<void> {
   const db = client()
   await db`
-    INSERT INTO apps (id, agent_id, slug, name, tagline, idea, roadmap, links, token_address, hook_address, published, updated_at)
+    INSERT INTO apps (id, agent_id, slug, name, tagline, idea, roadmap, links, x_handle, token_address, hook_address, published, updated_at)
     VALUES (${app.id}, ${app.agentId}, ${app.slug}, ${app.name}, ${app.tagline}, ${app.idea},
-            ${db.json(app.roadmap)}, ${db.json(app.links)},
+            ${db.json(app.roadmap)}, ${db.json(app.links)}, ${app.xHandle},
             ${app.tokenAddress}, ${app.hookAddress}, ${app.published}, now())
     ON CONFLICT (agent_id) DO UPDATE SET
       slug = EXCLUDED.slug,
@@ -101,6 +104,7 @@ export async function upsertApp (app: ShowcaseApp): Promise<void> {
       idea = EXCLUDED.idea,
       roadmap = EXCLUDED.roadmap,
       links = EXCLUDED.links,
+      x_handle = EXCLUDED.x_handle,
       token_address = EXCLUDED.token_address,
       hook_address = EXCLUDED.hook_address,
       published = EXCLUDED.published,

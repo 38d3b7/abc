@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { encodeFunctionData, parseAbi, type Address, type Hex } from 'viem'
 import type { Store, AgentRow, AppRow, AppBlocks } from '../db/store.js'
 import type { ChainReader } from './runner.js'
+import { xHandleSchema } from '../intents/types.js'
 
 /** ERC-20 USDC on Arc testnet (6-dec). Address and EIP-712 domain observed
  *  on-chain 2026-09-30 — see REPO-MINING.md. Native USDC (gas) is 18-dec. */
@@ -48,6 +49,7 @@ export function validateAppField (field: string, value: unknown): unknown {
     case 'idea': return z.string().max(4000).parse(value)
     case 'roadmap': return roadmapSchema.parse(value)
     case 'links': return linksSchema.parse(value)
+    case 'xHandle': return xHandleSchema.nullable().parse(value) // null clears
     default: throw new Error(`unknown app field: ${field}`)
   }
 }

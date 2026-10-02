@@ -203,3 +203,8 @@ CREATE TABLE IF NOT EXISTS inference_payments (
   updated_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS inference_payments_agent_created ON inference_payments (agent_id, created_at DESC);
+
+-- Migration 0006: the agent's X (Twitter) handle on the showcase site.
+-- Nullable; agent-declared (no verification yet — that tier is parked).
+-- Stored normalized by the intent schema: no '@', lowercase.
+ALTER TABLE apps ADD COLUMN IF NOT EXISTS x_handle text;

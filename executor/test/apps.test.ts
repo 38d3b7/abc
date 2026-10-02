@@ -204,6 +204,38 @@ describe('app effects', () => {
     expect(row.state).toBe('DROPPED')
   })
 
+  it('app_publish normalizes the X handle; app_edit sets and clears it', async () => {
+    const pushed: AppRow[] = []
+    const { store, agent, runner } = await setup(pushed)
+
+    const pub = await runner.runIntent(agent.id, WALLET, 'app_publish', {
+      name: 'A', tagline: '', idea: '', roadmap: [], links: [], xHandle: '@AtlasTrading'
+    }, { text: 'publish', signature: 'sig' })
+    expect(pub.state).toBe('FINAL')
+    expect((await store.getApp(agent.id))!.xHandle).toBe('atlastrading') // '@' stripped, lowercased
+    expect(pushed[0]!.xHandle).toBe('atlastrading') // the push carries it
+
+    const edit = await runner.runIntent(agent.id, WALLET, 'app_edit', {
+      field: 'xHandle', value: 'Atlas_Trades'
+    }, { text: 'new handle', signature: 'sig' })
+    expect(edit.state).toBe('FINAL')
+    expect((await store.getApp(agent.id))!.xHandle).toBe('atlas_trades')
+
+    const clear = await runner.runIntent(agent.id, WALLET, 'app_edit', {
+      field: 'xHandle', value: null
+    }, { text: 'clear handle', signature: 'sig' })
+    expect(clear.state).toBe('FINAL')
+    expect((await store.getApp(agent.id))!.xHandle).toBeNull()
+  })
+
+  it('app_publish rejects a malformed X handle at the schema', async () => {
+    const { store, agent, runner } = await setup()
+    await expect(runner.runIntent(agent.id, WALLET, 'app_publish', {
+      name: 'A', tagline: '', idea: '', roadmap: [], links: [], xHandle: 'not a handle!'
+    }, { text: 'publish', signature: 'sig' })).rejects.toThrow()
+    expect(await store.getApp(agent.id)).toBeNull()
+  })
+
   it('a failing push DROPPEDs the intent', async () => {
     const store = new MemoryStore()
     const agent = await store.createAgent('Test', 'test')

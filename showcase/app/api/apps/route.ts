@@ -41,6 +41,8 @@ export async function POST (req: NextRequest): Promise<NextResponse> {
     idea: typeof body.idea === 'string' ? body.idea : '',
     roadmap: Array.isArray(body.roadmap) ? body.roadmap as ShowcaseApp['roadmap'] : [],
     links: Array.isArray(body.links) ? body.links as ShowcaseApp['links'] : [],
+    // Executor normalizes (bare lowercase handle, no '@'); null clears.
+    xHandle: typeof body.xHandle === 'string' ? body.xHandle : null,
     tokenAddress: typeof body.tokenAddress === 'string' ? body.tokenAddress : null,
     hookAddress: typeof body.hookAddress === 'string' ? body.hookAddress : null,
     published: body.published === true,

@@ -14,6 +14,14 @@ import { INFERENCE_ESCROW } from '../inference/escrow.js'
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/)
 const uint = z.string().regex(/^[0-9]+$/) // decimal string, 18-dec wei unless stated
 
+/** X (Twitter) handle. Accepts "@Handle" or "handle"; stored normalized —
+ *  no '@', lowercase. X rules: 1–15 chars, letters/digits/underscore. */
+export const xHandleSchema = z
+  .string()
+  .max(20)
+  .transform(s => s.trim().replace(/^@+/, '').toLowerCase())
+  .pipe(z.string().regex(/^[a-z0-9_]{1,15}$/))
+
 export const INTENT_SCHEMAS = {
   get_balances: z.object({}).strict(),
 
@@ -99,13 +107,14 @@ export const INTENT_SCHEMAS = {
     tagline: z.string().max(160).default(''),
     idea: z.string().max(4000).default(''),
     roadmap: z.array(z.object({ text: z.string().max(200), done: z.boolean() })).max(20).default([]),
-    links: z.array(z.object({ label: z.string().max(40), url: z.string().url().max(300) })).max(10).default([])
+    links: z.array(z.object({ label: z.string().max(40), url: z.string().url().max(300) })).max(10).default([]),
+    xHandle: xHandleSchema.nullable().default(null)
   }).strict(),
 
   /** Edit one block of the published app; the ledger note names the field.
    *  Value shape is validated by the effect (field-dependent). */
   app_edit: z.object({
-    field: z.enum(['name', 'tagline', 'idea', 'roadmap', 'links']),
+    field: z.enum(['name', 'tagline', 'idea', 'roadmap', 'links', 'xHandle']),
     value: z.unknown()
   }).strict()
 } as const
