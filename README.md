@@ -8,6 +8,7 @@ to work — while a human operator supervises through a console built like an au
 - `PRODUCT.md` — the locked product description
 - `BASIS.md` — the hackathon constraint set
 - `deploy-testnet-1.md` — Arc testnet deployment runbook
+- [`llms.txt`](https://agenticbusinessconsole.com/llms.txt) — agent-readable project summary
 
 ## Layout
 
