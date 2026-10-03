@@ -56,6 +56,7 @@ contract SmokeLGE is Script {
         uint256 maxPrice = vm.envOr("MAX_PRICE", uint256(4e18));
         uint256 exitThreshold = vm.envOr("EXIT_THRESHOLD", uint256(0)); // 0 = exits disabled
         uint24 feeBps = uint24(vm.envOr("FEE_BPS", uint256(100)));
+        address operator = vm.envOr("OPERATOR", deployer); // may rotate the agent
 
         bytes32 tokenSalt = keccak256(abi.encodePacked(deployer, block.timestamp));
         bytes memory tokenArgs = abi.encode(
@@ -82,6 +83,7 @@ contract SmokeLGE is Script {
             permit2: manager._permit2(),
             token: tokenAddress,
             agent: deployer,
+            operator: operator,
             protocol: manager._protocol(),
             vestingVault: manager._vestingVault(),
             inferenceEscrow: manager._inferenceEscrow(),
@@ -91,7 +93,7 @@ contract SmokeLGE is Script {
             maxTokenPrice: maxPrice,
             exitThreshold: exitThreshold,
             feeBps: feeBps,
-            vestingCliff: 0,
+            vestingCliff: 365 days, // launch minimum: locked 12 months
             vestingDuration: 365 days
         });
         bytes memory hookArgs = abi.encode(hp);
@@ -122,8 +124,9 @@ contract SmokeLGE is Script {
                     maxTokenPrice: maxPrice,
                     exitThreshold: exitThreshold,
                     feeBps: feeBps,
-                    vestingCliff: 0,
-                    vestingDuration: 365 days
+                    vestingCliff: 365 days, // launch minimum: locked 12 months
+                    vestingDuration: 365 days,
+                    operator: operator
                 })
             })
         );

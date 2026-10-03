@@ -60,7 +60,7 @@ contract LGEManagerTest is Test, Deployers {
 
     function test_deployToken() public {
         vm.roll(startBlock);
-        vm.startPrank(tokenCreator);
+        vm.startPrank(tokenAdmin); // the agent launches for itself
 
         LGEManager.TokenConfig memory tokenConfig = LGEManager.TokenConfig({
             tokenAdmin: tokenAdmin,
@@ -94,6 +94,7 @@ contract LGEManagerTest is Test, Deployers {
             permit2: address(this),
             token: tokenAddress,
             agent: tokenAdmin,
+            operator: address(0x0909),
             protocol: protocol,
             vestingVault: address(vestingVault),
             inferenceEscrow: address(inferenceEscrow),
@@ -103,7 +104,7 @@ contract LGEManagerTest is Test, Deployers {
             maxTokenPrice: 0.01e18,
             exitThreshold: 0,
             feeBps: 100,
-            vestingCliff: 30 days,
+            vestingCliff: 365 days, // launch minimum
             vestingDuration: 365 days
         });
 
@@ -125,7 +126,8 @@ contract LGEManagerTest is Test, Deployers {
             exitThreshold: params.exitThreshold,
             feeBps: params.feeBps,
             vestingCliff: params.vestingCliff,
-            vestingDuration: params.vestingDuration
+            vestingDuration: params.vestingDuration,
+            operator: params.operator
         });
 
         LGEManager.DeploymentConfig memory deploymentConfig;

@@ -39,6 +39,59 @@ contract RejectingReceiver {
     }
 }
 
+/// @notice Parks a refund as a pending credit, then re-enters
+///         claimPendingNative from its receive() to try to be paid repeatedly.
+contract ReentrantClaimer {
+    LGEHook internal immutable hook;
+    bool internal accept;
+    uint256 public reentries;
+
+    constructor(LGEHook hook_) {
+        hook = hook_;
+    }
+
+    function deposit(uint256 tokenAmount) external payable {
+        hook.deposit{value: msg.value}(tokenAmount);
+    }
+
+    function attack() external {
+        accept = true;
+        hook.claimPendingNative();
+    }
+
+    receive() external payable {
+        if (!accept) revert("no native");
+        if (reentries < 5) {
+            reentries++;
+            try hook.claimPendingNative() {} catch {}
+        }
+    }
+}
+
+/// @notice Overpays a deposit and, from the refund callback, tries to slip in
+///         a second deposit before the first one's ledgers are written.
+contract ReentrantDepositor {
+    LGEHook internal immutable hook;
+    bool public reentered;
+    bool public innerSucceeded;
+
+    constructor(LGEHook hook_) {
+        hook = hook_;
+    }
+
+    function deposit(uint256 tokenAmount) external payable {
+        hook.deposit{value: msg.value}(tokenAmount);
+    }
+
+    receive() external payable {
+        if (reentered) return;
+        reentered = true;
+        try hook.deposit{value: 2}(1) {
+            innerSucceeded = true;
+        } catch {}
+    }
+}
+
 contract LGEHookTest is Test, PosmTestSetup {
     using stdStorage for StdStorage;
 
@@ -61,6 +114,7 @@ contract LGEHookTest is Test, PosmTestSetup {
     address owner = address(0xABCD);
     address tokenAdmin = address(0x1234);
     address tokenCreator = address(0x5678);
+    address operator = address(0x0909);
 
     address user = address(0x9ABC);
     address user2 = address(0xDEF0);
@@ -80,6 +134,10 @@ contract LGEHookTest is Test, PosmTestSetup {
     uint256 constant MAX_PRICE = 4e9;
     uint24 constant FEE_BPS = 100;
     uint256 constant EXIT_THRESHOLD = 1_000e18;
+    // 12-month cliff (the launch minimum); duration runs from the grant start,
+    // so half unlocks at the cliff and the rest vests linearly to month 24
+    uint64 constant VESTING_CLIFF = 365 days;
+    uint64 constant VESTING_DURATION = 730 days;
 
     struct DeployParams {
         uint256 cap;
@@ -107,7 +165,6 @@ contract LGEHookTest is Test, PosmTestSetup {
             address(hookCreationCode)
         );
 
-        vm.prank(tokenCreator);
         vm.roll(31160653);
         startBlock = block.number;
         (tokenAddress, hookAddress) = _deployWithConfig(_defaultParams());
@@ -124,14 +181,51 @@ contract LGEHookTest is Test, PosmTestSetup {
             });
     }
 
+    /// @dev Launch as `tokenAdmin`: the agent deploys its own token.
     function _deployWithConfig(
         DeployParams memory p
     ) internal returns (address, address) {
+        LGEManager.DeploymentConfig memory config = _buildConfig(p);
+        vm.prank(tokenAdmin);
+        return lgeManager.deployToken(config);
+    }
+
+    /// @dev Replace the current launch with a new one. One address gets one
+    ///      launch at a time, so the new launch gets a fresh agent.
+    function _relaunchAsNewAgent(
+        DeployParams memory p
+    ) internal returns (address, address) {
+        tokenAdmin = address(uint160(0xA6E000 + deployNonce));
+        return _deployWithConfig(p);
+    }
+
+    /// @dev A config for tests that expect deployToken to revert on the launch
+    ///      rule, which is checked before anything is deployed — so no hook
+    ///      salt needs mining.
+    function _unminedConfig()
+        internal
+        view
+        returns (LGEManager.DeploymentConfig memory config)
+    {
+        config.tokenConfig.tokenAdmin = tokenAdmin;
+        config.tokenConfig.cap = TOKEN_CAP;
+        config.tokenConfig.tokenSalt = bytes32(deployNonce);
+        config.hookConfig.startBlock = block.number;
+        config.hookConfig.streamBlocks = STREAM_BLOCKS;
+        config.hookConfig.minTokenPrice = MIN_PRICE;
+        config.hookConfig.maxTokenPrice = MAX_PRICE;
+        config.hookConfig.feeBps = FEE_BPS;
+        config.hookConfig.vestingCliff = VESTING_CLIFF;
+        config.hookConfig.operator = operator;
+    }
+
+    function _buildConfig(
+        DeployParams memory p
+    ) internal returns (LGEManager.DeploymentConfig memory config) {
         bytes32 tokenSalt = keccak256(abi.encodePacked(tokenAdmin, deployNonce++));
         address tokenComputed = _computeTokenAddress(p, tokenSalt);
         bytes32 hookSalt = _mineHookSalt(p, tokenComputed);
 
-        LGEManager.DeploymentConfig memory config;
         config.tokenConfig.tokenAdmin = tokenAdmin;
         config.tokenConfig.name = "Test Token";
         config.tokenConfig.symbol = "TEST";
@@ -147,10 +241,9 @@ contract LGEHookTest is Test, PosmTestSetup {
         config.hookConfig.maxTokenPrice = p.maxPrice;
         config.hookConfig.exitThreshold = p.exitThreshold;
         config.hookConfig.feeBps = p.feeBps;
-        config.hookConfig.vestingCliff = 0;
-        config.hookConfig.vestingDuration = 365 days;
-
-        return lgeManager.deployToken(config);
+        config.hookConfig.vestingCliff = VESTING_CLIFF;
+        config.hookConfig.vestingDuration = VESTING_DURATION;
+        config.hookConfig.operator = operator;
     }
 
     function _computeTokenAddress(
@@ -185,6 +278,7 @@ contract LGEHookTest is Test, PosmTestSetup {
             permit2: address(permit2),
             token: tokenComputed,
             agent: tokenAdmin,
+            operator: operator,
             protocol: owner,
             vestingVault: address(vestingVault),
             inferenceEscrow: address(inferenceEscrow),
@@ -194,8 +288,8 @@ contract LGEHookTest is Test, PosmTestSetup {
             maxTokenPrice: p.maxPrice,
             exitThreshold: p.exitThreshold,
             feeBps: p.feeBps,
-            vestingCliff: 0,
-            vestingDuration: 365 days
+            vestingCliff: VESTING_CLIFF,
+            vestingDuration: VESTING_DURATION
         });
 
         (, bytes32 salt) = HookMiner.find(
@@ -387,6 +481,85 @@ contract LGEHookTest is Test, PosmTestSetup {
         assertEq(_hook().pendingNative(address(r)), 1e15);
     }
 
+    /// @dev Regression: claimPendingNative sent before zeroing the credit, so
+    ///      a re-entrant receive() was paid the same credit once per nested
+    ///      call — draining other depositors' USDC. The credit pays out once.
+    function test_claimPendingNativeReentrancyPaysOnce() public {
+        _depositAs(user, 100_000e18); // victim funds held by the hook
+
+        ReentrantClaimer a = new ReentrantClaimer(_hook());
+        uint256 tokenAmount = 1000e18;
+        uint256 usdcNeeded = calculateUSDCNeeded(tokenAmount);
+        // small enough that the victim's deposit could fund every re-entry
+        uint256 overpay = 1e13;
+        a.deposit{value: usdcNeeded + overpay}(tokenAmount);
+        assertEq(_hook().pendingNative(address(a)), overpay);
+
+        uint256 hookBefore = address(_hook()).balance;
+        a.attack();
+
+        assertGt(a.reentries(), 0); // the re-entry was attempted
+        assertEq(address(a).balance, overpay);
+        assertEq(address(_hook()).balance, hookBefore - overpay);
+        assertEq(_hook().pendingNative(address(a)), 0);
+    }
+
+    /// @dev Regression: the refund was sent between the cap check and the
+    ///      totalTokensClaimed update, so a deposit re-entered from the refund
+    ///      callback passed the stale check and pushed the total past the cap —
+    ///      `== cap` was then unreachable and the campaign could only fail.
+    function test_depositReentrancyCannotOvershootCap() public {
+        uint256 cap = LGEToken(tokenAddress).cap();
+        uint256 tokensPerUser = cap / 4;
+
+        vm.roll(startBlock + 1000);
+        _depositAs(user, tokensPerUser);
+        _depositAs(user2, tokensPerUser);
+        _depositAs(user3, tokensPerUser);
+
+        ReentrantDepositor a = new ReentrantDepositor(_hook());
+        uint256 usdcNeeded = calculateUSDCNeeded(tokensPerUser);
+        a.deposit{value: usdcNeeded + 1e12}(tokensPerUser); // final deposit, overpaid
+
+        assertTrue(a.reentered()); // the refund callback did fire
+        assertFalse(a.innerSucceeded());
+        assertEq(_hook().totalTokensClaimed(), cap);
+        assertTrue(_hook().isLgeSuccessful());
+        assertEq(address(a).balance, 1e12); // refund still delivered
+    }
+
+    /// @dev Regression: success sized the raise from address(this).balance,
+    ///      which also holds parked refund credits and plain donations. Parked
+    ///      credits were paired into the pool while still owed to their owner.
+    function test_finalizeIgnoresParkedCreditsAndDonations() public {
+        uint256 cap = LGEToken(tokenAddress).cap();
+        uint256 tokensPerUser = cap / 4;
+        uint256 parked = 1e15;
+        uint256 donation = 3e15;
+
+        vm.roll(startBlock + 1000);
+        uint256 usdcNeeded = calculateUSDCNeeded(tokensPerUser);
+
+        RejectingReceiver r = new RejectingReceiver();
+        vm.deal(address(r), usdcNeeded + parked);
+        vm.prank(address(r));
+        _hook().deposit{value: usdcNeeded + parked}(tokensPerUser);
+
+        (bool ok, ) = address(_hook()).call{value: donation}("");
+        assertTrue(ok);
+
+        _depositAs(user, tokensPerUser);
+        _depositAs(user2, tokensPerUser);
+        _depositAs(user3, tokensPerUser);
+
+        assertTrue(_hook().isLgeSuccessful());
+        assertEq(_hook().totalUsdcRaised(), usdcNeeded * 4);
+        assertEq(_hook().totalEthToLiquidity(), usdcNeeded * 2);
+        // the parked credit is still owed and still backed
+        assertEq(_hook().pendingNative(address(r)), parked);
+        assertGe(address(_hook()).balance, parked + donation);
+    }
+
     // ------------------------------------------------------------------
     // Success / failure
     // ------------------------------------------------------------------
@@ -411,7 +584,7 @@ contract LGEHookTest is Test, PosmTestSetup {
         assertApproxEqAbs(uint256(total), TOKEN_CAP / 20, TOKEN_CAP / 20 / 100 + 2);
 
         // remainder credited to the agent's inference escrow
-        assertGt(inferenceEscrow.creditOf(tokenAdmin), 0);
+        assertGt(inferenceEscrow.creditOf(hookAddress), 0);
 
         // buy completed atomically; nothing pending
         assertEq(_hook().pendingBuy(), 0);
@@ -791,13 +964,247 @@ contract LGEHookTest is Test, PosmTestSetup {
         assertEq(_hook().agentAccrued(), 0);
 
         // rotate the agent
-        vm.prank(tokenAdmin);
+        vm.prank(operator);
         _hook().setAgent(user3);
         assertEq(_hook().agent(), user3);
+    }
+
+    /// @dev Rotation moves the vest (schedule and claimed amount included) and
+    ///      the escrow spending rights, and pays fees accrued before the
+    ///      rotation to the old agent.
+    function test_rotationMovesVestCreditAndPaysOldAgentFees() public {
+        _reachCapSuccessfully();
+        _swapBuyExactInput(_hook().totalUsdcRaised() / 100);
+        uint256 accrued = _hook().agentAccrued();
+        assertGt(accrued, 0);
+
+        // the old agent claims part of the vest (past the cliff) before rotating
+        vm.warp(block.timestamp + VESTING_CLIFF + 30 days);
+        vm.prank(tokenAdmin);
+        vestingVault.claim(tokenAddress);
+        (uint128 total, uint128 claimed, uint64 start, uint64 cliff, uint64 duration) =
+            vestingVault.grants(tokenAddress, tokenAdmin);
+        assertGt(claimed, 0);
+
+        uint256 oldBal = tokenAdmin.balance;
+        vm.prank(operator);
+        _hook().setAgent(user3);
+
+        // fees accrued before the rotation went to the old agent
+        assertEq(tokenAdmin.balance - oldBal, accrued);
+        assertEq(_hook().agentAccrued(), 0);
+
+        // the grant moved whole, schedule and claimed amount included
+        (uint128 oldTotal, , , , ) = vestingVault.grants(tokenAddress, tokenAdmin);
+        assertEq(oldTotal, 0);
+        (uint128 t, uint128 c, uint64 s, uint64 cl, uint64 d) =
+            vestingVault.grants(tokenAddress, user3);
+        assertEq(t, total);
+        assertEq(c, claimed);
+        assertEq(s, start);
+        assertEq(cl, cliff);
+        assertEq(d, duration);
 
         vm.prank(tokenAdmin);
-        vm.expectRevert(LGEHook.NotAgent.selector);
-        _hook().setAgent(user4);
+        vm.expectRevert(VestingVault.NoGrant.selector);
+        vestingVault.claim(tokenAddress);
+        vm.warp(block.timestamp + VESTING_DURATION);
+        vm.prank(user3);
+        vestingVault.claim(tokenAddress);
+        assertEq(LGEToken(tokenAddress).balanceOf(user3), total - claimed);
+
+        // escrow spending rights followed the hook's agent
+        vm.startPrank(owner);
+        inferenceEscrow.setGasCap(1e9);
+        inferenceEscrow.setGasBudget(1e9);
+        vm.stopPrank();
+        vm.prank(tokenAdmin);
+        vm.expectRevert(InferenceEscrow.NotAgent.selector);
+        inferenceEscrow.fundGas(hookAddress, 1e9);
+        vm.prank(user3);
+        inferenceEscrow.fundGas(hookAddress, 1e9);
+    }
+
+    /// @dev The gas budget is keyed by hook, so rotating cannot reset it.
+    function test_gasBudgetSurvivesRotation() public {
+        _reachCapSuccessfully();
+        vm.startPrank(owner);
+        inferenceEscrow.setGasCap(1e9);
+        inferenceEscrow.setGasBudget(1e9);
+        vm.stopPrank();
+
+        vm.prank(tokenAdmin);
+        inferenceEscrow.fundGas(hookAddress, 1e9);
+
+        vm.prank(operator);
+        _hook().setAgent(user3);
+
+        vm.prank(user3);
+        vm.expectRevert(InferenceEscrow.GasBudgetExceeded.selector);
+        inferenceEscrow.fundGas(hookAddress, 1);
+    }
+
+    function test_setAgentGuards() public {
+        vm.prank(tokenAdmin); // the agent itself can no longer rotate
+        vm.expectRevert(LGEHook.NotOperator.selector);
+        _hook().setAgent(user3);
+
+        vm.startPrank(operator);
+        vm.expectRevert(LGEHook.InvalidAgent.selector);
+        _hook().setAgent(address(0));
+        vm.expectRevert(LGEHook.InvalidAgent.selector);
+        _hook().setAgent(tokenAdmin); // self-rotation would delete the grant
+        vm.stopPrank();
+    }
+
+    /// @dev Before success there is no grant; rotation must not revert, and the
+    ///      grant is later created for the new agent.
+    function test_rotationBeforeSuccess() public {
+        vm.prank(operator);
+        _hook().setAgent(user3);
+
+        _reachCapSuccessfully();
+        (uint128 oldTotal, , , , ) = vestingVault.grants(tokenAddress, tokenAdmin);
+        (uint128 newTotal, , , , ) = vestingVault.grants(tokenAddress, user3);
+        assertEq(oldTotal, 0);
+        assertGt(newTotal, 0);
+    }
+
+    /// @dev An attacker with its own launch (agent and operator both its own)
+    ///      cannot reach another hook's credit. Credit is keyed by hook, so
+    ///      the victim's credit is untouched and unreachable. (Launching in the
+    ///      victim's name is blocked earlier: see test_launchForOtherAgentReverts.)
+    function test_foreignLaunchCannotTakeAgentCredit() public {
+        _reachCapSuccessfully();
+        address victimHook = hookAddress;
+        uint256 victimCredit = inferenceEscrow.creditOf(victimHook);
+        assertGt(victimCredit, 0);
+
+        address attacker = address(0xBAD);
+        tokenAdmin = attacker;
+        operator = attacker;
+        startBlock = block.number;
+        (, address attackerHook) = _deployWithConfig(_defaultParams());
+        assertEq(LGEHook(payable(attackerHook)).agent(), attacker);
+
+        vm.startPrank(owner);
+        inferenceEscrow.setGasCap(victimCredit);
+        inferenceEscrow.setGasBudget(victimCredit);
+        vm.stopPrank();
+        vm.startPrank(attacker);
+        vm.expectRevert(InferenceEscrow.NotAgent.selector);
+        inferenceEscrow.fundGas(victimHook, 1);
+        vm.expectRevert(InferenceEscrow.InsufficientCredit.selector);
+        inferenceEscrow.fundGas(attackerHook, 1);
+        vm.stopPrank();
+
+        assertEq(inferenceEscrow.creditOf(victimHook), victimCredit);
+    }
+
+    // ------------------------------------------------------------------
+    // Launch rule: one successful launch per agent address
+    // ------------------------------------------------------------------
+
+    function test_launchStatusLifecycle() public {
+        assertEq(uint8(lgeManager.statusOf(user)), uint8(LGEManager.LaunchStatus.None));
+        assertEq(lgeManager.launchOf(tokenAdmin), hookAddress);
+        assertEq(uint8(lgeManager.statusOf(tokenAdmin)), uint8(LGEManager.LaunchStatus.Active));
+        _reachCapSuccessfully();
+        assertEq(uint8(lgeManager.statusOf(tokenAdmin)), uint8(LGEManager.LaunchStatus.Successful));
+    }
+
+    function test_launchWhileActiveReverts() public {
+        LGEManager.DeploymentConfig memory config = _unminedConfig();
+        vm.prank(tokenAdmin);
+        vm.expectRevert(LGEManager.LaunchActive.selector);
+        lgeManager.deployToken(config);
+    }
+
+    function test_secondLaunchAfterSuccessReverts() public {
+        _reachCapSuccessfully();
+        startBlock = block.number;
+        LGEManager.DeploymentConfig memory config = _unminedConfig();
+        vm.prank(tokenAdmin);
+        vm.expectRevert(LGEManager.AlreadyLaunched.selector);
+        lgeManager.deployToken(config);
+    }
+
+    /// @dev A failed launch can be retried in one transaction: no finalize,
+    ///      withdraw or outcome-recording call first.
+    function test_retryAfterFailureIsOneTransaction() public {
+        _depositAs(user, 1000e18); // partial fill only
+        vm.roll(startBlock + STREAM_BLOCKS + 1);
+        assertFalse(_hook().isLgeFinished()); // nobody poked the failed launch
+        assertEq(uint8(lgeManager.statusOf(tokenAdmin)), uint8(LGEManager.LaunchStatus.Failed));
+
+        address failedHook = hookAddress;
+        startBlock = block.number;
+        (, address retryHook) = _deployWithConfig(_defaultParams());
+        assertTrue(retryHook != failedHook);
+        assertEq(lgeManager.launchOf(tokenAdmin), retryHook);
+        assertEq(uint8(lgeManager.statusOf(tokenAdmin)), uint8(LGEManager.LaunchStatus.Active));
+    }
+
+    /// @dev The squatting attack: launching in another agent's name would
+    ///      block or burn that agent's launch rights.
+    function test_launchForOtherAgentReverts() public {
+        address victim = address(0x7777);
+        tokenAdmin = victim;
+        LGEManager.DeploymentConfig memory config = _unminedConfig();
+        vm.prank(user);
+        vm.expectRevert(LGEManager.NotTokenAdmin.selector);
+        lgeManager.deployToken(config);
+        assertEq(uint8(lgeManager.statusOf(victim)), uint8(LGEManager.LaunchStatus.None));
+    }
+
+    /// @dev launchOf is keyed by the launching address, not hook.agent(), so
+    ///      rotating the hook's agent does not free the original address.
+    function test_rotationDoesNotUnlockSecondLaunch() public {
+        _reachCapSuccessfully();
+        vm.prank(operator);
+        _hook().setAgent(user3);
+
+        assertEq(uint8(lgeManager.statusOf(tokenAdmin)), uint8(LGEManager.LaunchStatus.Successful));
+        startBlock = block.number;
+        LGEManager.DeploymentConfig memory config = _unminedConfig();
+        vm.prank(tokenAdmin);
+        vm.expectRevert(LGEManager.AlreadyLaunched.selector);
+        lgeManager.deployToken(config);
+    }
+
+    /// @dev The agent's stake must be locked for at least 12 months. Covers the
+    ///      no-lock schedule (cliff 0, duration 0) too; a 12-month cliff with a
+    ///      zero duration (full unlock at the cliff) is allowed.
+    function test_launchRequiresTwelveMonthCliff() public {
+        tokenAdmin = address(0x7777); // no prior launch, so only the cliff rule bites
+        LGEManager.DeploymentConfig memory config = _unminedConfig();
+
+        uint64[3] memory tooShort = [uint64(0), uint64(30 days), uint64(365 days - 1)];
+        for (uint256 i; i < 3; ++i) {
+            config.hookConfig.vestingCliff = tooShort[i];
+            config.hookConfig.vestingDuration = 0;
+            vm.prank(tokenAdmin);
+            vm.expectRevert(LGEManager.CliffTooShort.selector);
+            lgeManager.deployToken(config);
+        }
+
+        // exactly 12 months with zero duration passes the cliff rule (it then
+        // fails later, at CREATE2, only because this config has no mined salt)
+        config.hookConfig.vestingCliff = 365 days;
+        vm.prank(tokenAdmin);
+        vm.expectRevert(LGEManager.HookDeployFailed.selector);
+        lgeManager.deployToken(config);
+    }
+
+    /// @dev Regression for the vesting bypass: only the token's hook may create
+    ///      or move that token's grants.
+    function test_vaultOnlyTokenHook() public {
+        vm.startPrank(user);
+        vm.expectRevert(VestingVault.NotHook.selector);
+        vestingVault.create(tokenAddress, tokenAdmin, 1, 0, 0);
+        vm.expectRevert(VestingVault.NotHook.selector);
+        vestingVault.migrateBeneficiary(tokenAddress, tokenAdmin, user);
+        vm.stopPrank();
     }
 
     function test_claimProtocolSweepAndSplits() public {
@@ -806,7 +1213,7 @@ contract LGEHookTest is Test, PosmTestSetup {
         p.cap = 10_000e18;
         p.minPrice = 1; // 1 token per USDC (raw ratio, both legs 18-dec)
         p.maxPrice = 4;
-        (tokenAddress, hookAddress) = _deployWithConfig(p);
+        (tokenAddress, hookAddress) = _relaunchAsNewAgent(p);
         _reachCapSuccessfully();
 
         _swapBuyExactInput(12_000e18);
@@ -921,7 +1328,7 @@ contract LGEHookTest is Test, PosmTestSetup {
     function test_exitDisabledWhenThresholdZero() public {
         DeployParams memory p = _defaultParams();
         p.exitThreshold = 0;
-        (tokenAddress, hookAddress) = _deployWithConfig(p);
+        (tokenAddress, hookAddress) = _relaunchAsNewAgent(p);
         _reachCapSuccessfully();
 
         vm.prank(user);
@@ -935,7 +1342,7 @@ contract LGEHookTest is Test, PosmTestSetup {
     function test_exitBlockedWhenVolumeAboveThreshold() public {
         DeployParams memory p = _defaultParams();
         p.exitThreshold = 1; // any booked fee blocks the exit
-        (tokenAddress, hookAddress) = _deployWithConfig(p);
+        (tokenAddress, hookAddress) = _relaunchAsNewAgent(p);
         _reachCapSuccessfully();
 
         vm.prank(user);
@@ -954,10 +1361,22 @@ contract LGEHookTest is Test, PosmTestSetup {
 
     function test_vestingSchedule() public {
         _reachCapSuccessfully();
+        // absolute times from the grant: under via_ir a cached block.timestamp
+        // local is re-read after vm.warp, so `t0 + x` would drift
+        (uint128 total, , uint64 start, uint64 cliff, ) =
+            vestingVault.grants(tokenAddress, tokenAdmin);
+        assertEq(cliff, start + VESTING_CLIFF);
 
-        vm.warp(block.timestamp + 182.5 days);
+        // locked for the whole 12-month cliff
+        vm.warp(cliff - 1);
+        assertEq(vestingVault.claimable(tokenAddress, tokenAdmin), 0);
+        vm.prank(tokenAdmin);
+        vm.expectRevert(VestingVault.NothingVested.selector);
+        vestingVault.claim(tokenAddress);
+
+        // at the cliff, the elapsed share of the 24-month schedule unlocks: half
+        vm.warp(cliff);
         uint128 claimable = vestingVault.claimable(tokenAddress, tokenAdmin);
-        (uint128 total, , , , ) = vestingVault.grants(tokenAddress, tokenAdmin);
         assertApproxEqAbs(uint256(claimable), uint256(total) / 2, 2);
 
         uint256 balBefore = LGEToken(tokenAddress).balanceOf(tokenAdmin);
@@ -972,22 +1391,24 @@ contract LGEHookTest is Test, PosmTestSetup {
     function test_inferenceEscrow() public {
         _reachCapSuccessfully();
 
-        uint256 credit = inferenceEscrow.creditOf(tokenAdmin);
+        uint256 credit = inferenceEscrow.creditOf(hookAddress);
         assertGt(credit, 0);
 
         // gas funding within the cap
         uint256 gasAmount = credit / 4;
         vm.prank(owner);
         inferenceEscrow.setGasCap(gasAmount);
+        vm.prank(owner);
+        inferenceEscrow.setGasBudget(gasAmount);
         uint256 balBefore = tokenAdmin.balance;
         vm.prank(tokenAdmin);
-        inferenceEscrow.fundGas(gasAmount);
+        inferenceEscrow.fundGas(hookAddress, gasAmount);
         assertEq(tokenAdmin.balance - balBefore, gasAmount);
 
         // over the cap reverts (within credit, so the cap is what bites)
         vm.prank(tokenAdmin);
         vm.expectRevert(InferenceEscrow.GasCapExceeded.selector);
-        inferenceEscrow.fundGas(gasAmount * 2);
+        inferenceEscrow.fundGas(hookAddress, gasAmount * 2);
 
         // provider flow: propose, timelock, apply, pay
         vm.prank(owner);
@@ -1001,13 +1422,63 @@ contract LGEHookTest is Test, PosmTestSetup {
 
         uint256 providerBefore = user3.balance;
         vm.prank(tokenAdmin);
-        inferenceEscrow.payProvider(credit / 8);
+        inferenceEscrow.payProvider(hookAddress, credit / 8);
         assertEq(user3.balance - providerBefore, credit / 8);
 
         // provider settable once
         vm.prank(owner);
         vm.expectRevert(InferenceEscrow.ProviderAlreadySet.selector);
         inferenceEscrow.proposeProvider(user4);
+    }
+
+    /// @dev Regression: gasCap was per call only, so a loop of fundGas calls
+    ///      moved the agent's whole credit to its wallet as raw USDC. The
+    ///      lifetime gasBudget now stops the loop.
+    function test_fundGasLoopStopsAtBudget() public {
+        _reachCapSuccessfully();
+        uint256 credit = inferenceEscrow.creditOf(hookAddress);
+        uint256 perCall = credit / 100;
+        uint256 budget = perCall * 3;
+
+        vm.startPrank(owner);
+        inferenceEscrow.setGasCap(perCall);
+        inferenceEscrow.setGasBudget(budget);
+        vm.stopPrank();
+
+        vm.startPrank(tokenAdmin);
+        for (uint256 i; i < 3; ++i) inferenceEscrow.fundGas(hookAddress, perCall);
+        vm.expectRevert(InferenceEscrow.GasBudgetExceeded.selector);
+        inferenceEscrow.fundGas(hookAddress, 1);
+        vm.stopPrank();
+
+        assertEq(inferenceEscrow.totalGasFunded(hookAddress), budget);
+        assertEq(inferenceEscrow.creditOf(hookAddress), credit - budget);
+    }
+
+    function test_fundGasDisabledUntilBudgetSet() public {
+        _reachCapSuccessfully();
+        vm.prank(owner);
+        inferenceEscrow.setGasCap(1e18);
+
+        vm.prank(tokenAdmin);
+        vm.expectRevert(InferenceEscrow.GasBudgetExceeded.selector);
+        inferenceEscrow.fundGas(hookAddress, 1);
+    }
+
+    function test_gasBudgetCanOnlyBeLowered() public {
+        vm.startPrank(owner);
+        inferenceEscrow.setGasBudget(10e18); // first set: any value
+        vm.expectRevert(InferenceEscrow.GasBudgetIncrease.selector);
+        inferenceEscrow.setGasBudget(10e18 + 1);
+        inferenceEscrow.setGasBudget(5e18); // lowering is allowed
+        vm.expectRevert(InferenceEscrow.GasBudgetIncrease.selector);
+        inferenceEscrow.setGasBudget(6e18);
+        vm.stopPrank();
+        assertEq(inferenceEscrow.gasBudget(), 5e18);
+
+        vm.prank(tokenAdmin);
+        vm.expectRevert(InferenceEscrow.NotOwner.selector);
+        inferenceEscrow.setGasBudget(1);
     }
 
     // ------------------------------------------------------------------
@@ -1026,7 +1497,7 @@ contract LGEHookTest is Test, PosmTestSetup {
             p.cap = caps[i];
             p.minPrice = 1e18;
             p.maxPrice = 4e18;
-            (tokenAddress, hookAddress) = _deployWithConfig(p);
+            (tokenAddress, hookAddress) = _relaunchAsNewAgent(p);
             _reachCapSuccessfully();
 
             (uint128 total, , , , ) = vestingVault.grants(
@@ -1039,7 +1510,7 @@ contract LGEHookTest is Test, PosmTestSetup {
                 caps[i] / 20,
                 caps[i] / 20 / 100 + 2
             );
-            assertGt(inferenceEscrow.creditOf(tokenAdmin), 0);
+            assertGt(inferenceEscrow.creditOf(hookAddress), 0);
         }
     }
 

@@ -27,9 +27,10 @@ abstract contract SafeNativeSender {
     function claimPendingNative() external {
         uint256 amount = pendingNative[msg.sender];
         if (amount == 0) revert NothingPending();
-        (bool ok, ) = msg.sender.call{value: amount}("");
-        if (!ok) revert(); // stays claimable
+        // Effects before the send: a re-entrant claim must see a zero credit.
         pendingNative[msg.sender] = 0;
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        if (!ok) revert(); // revert restores the credit; stays claimable
         emit PendingNativeClaimed(msg.sender, amount);
     }
 }

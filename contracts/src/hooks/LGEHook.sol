@@ -100,7 +100,8 @@ contract LGEHook is BaseHook, SafeNativeSender {
     error ExitDisabled();
     error ExitThresholdNotMet();
     error NoLpShare();
-    error NotAgent();
+    error NotOperator();
+    error InvalidAgent();
     error NotProtocol();
     error BelowMinSweep();
     error TimelockNotElapsed();
@@ -167,6 +168,7 @@ contract LGEHook is BaseHook, SafeNativeSender {
         address permit2;
         address token;
         address agent;
+        address operator; // may rotate the agent; non-zero, distinct from protocol
         address protocol;
         address vestingVault;
         address inferenceEscrow;
@@ -204,6 +206,7 @@ contract LGEHook is BaseHook, SafeNativeSender {
     InferenceEscrow public immutable inferenceEscrow;
 
     address public immutable protocol;
+    address public immutable operator;
     uint256 public immutable startBlock;
     uint256 public immutable streamBlocks;
     uint256 public immutable minTokenPrice;
@@ -222,6 +225,7 @@ contract LGEHook is BaseHook, SafeNativeSender {
     uint256 public totalLiquidity;
     uint256 public totalTokensClaimed;
     uint256 public totalDeposits;
+    uint256 public totalUsdcDeposited; // sum of accepted deposits (both halves)
     uint256 public totalUsdcRaised; // 2 * totalEthToLiquidity, fixed at success
     uint160 initialSqrtPriceX96;
 
@@ -259,6 +263,7 @@ contract LGEHook is BaseHook, SafeNativeSender {
 
     constructor(HookParams memory p) BaseHook(IPoolManager(p.poolManager)) {
         if (p.feeBps > MAX_TOTAL_FEE_BPS) revert FeeTooHigh();
+        if (p.operator == address(0)) revert NotOperator();
         token = LGEToken(p.token);
         positionManager = IPositionManager(p.positionManager);
         permit2 = IAllowanceTransfer(p.permit2);
@@ -266,6 +271,7 @@ contract LGEHook is BaseHook, SafeNativeSender {
         inferenceEscrow = InferenceEscrow(p.inferenceEscrow);
         agent = p.agent;
         protocol = p.protocol;
+        operator = p.operator;
         startBlock = p.startBlock;
         streamBlocks = p.streamBlocks;
         minTokenPrice = p.minTokenPrice;
@@ -359,13 +365,12 @@ contract LGEHook is BaseHook, SafeNativeSender {
         if (totalTokensClaimed + amountOfTokens > cap) revert TooManyTokens();
 
         if (msg.value < usdcExpected) revert InvalidPrice();
-        if (msg.value > usdcExpected) {
-            _sendNative(msg.sender, msg.value - usdcExpected);
-        }
+        uint256 refund = msg.value - usdcExpected;
 
         uint256 usdcPortion = usdcExpected / 2;
         totalTokensClaimed += amountOfTokens;
         totalDeposits += 1;
+        totalUsdcDeposited += usdcExpected;
 
         userStates[msg.sender].usdcToLiquidityDeposited += usdcPortion;
         userStates[msg.sender].remainingUsdcDeposited += usdcPortion;
@@ -375,7 +380,7 @@ contract LGEHook is BaseHook, SafeNativeSender {
             msg.sender,
             amountOfTokens,
             usdcPortion,
-            address(this).balance
+            address(this).balance - refund
         );
 
         if (
@@ -389,6 +394,10 @@ contract LGEHook is BaseHook, SafeNativeSender {
                 emit LGEFailed();
             }
         }
+
+        // Refund last: the send hands control to the caller, so every ledger
+        // (and finalization) must already be settled when it happens.
+        _sendNative(msg.sender, refund);
     }
 
     function _finalizeSuccess(uint256 cap) internal {
@@ -402,14 +411,19 @@ contract LGEHook is BaseHook, SafeNativeSender {
             hooks: IHooks(address(this))
         });
 
-        uint256 balance = address(this).balance;
-        totalEthToLiquidity = balance / 2;
-        totalUsdcRaised = balance;
-        treasuryUsdc = balance - totalEthToLiquidity;
+        // The raise is the sum of accepted deposits, never the contract
+        // balance: the balance also holds parked refund credits and anything
+        // sent to receive(), neither of which belongs to the raise.
+        uint256 raised = totalUsdcDeposited;
+        totalEthToLiquidity = raised / 2;
+        totalUsdcRaised = raised;
+        treasuryUsdc = raised - totalEthToLiquidity;
         totalActiveWeight = totalEthToLiquidity;
 
         // The pool opens at the raise's clearing rate: the full supply paired
         // against the liquidity half of the raise.
+        //
+        // compute sqrt(cap << 192 / usdc) in one step, and burn or handle the remainder.
         uint256 averagePrice = cap / totalEthToLiquidity; // tokens per USDC
         if (averagePrice == 0) revert InvalidPrice();
         initialSqrtPriceX96 = LGECalculationsLibrary.getSqrtPrice(averagePrice);
@@ -537,7 +551,8 @@ contract LGEHook is BaseHook, SafeNativeSender {
         uint256 amount = treasuryUsdc;
         if (amount == 0) return;
         treasuryUsdc = 0;
-        inferenceEscrow.creditAgent{value: amount}(agent);
+        // Credited under this hook; whoever is `agent` at spend time may use it.
+        inferenceEscrow.credit{value: amount}();
         emit TreasuryEscrowed(amount);
     }
 
@@ -716,11 +731,26 @@ contract LGEHook is BaseHook, SafeNativeSender {
         emit AgentFeesClaimed(agent, amount);
     }
 
-    /// @notice Rotate the agent fee/vesting/escrow beneficiary. Agent-only.
+    /// @notice Rotate the agent. Operator-only. Moves the vesting grant to the
+    ///         new agent; the inference credit is keyed by this hook, so its
+    ///         spending rights follow `agent` with no migration. Fees accrued
+    ///         before the rotation belong to the old agent and are paid out to it.
     function setAgent(address newAgent) external {
-        if (msg.sender != agent) revert NotAgent();
-        emit AgentRotated(agent, newAgent);
+        if (msg.sender != operator) revert NotOperator();
+        address oldAgent = agent;
+        if (newAgent == address(0) || newAgent == oldAgent) revert InvalidAgent();
+
+        uint256 accrued = agentAccrued;
+        agentAccrued = 0;
         agent = newAgent;
+        vestingVault.migrateBeneficiary(address(token), oldAgent, newAgent);
+        emit AgentRotated(oldAgent, newAgent);
+
+        // Last: the send hands control to the old agent.
+        if (accrued > 0) {
+            _sendNative(oldAgent, accrued);
+            emit AgentFeesClaimed(oldAgent, accrued);
+        }
     }
 
     /// @notice Sweep protocol fees to the splits table. Permissionless keeper

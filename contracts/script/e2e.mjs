@@ -105,7 +105,7 @@ const LAUNCH = {
   maxTokenPrice: 80_000n,
   exitThreshold: 0n, // exits disabled for the e2e (forge covers exit paths)
   feeBps: 100,
-  vestingCliff: 0n,
+  vestingCliff: BigInt(365 * 24 * 3600), // launch minimum: locked 12 months
   vestingDuration: BigInt(365 * 24 * 3600)
 }
 
@@ -124,7 +124,7 @@ async function mineAndCreate ({ name, symbol, streamBlocks }) {
   // HookParams struct (single tuple constructor arg in v2)
   const hookParams = {
     poolManager: POOL_MANAGER, positionManager: POSITION_MANAGER, permit2: PERMIT2,
-    token: tokenAddress, agent: user.address, protocol: PROTOCOL,
+    token: tokenAddress, agent: user.address, operator: user.address, protocol: PROTOCOL,
     vestingVault: VESTING, inferenceEscrow: ESCROW,
     startBlock, streamBlocks,
     minTokenPrice: LAUNCH.minTokenPrice, maxTokenPrice: LAUNCH.maxTokenPrice,
@@ -135,7 +135,8 @@ async function mineAndCreate ({ name, symbol, streamBlocks }) {
     [{ type: 'tuple', components: [
       { name: 'poolManager', type: 'address' }, { name: 'positionManager', type: 'address' },
       { name: 'permit2', type: 'address' }, { name: 'token', type: 'address' },
-      { name: 'agent', type: 'address' }, { name: 'protocol', type: 'address' },
+      { name: 'agent', type: 'address' }, { name: 'operator', type: 'address' },
+      { name: 'protocol', type: 'address' },
       { name: 'vestingVault', type: 'address' }, { name: 'inferenceEscrow', type: 'address' },
       { name: 'startBlock', type: 'uint256' }, { name: 'streamBlocks', type: 'uint256' },
       { name: 'minTokenPrice', type: 'uint256' }, { name: 'maxTokenPrice', type: 'uint256' },
@@ -168,7 +169,8 @@ async function mineAndCreate ({ name, symbol, streamBlocks }) {
         hookSalt, startBlock, streamBlocks,
         minTokenPrice: LAUNCH.minTokenPrice, maxTokenPrice: LAUNCH.maxTokenPrice,
         exitThreshold: LAUNCH.exitThreshold, feeBps: LAUNCH.feeBps,
-        vestingCliff: LAUNCH.vestingCliff, vestingDuration: LAUNCH.vestingDuration
+        vestingCliff: LAUNCH.vestingCliff, vestingDuration: LAUNCH.vestingDuration,
+        operator: user.address
       }
     }],
     ...GAS
@@ -251,7 +253,7 @@ async function main () {
 
   // treasury half: 5% of supply vested to the agent, remainder in escrow
   const grant = await readWithRetry({ address: VESTING, abi: VESTING_ABI, functionName: 'grants', args: [c.tokenAddress, user.address] })
-  const escrowed = await readWithRetry({ address: ESCROW, abi: ESCROW_ABI, functionName: 'creditOf', args: [user.address] })
+  const escrowed = await readWithRetry({ address: ESCROW, abi: ESCROW_ABI, functionName: 'creditOf', args: [c.hookAddress] })
   if (grant[0] === 0n) throw new Error('no vesting grant from treasury buy')
   console.log('[treasury] vested %s tokens to agent; inference escrow %s USDC', formatEther(grant[0]), formatEther(escrowed))
 

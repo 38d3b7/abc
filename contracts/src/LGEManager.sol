@@ -50,12 +50,24 @@ contract LGEManager {
         uint24 feeBps;
         uint64 vestingCliff;
         uint64 vestingDuration;
+        address operator; // may rotate the agent on the hook
     }
 
     struct DeploymentConfig {
         TokenConfig tokenConfig;
         HookConfig hookConfig;
     }
+
+    enum LaunchStatus {
+        None,
+        Active,
+        Failed,
+        Successful
+    }
+
+    /// @dev agent => its latest launch's hook. Overwritten by a retry after a
+    ///      failure; the full history is in the TokenCreated events.
+    mapping(address => address) public launchOf;
 
     event TokenCreated(
         address indexed msgSender,
@@ -64,6 +76,15 @@ contract LGEManager {
     );
 
     error HookDeployFailed();
+    error NotTokenAdmin();
+    error AlreadyLaunched();
+    error LaunchActive();
+    error CliffTooShort();
+
+    /// @dev The agent's 5% stake is locked for at least 12 months. Any vesting
+    ///      duration after the cliff is allowed, including 0 (full unlock at
+    ///      the cliff). Also rules out the no-lock schedule (cliff 0, duration 0).
+    uint64 public constant MIN_VESTING_CLIFF = 365 days;
 
     constructor(
         address poolManager_,
@@ -83,15 +104,44 @@ contract LGEManager {
         _hookCreationCode = hookCreationCode_;
     }
 
+    /// @notice Launch a token and its LGE hook. The agent launches for itself
+    ///         (`msg.sender` must be `tokenAdmin`), and one address gets one
+    ///         successful launch: a retry is allowed only after the previous
+    ///         launch has failed.
+    /// @dev Enforced per address only. A fresh key, or an operator rotating the
+    ///      agent to a fresh address, is a new identity to this contract.
     function deployToken(
         DeploymentConfig calldata config
     ) external returns (address tokenAddress, address hookAddress) {
+        address agent = config.tokenConfig.tokenAdmin;
+        if (msg.sender != agent) revert NotTokenAdmin();
+        if (config.hookConfig.vestingCliff < MIN_VESTING_CLIFF) revert CliffTooShort();
+
+        LaunchStatus status = statusOf(agent);
+        if (status == LaunchStatus.Successful) revert AlreadyLaunched();
+        if (status == LaunchStatus.Active) revert LaunchActive();
+
         tokenAddress = _deployToken(config.tokenConfig);
-        hookAddress = _deployHook(config.hookConfig, config.tokenConfig.tokenAdmin, tokenAddress);
+        hookAddress = _deployHook(config.hookConfig, agent, tokenAddress);
+        launchOf[agent] = hookAddress;
 
         LGEToken(tokenAddress).setMinter(hookAddress);
 
         emit TokenCreated(msg.sender, tokenAddress, hookAddress);
+    }
+
+    /// @notice Status of `agent`'s latest launch, read from the hook itself so
+    ///         it is never stale. A launch fails once its window has passed
+    ///         without the cap filling; no finalize call is needed.
+    function statusOf(address agent) public view returns (LaunchStatus) {
+        address hook = launchOf[agent];
+        if (hook == address(0)) return LaunchStatus.None;
+        LGEHook h = LGEHook(payable(hook));
+        if (h.isLgeSuccessful()) return LaunchStatus.Successful;
+        if (block.number <= h.startBlock() + h.streamBlocks()) {
+            return LaunchStatus.Active;
+        }
+        return LaunchStatus.Failed;
     }
 
     function _deployToken(
@@ -127,6 +177,7 @@ contract LGEManager {
                     permit2: _permit2,
                     token: token,
                     agent: agent,
+                    operator: config.operator,
                     protocol: _protocol,
                     vestingVault: _vestingVault,
                     inferenceEscrow: _inferenceEscrow,
