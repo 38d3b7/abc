@@ -11,6 +11,7 @@
  */
 
 import { PgBoss } from 'pg-boss'
+import { pathToFileURL } from 'node:url'
 import { createPublicClient, encodeFunctionData, http, parseAbi, type Address, type Log } from 'viem'
 import { config, arcTestnet } from '../config.js'
 import { PgStore } from '../db/pg.js'
@@ -187,4 +188,12 @@ export async function startWorker (): Promise<void> {
   await boss.schedule(QUEUES.indexDeposits, '*/2 * * * *') // every 2 minutes
 
   console.log('[worker] pg-boss started, queues:', Object.values(QUEUES).join(', '))
+}
+
+// Standalone entrypoint: `npm run worker` (Railway executor-worker) runs this
+// file directly; the combined local process (src/index.ts) imports and calls
+// startWorker() itself. Without this guard the standalone run booted,
+// imported, and exited 0 without starting anything.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await startWorker()
 }
