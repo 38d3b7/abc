@@ -63,4 +63,16 @@ describe('CORS', () => {
     const res = await preflight('http://localhost:5174')
     expect(res.headers.get('access-control-allow-private-network')).toBeNull()
   })
+
+  it('allows the Authorization header used by SIWE Bearer sessions', async () => {
+    const headers: Record<string, string> = {
+      origin: 'https://app.agenticbusinessconsole.com',
+      'access-control-request-method': 'GET',
+      'access-control-request-headers': 'authorization'
+    }
+    const res = await app.request('/agents', { method: 'OPTIONS', headers })
+    const allowed = res.headers.get('access-control-allow-headers')
+    expect(allowed).toContain('authorization')
+    expect(res.headers.get('access-control-allow-origin')).toBe('https://app.agenticbusinessconsole.com')
+  })
 })

@@ -124,7 +124,7 @@ export function createApp ({
     origin: (o) =>
       /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o) || allowedOrigins.has(o.toLowerCase()) ? o : null,
     allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['content-type', 'x-abc-key', 'idempotency-key']
+    allowHeaders: ['content-type', 'x-abc-key', 'idempotency-key', 'authorization']
   }))
 
   // Auth: SIWE session (console users) or X-ABC-Key (operator backchannel:
