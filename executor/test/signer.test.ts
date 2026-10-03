@@ -4,7 +4,6 @@
  *  are Circle-custodied). */
 import { describe, it, expect } from 'vitest'
 import { CompositeSigner } from '../src/signer/index.js'
-import { LocalKeySigner } from '../src/signer/local.js'
 import type { SignerAdapter, SendResult } from '../src/signer/types.js'
 import type { FinalTx } from '../src/intents/types.js'
 
@@ -28,13 +27,10 @@ function stubSigner (name: string): SignerAdapter & { sends: unknown[]; ensured:
   }
 }
 
-// Hardhat account #0 — a well-known public test key, never used with funds.
-const TEST_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
-
 describe('CompositeSigner', () => {
   it('provisions new wallets on the primary signer', async () => {
     const primary = stubSigner('circle_sca')
-    const composite = new CompositeSigner(primary, new LocalKeySigner(TEST_KEY))
+    const composite = new CompositeSigner(primary, stubSigner('local_dev'))
     const w = await composite.ensureWallet('agent-1')
     expect(primary.ensured).toEqual(['agent-1'])
     expect(w.providerRef).toBe('circle_sca-ref')
@@ -43,15 +39,17 @@ describe('CompositeSigner', () => {
 
   it('sends local_dev wallets through the local leg', async () => {
     const primary = stubSigner('circle_sca')
-    const composite = new CompositeSigner(primary, new LocalKeySigner(TEST_KEY))
+    const local = stubSigner('local_dev')
+    const composite = new CompositeSigner(primary, local)
     const r = await composite.send(TX, { agentId: 'a', provider: 'local_dev', providerRef: '0' })
     expect(primary.sends).toHaveLength(0)
+    expect(local.sends).toHaveLength(1)
     expect(r.kind).toBe('sent')
   })
 
   it('sends circle_sca (and provider-less) wallets through the primary', async () => {
     const primary = stubSigner('circle_sca')
-    const composite = new CompositeSigner(primary, new LocalKeySigner(TEST_KEY))
+    const composite = new CompositeSigner(primary, stubSigner('local_dev'))
     await composite.send(TX, { agentId: 'a', provider: 'circle_sca', providerRef: 'wid' })
     await composite.send(TX, { agentId: 'b' })
     expect(primary.sends).toHaveLength(2)

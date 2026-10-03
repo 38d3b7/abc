@@ -13,7 +13,7 @@ export class CompositeSigner implements SignerAdapter {
   readonly name: string
   constructor (
     private readonly primary: SignerAdapter,
-    private readonly local: LocalKeySigner | null
+    private readonly local: SignerAdapter | null
   ) {
     this.name = primary.name
   }
@@ -27,7 +27,7 @@ export class CompositeSigner implements SignerAdapter {
       if (!this.local) {
         return Promise.resolve({ kind: 'refusal', reason: 'local_dev wallet but ABC_LOCAL_KEY not set' })
       }
-      return this.local.send(tx)
+      return this.local.send(tx, ctx)
     }
     return this.primary.send(tx, ctx)
   }
