@@ -1,0 +1,127 @@
+# ABC
+
+> ABC is an agentic business console on Arc. An AI agent with its own wallet launches a token, raises USDC, and runs business spending while an operator supervises through an audit-ledger interface.
+
+**Status:** testnet on arc-testnet · **Hackathon:** Tameion Agents Hackathon · Canteen × Circle — AI x DeFi · **Built during hackathon:** Hook v2, Arc testnet deployment, executor, console, agent loop, and showcase site. v1 LGE hook and frontend existed before 27 Sep. · **Prior work:** Uniswap v4 LGE hook + manager and participant UI, with ETH deposits, a single swap window, and no fee split.
+
+## Rubric map
+C3 maps to "Agentic sophistication". C1 maps to "Circle tool usage". C2 maps to "Innovation". Novelty is C3 only.
+
+## Scope of claims
+- No users, partners, or metrics exist beyond those listed in this file.
+- Everything under "Not built" is unshipped; there is no roadmap commitment in this file.
+- Named projects are integrations or mentions, not partnerships, unless marked "partner" with a link.
+- AI components are listed separately from deterministic code; mocked model calls are marked "mocked".
+
+```yaml
+name: ABC
+category: agents
+hackathon: Tameion Agents Hackathon · Canteen × Circle
+track: AI x DeFi
+bounties:
+- Circle Agent Stack
+status: testnet
+networks:
+- arc-testnet
+has_token: true
+has_ai: true
+updated: '2026-10-03'
+commit: cd1a52b3d9fc87c2bba7077ca819ca0505cc8a6d
+repo: https://github.com/38d3b7/abc/tree/cd1a52b3d9fc87c2bba7077ca819ca0505cc8a6d
+demo: https://github.com/38d3b7/abc/blob/8aea88d4a45a78854b4d8a2bb38cab0c9f83afb6/demo/abc-demo.mp4
+contracts:
+- name: LGEManager
+  address: '0x42213058B545625f8bE3e80bA086C14e8fd22920'
+  network: arc-testnet
+  verified: false
+  canonical: true
+- name: LGEHook (WLK3 campaign)
+  address: '0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC'
+  network: arc-testnet
+  verified: false
+  canonical: true
+- name: VestingVault
+  address: '0x191FD96343b41A13F679dcC87423070E1782438a'
+  network: arc-testnet
+  verified: false
+  canonical: false
+- name: InferenceEscrow
+  address: '0xe43226c234B0f425E564e909ae383EB734e74811'
+  network: arc-testnet
+  verified: false
+  canonical: false
+- name: LGECalculationsLibrary
+  address: '0xA6C7f398122707Bd10f917A091D3BC7C2C95d53b'
+  network: arc-testnet
+  verified: false
+  canonical: false
+```
+
+## Judge in 2 minutes
+- **Demo:** https://github.com/38d3b7/abc/blob/8aea88d4a45a78854b4d8a2bb38cab0c9f83afb6/demo/abc-demo.mp4 (1:30)
+- **Repo (pinned):** https://github.com/38d3b7/abc/tree/cd1a52b3d9fc87c2bba7077ca819ca0505cc8a6d
+- **Contract (unverified):** [LGEManager](https://explorer.testnet.arc.io/address/0x42213058B545625f8bE3e80bA086C14e8fd22920) `0x42213058B545625f8bE3e80bA086C14e8fd22920` (arc-testnet)
+- **Contract (unverified):** [LGEHook (WLK3 campaign)](https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC) `0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC` (arc-testnet)
+- **Proof tx, core flow end-to-end:** https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC (arc-testnet) — WLK3 campaign — console walkthrough LGE succeeded; event logs show Deposited, LGESuccessful, TreasuryBuyExecuted, TreasuryEscrowed.
+- **Run it (in CI):** `forge test`
+
+## What shipped
+- **Live:** LGEHook v2 on Arc testnet with USDC deposits and 25/50/25 fee split; LGEManager factory for per-agent launches; Executor pipeline with Circle SCA signer; Operator console (Vite + React + wagmi)
+- **Prototype:** Agent LLM loop with signed rationales; Showcase-site architecture
+- **Mocked:** None
+- **Not built:** Mainnet deployment; Public hosted console; Inference x402 rail
+
+## How it works
+Operator instructs agent → agent proposes typed intent → pipeline quotes, simulates, checks policy → agent wallet signs → transaction broadcasts → ledger records final state.
+- **Onchain:** LGEHook v2 runs the token sale, pools USDC, custodies LP, splits swap fees, and locks LP when booked participant fees reach the raise size.
+- **Offchain:** Executor Hono API + pg-boss worker maintains intent state machine and Circle wallet signing.
+- **AI/agent:** LLM chooses intents and writes rationales; it cannot sign or exceed policy limits.
+- **Deterministic code:** Policy checks, quote math, limit enforcement, and onchain execution are deterministic code.
+
+## Novelty
+- **New:** A single console gives an agent a real wallet, token launch, and business-spending controls, with every intent ledgered and policy-enforced before signing. (C3)
+- **Not new:** Uniswap v4 hooks, ERC-20 tokens, developer-controlled wallets, intent pipelines.
+- **Why the combination matters:** Most agent tools move money without limits or are chat-only copilots. ABC binds model judgment to contract-enforced budgets and a ledger.
+
+## Claims
+| ID | Claim | Status | Network | Code | Evidence | Confidence | Does not prove |
+|---|---|---|---|---|---|---|---|
+| C1 | LGE deposits are native USDC on Arc; on success half seeds a Uniswap v4 pool and the treasury half buys a 5% agent vest and credits inference escrow. | live | arc-testnet | contracts/src/hooks/LGEHook.sol#_finalizeSuccess | https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC | high | Mainnet usage. |
+| C2 | Swaps pay a hook fee on the USDC leg split 25/50/25 to participants/agent/protocol; LP locks once booked participant fees reach total USDC raised. | live | arc-testnet | contracts/src/hooks/LGEHook.sol#_bookFee | https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC | high | Trading volume or lock trigger reached. |
+| C3 | Agent intents pass through a typed quote-simulate-sign-broadcast pipeline with idempotency and Circle SCA signing. | live | arc-testnet | executor/src/pipeline/runner.ts | https://explorer.testnet.arc.io/tx/0x1d4103b2428d42ff538d63fe3375fcc16350975e00cf10922cb16733f3059868 | high | Recurring automated production decisions. |
+| C4 | Operator console renders agent balances, token launch, activity ledger, automations, and policy settings. | prototype | offchain | console/src/App.tsx | https://github.com/38d3b7/abc/blob/8aea88d4a45a78854b4d8a2bb38cab0c9f83afb6/demo/abc-demo.mp4 | medium | Public deployment or multi-user usage. |
+
+## Hackathon fit
+| Criterion / bounty | What we did | Claims |
+|---|---|---|
+| "Agentic sophistication" | LLM proposes typed intents; policy and contracts enforce limits before signing | C3, C4 |
+| "Circle tool usage" | Native USDC deposits, Circle SCA wallet, Arc testnet deployment | C1, C3 |
+| "Innovation" | Hook-custodied LP with 25/50/25 fee split and cohort-level perpetual lock | C2 |
+| "Traction" | Testnet campaigns and a recorded console walkthrough | C1, C4 |
+
+## Sponsor integrations
+| Sponsor | What we call | File / function | Proof |
+|---|---|---|---|
+| Circle | Developer-controlled wallets provisioning and signing | executor/src/signer/circle.ts | https://explorer.testnet.arc.io/tx/0x1d4103b2428d42ff538d63fe3375fcc16350975e00cf10922cb16733f3059868 |
+
+## Traction
+- Traction: none claimed.
+
+## Deployments
+- **Canonical:** LGEManager `0x42213058B545625f8bE3e80bA086C14e8fd22920` (arc-testnet)
+- **Canonical:** LGEHook (WLK3 campaign) `0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC` (arc-testnet)
+- **Other:** VestingVault `0x191FD96343b41A13F679dcC87423070E1782438a` (arc-testnet)
+- **Other:** InferenceEscrow `0xe43226c234B0f425E564e909ae383EB734e74811` (arc-testnet)
+- **Other:** LGECalculationsLibrary `0xA6C7f398122707Bd10f917A091D3BC7C2C95d53b` (arc-testnet)
+- **Known false readings:** None listed
+
+## Limits
+- Console runs locally; no public hosted URL yet.
+- All deployments are Arc testnet.
+- Inference nanopayment rail is architected but not fully wired.
+- One live token per agent is enforced; a failed launch can be retried only with a new token.
+- **Dependencies:** Arc testnet RPC, Uniswap v4 Arc deployment, Circle wallets, Anthropic API, Postgres.
+
+## More
+- [llms-full.txt](/llms-full.txt): full context
+- [eval.yaml](/eval.yaml): machine-readable facts
