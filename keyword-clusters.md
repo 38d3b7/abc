@@ -1,51 +1,116 @@
 # ABC keyword clusters and LLM discoverability
 
-For the showcase site, docs, and any public pages we ship. Grouped by intent so each page targets one cluster and links to its pillar.
+Keyword priority, highest first:
 
-## Pillar pages
+1. **Enterprise agent control planes**
+2. **Agent launchpads**
+3. **Agent tokens**
+4. **“agentic business console”**
 
-| Pillar | URL target | Primary keyword | What it must answer |
-|---|---|---|---|
-| Product | `/` | agentic business console | What is ABC, who is it for, what does the agent do |
-| Token launch | `/token-launch` | AI agent token launch | How an agent launches a token through an LGE |
-| LGE mechanics | `/lge` | Uniswap v4 LGE | How the sale, fee split, and LP lock work |
-| Circle / Arc | `/arc` | Arc USDC agent | Why settlement is on Arc with Circle wallets |
-| Console | `/console` | agent treasury console | What the operator sees and controls |
+All other keywords support these four.
 
-## Clusters
+---
 
-### Cluster 1 — Agentic business operations
+## Pillar pages (in priority order)
 
-Target keywords:
+| Priority | Pillar | URL target | Primary keyword | What it must answer |
+|---|---|---|---|---|
+| 1 | Control plane | `/` | enterprise agent control plane | How operators supervise an agent's wallet, spending, and policies |
+| 2 | Launchpad | `/launchpad` | agent launchpad | How agents launch tokens and raise USDC from supporters |
+| 3 | Agent token | `/agent-token` | agent token | What the agent token is, how it is sold, and how fees flow |
+| 4 | Product identity | `/console` | agentic business console | What ABC is and who it is for |
+
+## Clusters (in priority order)
+
+### Cluster 1 — Enterprise agent control planes
+
+Primary keywords:
+- enterprise agent control plane
+- agent control plane
+- AI agent operations platform
+- agent wallet management
+- supervise AI agent spending
+- agent governance
+- agent policy enforcement
+- agent audit ledger
+- autonomous agent treasury
+- AI agent compliance
+
+Spokes:
+- `/control-plane` — overview
+- `/agent-wallet-policy` — policies, limits, allowlists
+- `/agent-audit-ledger` — intent history and state
+- `/agent-spending-controls` — per-transaction and daily limits
+- `/agent-treasury` — cash, yield, reserves
+
+### Cluster 2 — Agent launchpads
+
+Primary keywords:
+- agent launchpad
+- AI agent launchpad
+- token launchpad for agents
+- agent fundraising
+- agent crowdfunding
+- launch agent token
+- agent token sale platform
+
+Spokes:
+- `/launchpad` — product overview
+- `/agent-token-launch` — step-by-step flow
+- `/lge-for-agents` — LGE mechanics for agents
+- `/showcase-site` — phase-1 supporter pages
+
+### Cluster 3 — Agent tokens
+
+Primary keywords:
+- agent token
+- AI agent token
+- agent tokenomics
+- agent token launch
+- agent token fees
+- agent token LP lock
+- agent token vesting
+
+Spokes:
+- `/agent-token` — overview
+- `/agent-token-sale` — Dutch auction / LGE
+- `/agent-token-fees` — 25/50/25 split
+- `/agent-token-lp-lock` — cohort-level lock
+- `/agent-token-vesting` — 5% agent vest + inference escrow
+
+### Cluster 4 — “agentic business console”
+
+Primary keywords:
 - agentic business console
-- AI agent wallet
-- onchain business operations
-- autonomous treasury
-- agent-run business
-- AI agent payments
+- AI business console
+- agent back office
+- agent business operations
+- onchain business agent
+- autonomous business operations
 
 Spokes:
-- `/agentic-business-console` — explainer
-- `/ai-agent-wallet` — custody and policy model
-- `/autonomous-treasury` — cash, yield, invoices
+- `/agentic-business-console` — product identity
+- `/business-agent-console` — operator UX
 - `/agent-invoices` — AP/AR automation
+- `/agent-automations` — recurring intents
 
-### Cluster 2 — Token launch for agents
+## Supporting clusters
+
+### Cluster 5 — Arc and Circle stack
 
 Target keywords:
-- AI agent token launch
-- agent token sale
-- LGE for AI agents
-- launch token as an agent
-- USDC token launch
+- Arc USDC agent
+- Circle agent stack
+- native USDC agent
+- Circle developer controlled wallets
+- Arc testnet agent
 
 Spokes:
-- `/token-launch` — product overview
-- `/lge-explained` — step-by-step sale mechanics
-- `/dutch-auction-token` — price curve
-- `/agent-token-economics` — treasury split, vesting, inference
+- `/arc-agent` — why Arc
+- `/circle-wallets-agent` — Circle SCA signer
+- `/usdc-agent-payments` — gas and settlement
 
-### Cluster 3 — Uniswap v4 hook mechanics
+### Cluster 6 — Uniswap v4 LGE mechanics
 
 Target keywords:
 - Uniswap v4 LGE
@@ -60,56 +125,32 @@ Spokes:
 - `/lp-lock-mechanism` — cohort-level lock
 - `/fee-split` — participant/agent/protocol split
 
-### Cluster 4 — Arc and Circle stack
-
-Target keywords:
-- Arc USDC agent
-- Circle agent stack
-- native USDC agent
-- Arc testnet agent
-- Circle developer controlled wallets
-
-Spokes:
-- `/arc-agent` — why Arc
-- `/circle-wallets-agent` — Circle SCA signer
-- `/usdc-agent-payments` — gas and settlement in USDC
-
-### Cluster 5 — Operator experience
-
-Target keywords:
-- agent audit ledger
-- supervise AI agent spending
-- agent intent ledger
-- operator console for agents
-
-Spokes:
-- `/operator-console` — UI walkthrough
-- `/intent-lifecycle` — quote → simulate → sign → broadcast
-- `/agent-policy` — limits and allowlists
-
 ## Internal link matrix
 
 - Every spoke links to its pillar with the pillar keyword as anchor text.
-- Pillar links to every spoke in its cluster.
-- Cross-cluster links: token-launch ↔ arc, console ↔ token-launch, LGE mechanics ↔ token-launch.
-- Avoid orphan pages; every spoke reachable from its pillar in one click.
+- Pillar 1 (control plane) links to Pillars 2, 3, and 4.
+- Pillar 2 (launchpad) links heavily to Cluster 3 (agent tokens).
+- Pillar 3 (agent tokens) links back to Pillars 1 and 2.
+- Cross-cluster links: token mechanics ↔ Arc/Circle, console ↔ launchpad.
+- No orphan pages; every spoke reachable from its pillar in one click.
 
 ## LLM / GEO discoverability
 
 1. **llms.txt placement.** The generated `llms.txt` lives at repo root. Once a public site exists, copy it to `public/llms.txt` (Vite/Next.js) and serve as `text/plain`. Link it in the footer and README.
-2. **llms-full.txt.** Keep it linked from `llms.txt` for crawlers that want the full context. Do not hand-edit it; regenerate from `project.yaml`.
-3. **Structured data.** Add `SoftwareApplication` schema to the product page and `Organization` schema to the root. Include the Arc addresses as `identifier` fields where appropriate.
-4. **FAQ content.** Add an on-page FAQ to each pillar using the questions in `llms.txt` FAQ. Even though FAQ rich results are retired, the content improves LLM citation and Overviews.
-5. **Plain language.** Use the exact phrases from the keyword clusters in H1, first paragraph, and anchor text. Avoid inventing new brand terms for existing concepts.
+2. **Top-level messaging.** Lead the homepage with "enterprise agent control plane", not with "DeFi" or "token launch". The token launch is the mechanism; control and supervision are the product.
+3. **Page titles and H1s.** Use the primary keyword for each pillar in the `<title>`, H1, and first paragraph. Use exact phrase matches: "agent launchpad", "agent token", "agentic business console".
+4. **Structured data.** Add `SoftwareApplication` schema to the control-plane page and `Organization` schema to the root. Include Arc addresses as `identifier` fields.
+5. **FAQ content.** Add an on-page FAQ to each pillar using the questions in `llms.txt` FAQ. LLMs cite concise, factual Q&A.
 6. **Evidence links.** Every claim on a public page should link to a repo path, explorer address, or transaction. LLMs weight cited evidence heavily.
-7. **Showcase subdomains.** Each agent subdomain should include a small `llms.txt` or at least a `<link rel="llms-txt" href="https://agenticbusinessconsole.com/llms.txt">` in the head.
+7. **Showcase subdomains.** Each agent subdomain should include `<link rel="llms-txt" href="https://agenticbusinessconsole.com/llms.txt">` in the head and use its agent-specific keywords ("agent token", "launchpad") naturally.
 
 ## Page-level keyword map
 
 | Page | Primary keyword | Secondary keywords | Must-link-to |
 |---|---|---|---|
-| `/` | agentic business console | AI agent wallet, onchain business operations, Arc USDC agent | `/token-launch`, `/console`, `/arc` |
-| `/token-launch` | AI agent token launch | LGE for AI agents, USDC token launch, agent token economics | `/lge`, `/arc`, `/` |
-| `/lge` | Uniswap v4 LGE | hook-custodied LP, perpetual LP lock, 25/50/25 fee split | `/token-launch`, `/uniswap-v4-lge` |
-| `/arc` | Arc USDC agent | Circle agent stack, native USDC agent, Circle developer controlled wallets | `/`, `/token-launch` |
-| `/console` | agent treasury console | agent audit ledger, operator console for agents, intent lifecycle | `/`, `/agent-policy` |
+| `/` | enterprise agent control plane | agent wallet management, agent audit ledger, agent spending controls | `/launchpad`, `/agent-token`, `/console` |
+| `/launchpad` | agent launchpad | AI agent launchpad, agent token sale platform, launch agent token | `/agent-token`, `/`, `/arc-agent` |
+| `/agent-token` | agent token | AI agent token, agent tokenomics, agent token fees | `/launchpad`, `/agent-token-lp-lock`, `/` |
+| `/console` | agentic business console | AI business console, agent back office, onchain business agent | `/`, `/agent-audit-ledger`, `/launchpad` |
+| `/agent-token-lp-lock` | agent token LP lock | hook-custodied LP, perpetual LP lock, 25/50/25 fee split | `/agent-token`, `/uniswap-v4-lge` |
+| `/arc-agent` | Arc USDC agent | Circle agent stack, native USDC agent | `/`, `/launchpad` |
