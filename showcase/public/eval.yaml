@@ -1,0 +1,76 @@
+name: ABC
+category: agents
+hackathon: Tameion Agents Hackathon · Canteen × Circle
+track: AI x DeFi
+bounties:
+- Circle Agent Stack
+status: testnet
+networks:
+- arc-testnet
+has_token: true
+has_ai: true
+updated: '2026-10-03'
+commit: bccf214c59bccb9e93103b1c5aa9c24f46d8ea39
+repo: https://github.com/38d3b7/abc/tree/bccf214c59bccb9e93103b1c5aa9c24f46d8ea39
+demo: https://github.com/38d3b7/abc/blob/8aea88d4a45a78854b4d8a2bb38cab0c9f83afb6/demo/abc-demo.mp4
+contracts:
+- name: LGEManager
+  address: '0x42213058B545625f8bE3e80bA086C14e8fd22920'
+  network: arc-testnet
+  verified: false
+  canonical: true
+- name: LGEHook (WLK3 campaign)
+  address: '0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC'
+  network: arc-testnet
+  verified: false
+  canonical: true
+- name: VestingVault
+  address: '0x191FD96343b41A13F679dcC87423070E1782438a'
+  network: arc-testnet
+  verified: false
+  canonical: false
+- name: InferenceEscrow
+  address: '0xe43226c234B0f425E564e909ae383EB734e74811'
+  network: arc-testnet
+  verified: false
+  canonical: false
+- name: LGECalculationsLibrary
+  address: '0xA6C7f398122707Bd10f917A091D3BC7C2C95d53b'
+  network: arc-testnet
+  verified: false
+  canonical: false
+repro_command: forge test
+proof_tx:
+  url: https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC
+  network: arc-testnet
+sponsor_integrations:
+- sponsor: Circle
+  call: Developer-controlled wallets provisioning and signing
+  location: executor/src/signer/circle.ts
+  proof: https://explorer.testnet.arc.io/tx/0x1d4103b2428d42ff538d63fe3375fcc16350975e00cf10922cb16733f3059868
+claims:
+- id: C1
+  claim: LGE deposits are native USDC on Arc; on success half seeds a Uniswap v4 pool
+    and the treasury half buys a 5% agent vest and credits inference escrow.
+  status: live
+  network: arc-testnet
+  confidence: high
+- id: C2
+  claim: Swaps pay a hook fee on the USDC leg split 25/50/25 to participants/agent/protocol;
+    LP locks once booked participant fees reach total USDC raised.
+  status: live
+  network: arc-testnet
+  confidence: high
+- id: C3
+  claim: Agent intents pass through a typed quote-simulate-sign-broadcast pipeline
+    with idempotency and Circle SCA signing.
+  status: live
+  network: arc-testnet
+  confidence: high
+- id: C4
+  claim: Operator console renders agent balances, token launch, activity ledger, automations,
+    and policy settings.
+  status: prototype
+  network: offchain
+  confidence: medium
+traction_claimed: false
