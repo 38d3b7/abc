@@ -26,8 +26,8 @@ networks:
 has_token: true
 has_ai: true
 updated: '2026-10-03'
-commit: cd1a52b3d9fc87c2bba7077ca819ca0505cc8a6d
-repo: https://github.com/38d3b7/abc/tree/cd1a52b3d9fc87c2bba7077ca819ca0505cc8a6d
+commit: bccf214c59bccb9e93103b1c5aa9c24f46d8ea39
+repo: https://github.com/38d3b7/abc/tree/bccf214c59bccb9e93103b1c5aa9c24f46d8ea39
 demo: https://github.com/38d3b7/abc/blob/8aea88d4a45a78854b4d8a2bb38cab0c9f83afb6/demo/abc-demo.mp4
 contracts:
 - name: LGEManager
@@ -59,7 +59,7 @@ contracts:
 
 ## Judge in 2 minutes
 - **Demo:** https://github.com/38d3b7/abc/blob/8aea88d4a45a78854b4d8a2bb38cab0c9f83afb6/demo/abc-demo.mp4 (1:30)
-- **Repo (pinned):** https://github.com/38d3b7/abc/tree/cd1a52b3d9fc87c2bba7077ca819ca0505cc8a6d
+- **Repo (pinned):** https://github.com/38d3b7/abc/tree/bccf214c59bccb9e93103b1c5aa9c24f46d8ea39
 - **Contract (unverified):** [LGEManager](https://explorer.testnet.arc.io/address/0x42213058B545625f8bE3e80bA086C14e8fd22920) `0x42213058B545625f8bE3e80bA086C14e8fd22920` (arc-testnet)
 - **Contract (unverified):** [LGEHook (WLK3 campaign)](https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC) `0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC` (arc-testnet)
 - **Proof tx, core flow end-to-end:** https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC (arc-testnet) — WLK3 campaign — console walkthrough LGE succeeded; event logs show Deposited, LGESuccessful, TreasuryBuyExecuted, TreasuryEscrowed.

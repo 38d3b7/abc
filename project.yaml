@@ -21,7 +21,7 @@ networks: [arc-testnet]
 has_token: true
 has_ai: true
 updated: 2026-10-03
-commit: cd1a52b3d9fc87c2bba7077ca819ca0505cc8a6d
+commit: bccf214c59bccb9e93103b1c5aa9c24f46d8ea39
 repo_base: https://github.com/38d3b7/abc
 app: ""
 first_click: ""
