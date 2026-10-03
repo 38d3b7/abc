@@ -81,7 +81,11 @@ export function LaunchWizard ({ onClose, onLaunched }: { onClose: () => void; on
             vestingCliff: params.vestingCliff,
             vestingDuration: params.vestingDuration
           }
-        }]
+        }],
+        // deployToken deploys both the token and the hook via CREATE2; the
+        // hook is large and wallets consistently underestimate the gas limit
+        // on Arc's 0.5s blocks. Hard-cap well above observed usage (~5M).
+        gas: 6_500_000n
       })
       setBusy('Waiting for confirmation…')
       await client.waitForTransactionReceipt({ hash })
