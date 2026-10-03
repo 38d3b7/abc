@@ -1,0 +1,123 @@
+# ABC security build rules
+
+These rules encode the findings from the 2026-10-03 fresh-session security
+audit of the deployed ABC system. They are class-level guards, not
+instance patches. Every rule names the file or gate that enforces it.
+
+## 1. CORS must not allow localhost/127.0.0.1 in production
+
+The executor's CORS origin function currently always permits
+`localhost`/`127.0.0.1` on any port. In a deployed production environment this
+widens the cross-origin attack surface for any token or key that is leaked or
+pasted into a local page.
+
+- **Enforcing code:** `executor/src/api/server.ts` origin predicate.
+- **Enforcing gate:** `executor/test/cors.test.ts` must include a test that
+  asserts `NODE_ENV=production` (or `config.isProduction`) rejects a
+  `localhost` preflight by returning `access-control-allow-origin: null`.
+- **Rule:** `localhost`/`127.0.0.1` origins are allowed only when
+  `config.isProduction === false`.
+
+## 2. All URLs that are rendered as links or fetched must be protocol-bound
+
+`z.string().url()` accepts `javascript:`, `data:`, and other URI schemes. ABC
+renders user-controlled URLs directly in `<a href>` in both the showcase
+(`app.links`) and the console skill catalog (`sourceUrl`). This is a stored XSS
+vector.
+
+- **Enforcing code:**
+  - `executor/src/intents/types.ts` for `app_publish`/`app_edit` link schema,
+  - `executor/src/agent/skills.ts` for skill manifest `sourceUrl`,
+  - `showcase/app/storefront/[slug]/page.tsx`,
+  - `console/src/sections/Skills.tsx`.
+- **Enforcing gates:**
+  - `executor/test/apps.test.ts` must reject `javascript:alert(1)` and
+    `data:text/html,...` in `app_publish`/`app_edit` links,
+  - `executor/test/skills.test.ts` must reject non-http(s) `sourceUrl` values.
+- **Rule:** any URL field that is rendered as an `href` or fetched by the
+  executor must be restricted to `http:`/`https:` schemes (regex
+  `^https?://`) and max length 300.
+
+## 3. Skill install-from-URL must be SSRF-hardened
+
+`/agents/:id/skills/install-url` fetches an arbitrary caller-supplied URL with
+`fetch`. Without scheme/destination controls the executor can be used to probe
+internal cloud metadata services or private network hosts.
+
+- **Enforcing code:** `executor/src/agent/skillImport.ts` fetch call.
+- **Enforcing gate:** `executor/test/skills.test.ts` must refuse URLs whose
+  protocol is not `https`, whose host resolves to a private IP, or whose host
+  is not on an explicit allowlist.
+- **Rule:** only `https:` URLs are fetched; deny private/reserved IP ranges,
+  localhost names, and metadata hostnames. Prefer an explicit allowlist of
+  provider domains.
+
+## 4. Required secrets must not have dev fallbacks
+
+`executor/src/config.ts` falls back to `'dev-key'` and
+`'dev-session-secret'` when `ABC_API_KEY`/`ABC_SESSION_SECRET` are unset. If a
+production deployment ever loses these Railway sealed vars the system silently
+opens itself to operator/session forgery.
+
+- **Enforcing code:** `executor/src/config.ts` (replace fallbacks with
+  `required(...)` for production).
+- **Enforcing gate:** `executor/test/config.test.ts` (new) must assert that
+  loading config without `ABC_API_KEY`, `ABC_SESSION_SECRET`, `ABC_QUOTE_SECRET`,
+  `ABC_SIGNER`, and `DATABASE_URL` throws in production.
+- **Rule:** secrets used for auth or signing must throw at startup when
+  missing; dev-only defaults are permitted only in test fixtures.
+
+## 5. Unauthenticated inference endpoints must not leak agent existence
+
+`/inference/*` skips auth. `POST /inference/charge` returns `404` when the
+`agentId` does not exist and `402` when it does, allowing unauthenticated
+enumeration of valid agent IDs.
+
+- **Enforcing code:** `executor/src/api/server.ts` auth skip and
+  `executor/src/inference/seller.ts` response logic.
+- **Enforcing gate:** `executor/test/inference.test.ts` must assert that an
+  unauthenticated `/inference/charge` request returns the same status for a
+  valid and an invalid `agentId`.
+- **Rule:** unauthenticated endpoints must not vary their status code based on
+  the existence of a private resource.
+
+## 6. Slugs must be validated before persistence
+
+`POST /agents` accepts a caller-supplied `slug` without format validation. The
+slug is later used as a subdomain component and as the app slug. Invalid
+slugs break the showcase push and could be used for misleading subdomains.
+
+- **Enforcing code:** `executor/src/api/server.ts` agent creation and
+  `executor/src/pipeline/effects.ts` `app_publish`.
+- **Enforcing gates:**
+  - `executor/test/auth.test.ts` must reject slugs outside `[a-z0-9-]{1,63}`,
+  - `executor/test/apps.test.ts` must assert the same regex is applied on
+    publish.
+- **Rule:** agent and app slugs are lowercase alphanumeric plus hyphen, max
+  63 chars, no leading/trailing hyphen.
+
+## 7. Console must ship security headers
+
+The deployed console returns no `Content-Security-Policy`, `X-Frame-Options`,
+or `X-Content-Type-Options` headers. Because the SPA stores the SIWE bearer
+token in `localStorage`, a future XSS bug would have a higher impact without a
+restrictive CSP.
+
+- **Enforcing code:** `console/vercel.json` headers configuration.
+- **Enforcing gate:** `.github/workflows/ci.yml` console job must run a
+  header scan (e.g. `curl -I` on the build output or a Vercel preview URL)
+  that asserts CSP, X-Frame-Options, and X-Content-Type-Options are present.
+- **Rule:** production console deployments must serve a CSP that disallows
+  inline scripts, `eval`, and non-https sources, plus `X-Frame-Options:
+  DENY` and `X-Content-Type-Options: nosniff`.
+
+## 8. Keep CI required checks green and verified on every main build
+
+All four CI jobs (`executor`, `contracts`, `console`, `showcase`) must pass
+before `main` is considered operator-ready. The current workflow file defines
+jobs but does not prove branch protection enforces them.
+
+- **Enforcing gate:** `.github/workflows/ci.yml` plus repository branch
+  protection settings (required status checks).
+- **Rule:** `main` requires green checks for `executor`, `contracts`,
+  `console`, and `showcase` jobs; no direct pushes to `main`.
