@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 import {Vm} from "forge-std/Vm.sol";
 import {IPositionDescriptor} from "@uniswap/v4-periphery/src/interfaces/IPositionDescriptor.sol";
@@ -107,5 +107,27 @@ library Deploy {
         assembly {
             descriptor := create2(0, add(initcode, 0x20), mload(initcode), salt)
         }
+    }
+
+    /// @notice LGEHook calls LGECalculationsLibrary's `public` functions, so
+    /// the hook bytecode DELEGATECALLs a forge-linked library address. Forge
+    /// does not auto-deploy linked libraries into the test EVM (observed:
+    /// forge 1.6.0, every hook call reverts "delegatecall to non-contract"),
+    /// so we etch the real library runtime code at the link target. The
+    /// address is not arbitrary: forge's link target is deterministic for
+    /// this project and equals the library's live Arc testnet deployment,
+    /// observed in broadcast/Deploy.s.sol/5042002/run-latest.json. If a
+    /// toolchain change moves the link target, tests fail loudly with the
+    /// same revert naming the new address — update the constant to match.
+    address constant LGE_CALCULATIONS_LIBRARY =
+        0xD4C7B3564E02f2fD8c9cB3f4aAE55DA4E9A1a559;
+
+    function lgeCalculationsLibrary() internal {
+        vm.etch(
+            LGE_CALCULATIONS_LIBRARY,
+            vm.getDeployedCode(
+                "LGECalculationsLibrary.sol:LGECalculationsLibrary"
+            )
+        );
     }
 }

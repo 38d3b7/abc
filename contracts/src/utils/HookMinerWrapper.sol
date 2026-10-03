@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 import {HookMiner} from "v4-periphery/src/utils/HookMiner.sol";
 

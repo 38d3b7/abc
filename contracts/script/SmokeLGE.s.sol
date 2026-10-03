@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity =0.8.26;
 
 import {Script, console} from "forge-std/Script.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
 import {HookMiner} from "v4-periphery/src/utils/HookMiner.sol";
 
@@ -14,14 +13,15 @@ import {LGECalculationsLibrary} from "../src/libraries/LGECalculationsLibrary.so
 /// @title SmokeLGE
 /// @notice Arc testnet smoke driver for the LGE flow. One script, parameterized
 ///         by env vars; SMOKE_ACTION selects the step:
-///           create   — LGE_MANAGER, POOL_MANAGER, POSITION_MANAGER, PERMIT2,
-///                      DEPLOYER, TOKEN_NAME, TOKEN_SYMBOL [, START_BLOCK]
-///           deposit  — HOOK, DEPLOYER, AMOUNT (wei of tokens) or FILL_CAP=1
-///           claim    — HOOK, DEPLOYER
-///           withdraw — HOOK, DEPLOYER
+///           create   — LGE_MANAGER, DEPLOYER, TOKEN_NAME, TOKEN_SYMBOL
+///                      [, START_BLOCK, CAP, STREAM_BLOCKS, MIN_PRICE, MAX_PRICE,
+///                        EXIT_THRESHOLD, FEE_BPS]
+///           deposit  — HOOK, AMOUNT (wei of tokens) or FILL_CAP=1
+///           claim    — HOOK (records the caller's LP share; hook-custodied)
+///           withdraw — HOOK
 ///           status   — HOOK (view only, no broadcast)
 /// @dev Run with the Arc library link so type(LGEHook).creationCode matches the
-///      frontend bytecode and the mined salt is valid:
+///      console bytecode and the mined salt is valid:
 ///      FOUNDRY_LIBRARIES="src/libraries/LGECalculationsLibrary.sol:LGECalculationsLibrary:<libAddr>" \
 ///      forge script script/SmokeLGE.s.sol --rpc-url arc_testnet --broadcast \
 ///        --private-key $PRIVATE_KEY --gas-price 20000000000 --priority-gas-price 1000000000
@@ -47,22 +47,62 @@ contract SmokeLGE is Script {
     function create() internal {
         address deployer = vm.envAddress("DEPLOYER");
         LGEManager manager = LGEManager(vm.envAddress("LGE_MANAGER"));
-        address poolManager = vm.envAddress("POOL_MANAGER");
-        address positionManager = vm.envAddress("POSITION_MANAGER");
-        address permit2 = vm.envAddress("PERMIT2");
         string memory name = vm.envString("TOKEN_NAME");
         string memory symbol = vm.envString("TOKEN_SYMBOL");
         uint256 startBlock = vm.envOr("START_BLOCK", block.number + 3);
+        uint256 cap = vm.envOr("CAP", uint256(1_000_000e18));
+        uint256 streamBlocks = vm.envOr("STREAM_BLOCKS", uint256(172_800)); // 24h at 0.5s blocks
+        uint256 minPrice = vm.envOr("MIN_PRICE", uint256(1e18)); // tokens per USDC
+        uint256 maxPrice = vm.envOr("MAX_PRICE", uint256(4e18));
+        uint256 exitThreshold = vm.envOr("EXIT_THRESHOLD", uint256(0)); // 0 = exits disabled
+        uint24 feeBps = uint24(vm.envOr("FEE_BPS", uint256(100)));
+        address operator = vm.envOr("OPERATOR", deployer); // may rotate the agent
 
-        // Same derivation as the frontend (useCampaignAddresses/useCreateCampaign)
         bytes32 tokenSalt = keccak256(abi.encodePacked(deployer, block.timestamp));
-        bytes memory tokenArgs = abi.encode(name, symbol, deployer, "", "", address(manager));
-        bytes32 tokenInitHash = keccak256(abi.encodePacked(type(LGEToken).creationCode, tokenArgs));
-        address tokenAddress = vm.computeCreate2Address(tokenSalt, tokenInitHash, address(manager));
+        bytes memory tokenArgs = abi.encode(
+            name,
+            symbol,
+            deployer,
+            "",
+            "",
+            address(manager),
+            cap
+        );
+        bytes32 tokenInitHash = keccak256(
+            abi.encodePacked(type(LGEToken).creationCode, tokenArgs)
+        );
+        address tokenAddress = vm.computeCreate2Address(
+            tokenSalt,
+            tokenInitHash,
+            address(manager)
+        );
 
-        bytes memory hookArgs = abi.encode(poolManager, positionManager, permit2, tokenAddress, startBlock);
-        (address hookAddress, bytes32 hookSalt) =
-            HookMiner.find(address(manager), uint160(manager.FLAGS()), type(LGEHook).creationCode, hookArgs);
+        LGEHook.HookParams memory hp = LGEHook.HookParams({
+            poolManager: manager._poolManager(),
+            positionManager: manager._positionManager(),
+            permit2: manager._permit2(),
+            token: tokenAddress,
+            agent: deployer,
+            operator: operator,
+            protocol: manager._protocol(),
+            vestingVault: manager._vestingVault(),
+            inferenceEscrow: manager._inferenceEscrow(),
+            startBlock: startBlock,
+            streamBlocks: streamBlocks,
+            minTokenPrice: minPrice,
+            maxTokenPrice: maxPrice,
+            exitThreshold: exitThreshold,
+            feeBps: feeBps,
+            vestingCliff: 365 days, // launch minimum: locked 12 months
+            vestingDuration: 365 days
+        });
+        bytes memory hookArgs = abi.encode(hp);
+        (address hookAddress, bytes32 hookSalt) = HookMiner.find(
+            address(manager),
+            uint160(manager.FLAGS()),
+            type(LGEHook).creationCode,
+            hookArgs
+        );
 
         vm.startBroadcast();
         (address deployedToken, address deployedHook) = manager.deployToken(
@@ -73,9 +113,21 @@ contract SmokeLGE is Script {
                     symbol: symbol,
                     image: "",
                     metadata: "",
+                    cap: cap,
                     tokenSalt: tokenSalt
                 }),
-                hookConfig: LGEManager.HookConfig({hookSalt: hookSalt, startBlock: startBlock})
+                hookConfig: LGEManager.HookConfig({
+                    hookSalt: hookSalt,
+                    startBlock: startBlock,
+                    streamBlocks: streamBlocks,
+                    minTokenPrice: minPrice,
+                    maxTokenPrice: maxPrice,
+                    exitThreshold: exitThreshold,
+                    feeBps: feeBps,
+                    vestingCliff: 365 days, // launch minimum: locked 12 months
+                    vestingDuration: 365 days,
+                    operator: operator
+                })
             })
         );
         vm.stopBroadcast();
@@ -96,9 +148,15 @@ contract SmokeLGE is Script {
         } else {
             amount = vm.envUint("AMOUNT");
         }
-        uint256 startBlock = hook.startBlock();
-        uint256 price = LGECalculationsLibrary.calculateCurrentTokenPrice(block.number, startBlock);
-        uint256 nativeNeeded = LGECalculationsLibrary.calculateEthNeeded(block.number, startBlock, amount);
+        uint256 price = hook.currentTokenPrice();
+        uint256 nativeNeeded = LGECalculationsLibrary.calculateUsdcNeeded(
+            block.number,
+            hook.startBlock(),
+            hook.streamBlocks(),
+            hook.minTokenPrice(),
+            hook.maxTokenPrice(),
+            amount
+        );
         uint256 value = (nativeNeeded * 105) / 100;
 
         console.log("PRICE=%s", price);
@@ -118,24 +176,23 @@ contract SmokeLGE is Script {
     function claim() internal {
         LGEHook hook = LGEHook(payable(vm.envAddress("HOOK")));
         address deployer = vm.envAddress("DEPLOYER");
-        IPositionManager pm = hook.positionManager();
-        uint256 balBefore = IERC721(address(pm)).balanceOf(deployer);
 
         vm.startBroadcast();
-        uint256 userPositionId = hook.claimLiquidity();
+        uint256 share = hook.claimLiquidity();
         vm.stopBroadcast();
 
-        console.log("USER_POSITION_ID=%s", userPositionId);
-        console.log("LP_BALANCE_BEFORE=%s", balBefore);
-        console.log("LP_BALANCE_AFTER=%s", IERC721(address(pm)).balanceOf(deployer));
-        console.log("POSITION_OWNER=%s", IERC721(address(pm)).ownerOf(userPositionId));
+        console.log("LP_SHARE=%s", share);
+        console.log("TOTAL_LIQUIDITY=%s", hook.totalLiquidity());
+        console.log("DEPLOYER_SHARE_RECORDED=%s", hook.lpShares(deployer));
     }
 
     function withdraw() internal {
         LGEHook hook = LGEHook(payable(vm.envAddress("HOOK")));
         address deployer = vm.envAddress("DEPLOYER");
-        (uint256 ethToLiquidity, uint256 remaining,,) = hook.userStates(deployer);
-        uint256 expectedRefund = ethToLiquidity + remaining;
+        (uint256 usdcToLiquidity, uint256 remaining, , , , , ) = hook.userStates(
+            deployer
+        );
+        uint256 expectedRefund = usdcToLiquidity + remaining;
         uint256 hookBalBefore = address(hook).balance;
 
         vm.startBroadcast();
@@ -146,7 +203,10 @@ contract SmokeLGE is Script {
         console.log("HOOK_BALANCE_BEFORE=%s", hookBalBefore);
         console.log("HOOK_BALANCE_AFTER=%s", address(hook).balance);
         require(expectedRefund > 0, "nothing deposited");
-        require(address(hook).balance == hookBalBefore - expectedRefund, "refund mismatch");
+        require(
+            address(hook).balance == hookBalBefore - expectedRefund,
+            "refund mismatch"
+        );
     }
 
     function status() internal view {
@@ -154,14 +214,20 @@ contract SmokeLGE is Script {
         uint256 startBlock = hook.startBlock();
         console.log("BLOCK=%s", block.number);
         console.log("START_BLOCK=%s", startBlock);
-        console.log("STREAM_END=%s", startBlock + hook.STREAM_BLOCKS());
-        console.log("PRICE=%s", LGECalculationsLibrary.calculateCurrentTokenPrice(block.number, startBlock));
+        console.log("STREAM_END=%s", startBlock + hook.streamBlocks());
+        console.log("PRICE=%s", hook.currentTokenPrice());
         console.log("IS_FINISHED=%s", hook.isLgeFinished());
         console.log("IS_SUCCESSFUL=%s", hook.isLgeSuccessful());
         console.log("TOTAL_CLAIMED=%s", hook.totalTokensClaimed());
         console.log("CAP=%s", hook.token().cap());
-        console.log("TOTAL_NATIVE_TO_LIQ=%s", hook.totalEthToLiquidity());
+        console.log("TOTAL_USDC_TO_LIQ=%s", hook.totalEthToLiquidity());
+        console.log("TOTAL_USDC_RAISED=%s", hook.totalUsdcRaised());
         console.log("TOTAL_LIQUIDITY=%s", hook.totalLiquidity());
         console.log("POSITION_TOKEN_ID=%s", hook.positionTokenId());
+        console.log("PARTICIPANT_FEES_BOOKED=%s", hook.participantFeesBooked());
+        console.log("AGENT_ACCRUED=%s", hook.agentAccrued());
+        console.log("PROTOCOL_ACCRUED=%s", hook.protocolAccrued());
+        console.log("LP_LOCKED=%s", hook.lpLocked());
+        console.log("PENDING_BUY=%s", hook.pendingBuy());
     }
 }
