@@ -58,7 +58,7 @@ export async function launchLGE (ownerPk: `0x${string}`, cfg: LaunchConfig): Pro
   const tokenAddress = getCreate2Address({
     from: LGE_MANAGER,
     salt: tokenSalt,
-    bytecodeHash: keccak256(concat([HOOK_BYTECODE, tokenCtor]))
+    bytecodeHash: keccak256(concat([TOKEN_BYTECODE, tokenCtor]))
   })
 
   const hookParams = {
@@ -108,37 +108,80 @@ export async function launchLGE (ownerPk: `0x${string}`, cfg: LaunchConfig): Pro
   if (!hookAddress) throw new Error('no salt found in 20M iterations')
 
   const w = walletClient(ownerPk)
-  const hash = await w.writeContract({
-    address: LGE_MANAGER,
-    abi: MANAGER_ABI,
-    functionName: 'deployToken',
-    args: [{
-      tokenConfig: {
-        tokenAdmin: account.address,
-        name: cfg.name,
-        symbol: cfg.symbol,
-        image: '',
-        metadata: '',
-        cap: capWei,
-        tokenSalt
-      },
-      hookConfig: {
-        hookSalt,
-        startBlock,
-        streamBlocks: cfg.streamBlocks,
-        minTokenPrice: cfg.minTokenPrice,
-        maxTokenPrice: cfg.maxTokenPrice,
-        exitThreshold: cfg.exitThreshold ?? 0n,
-        feeBps: cfg.feeBps,
-        vestingCliff: cfg.vestingCliff ?? 0n,
-        vestingDuration: cfg.vestingDuration ?? BigInt(365 * 24 * 3600)
-      }
-    }],
-    gas: 6_500_000n,
-    ...GAS
-  })
+  let hash: `0x${string}`
+  try {
+    hash = await w.writeContract({
+      address: LGE_MANAGER,
+      abi: MANAGER_ABI,
+      functionName: 'deployToken',
+      args: [{
+        tokenConfig: {
+          tokenAdmin: account.address,
+          name: cfg.name,
+          symbol: cfg.symbol,
+          image: '',
+          metadata: '',
+          cap: capWei,
+          tokenSalt
+        },
+        hookConfig: {
+          hookSalt,
+          startBlock,
+          streamBlocks: cfg.streamBlocks,
+          minTokenPrice: cfg.minTokenPrice,
+          maxTokenPrice: cfg.maxTokenPrice,
+          exitThreshold: cfg.exitThreshold ?? 0n,
+          feeBps: cfg.feeBps,
+          vestingCliff: cfg.vestingCliff ?? 0n,
+          vestingDuration: cfg.vestingDuration ?? BigInt(365 * 24 * 3600)
+        }
+      }],
+      gas: 6_500_000n,
+      ...GAS
+    })
+  } catch (e) {
+    console.error('[launch] deployToken broadcast failed:', (e as Error).message)
+    try {
+      const { request } = await publicClient.simulateContract({
+        account: account.address,
+        address: LGE_MANAGER,
+        abi: MANAGER_ABI,
+        functionName: 'deployToken',
+        args: [{
+          tokenConfig: {
+            tokenAdmin: account.address,
+            name: cfg.name,
+            symbol: cfg.symbol,
+            image: '',
+            metadata: '',
+            cap: capWei,
+            tokenSalt
+          },
+          hookConfig: {
+            hookSalt,
+            startBlock,
+            streamBlocks: cfg.streamBlocks,
+            minTokenPrice: cfg.minTokenPrice,
+            maxTokenPrice: cfg.maxTokenPrice,
+            exitThreshold: cfg.exitThreshold ?? 0n,
+            feeBps: cfg.feeBps,
+            vestingCliff: cfg.vestingCliff ?? 0n,
+            vestingDuration: cfg.vestingDuration ?? BigInt(365 * 24 * 3600)
+          }
+        }],
+        gas: 6_500_000n
+      })
+      console.error('[launch] simulation did not revert (would succeed):', request)
+    } catch (simErr) {
+      console.error('[launch] simulation revert:', (simErr as Error).message)
+    }
+    throw e
+  }
   const receipt = await publicClient.waitForTransactionReceipt({ hash })
-  if (receipt.status !== 'success') throw new Error('deployToken reverted')
+  if (receipt.status !== 'success') {
+    console.error('[launch] receipt status:', receipt.status, 'hash:', hash)
+    throw new Error('deployToken reverted')
+  }
   console.log(`[launch] ${cfg.symbol}: token=${tokenAddress} hook=${hookAddress} start=${startBlock}`)
   return { tokenAddress, hookAddress, startBlock, streamBlocks: cfg.streamBlocks, txHash: hash }
 }
@@ -173,6 +216,19 @@ export async function deposit (depositorPk: `0x${string}`, hook: Address, amount
   })
   await publicClient.waitForTransactionReceipt({ hash })
   console.log(`[deposit] ${amountOfTokens / 10n ** 18n} tokens into ${hook}: ${hash}`)
+  return hash
+}
+
+export async function finalize (callerPk: `0x${string}`, hook: Address) {
+  const w = walletClient(callerPk)
+  const hash = await w.writeContract({
+    address: hook,
+    abi: HOOK_ABI,
+    functionName: 'finalize',
+    ...GAS
+  })
+  await publicClient.waitForTransactionReceipt({ hash })
+  console.log(`[finalize] ${hook}: ${hash}`)
   return hash
 }
 

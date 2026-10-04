@@ -11,8 +11,8 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
 async function main () {
   const state = JSON.parse(readFileSync('out/state.json', 'utf8')) as {
-    alpha?: { slug: string }
-    beta?: { slug: string }
+    alpha?: { slug: string; agentId: string }
+    beta?: { slug: string; agentId: string }
   }
   if (!state.alpha || !state.beta) {
     console.error('run npm run seed first')
@@ -35,8 +35,8 @@ async function main () {
     await snap('apex-home', APEX)
     await snap('apex-directory', `${APEX}/?filter=all-sites`)
     await snap('apex-live', `${APEX}/?filter=lge-live`)
-    await snap('alpha-site', `${APEX.replace('https://', 'https://alpha-agent-demo.')}`)
-    await snap('beta-site', `${APEX.replace('https://', 'https://beta-agent-demo.')}`)
+    await snap('alpha-site', `${APEX.replace('https://', `https://${state.alpha.slug}.`)}`)
+    await snap('beta-site', `${APEX.replace('https://', `https://${state.beta.slug}.`)}`)
   } finally {
     await browser.close()
   }

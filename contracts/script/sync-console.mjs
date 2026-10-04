@@ -31,9 +31,20 @@ for (const name of ['HookMinerWrapper', 'VestingVault', 'InferenceEscrow', 'Hook
 }
 
 // Infra addresses come from the script's env (fixed Uniswap deployment on Arc).
-const env = Object.fromEntries(readFileSync(`${ROOT}.env`, 'utf8').split('\n')
-  .filter(l => l.includes('=') && !l.startsWith('#'))
-  .map(l => { const i = l.indexOf('='); return [l.slice(0, i), l.slice(i + 1)] }))
+const env = Object.fromEntries(
+  (() => {
+    try {
+      return readFileSync(`${ROOT}.env`, 'utf8').split('\n')
+        .filter(l => l.includes('=') && !l.startsWith('#'))
+        .map(l => { const i = l.indexOf('='); return [l.slice(0, i), l.slice(i + 1)] })
+    } catch {
+      return []
+    }
+  })()
+)
+for (const k of ['POOL_MANAGER','POSITION_MANAGER','PERMIT2','PROTOCOL','LIBRARY_ADDRESS']) {
+  if (!env[k] && process.env[k]) env[k] = process.env[k]
+}
 
 const addresses = {
   chainId: Number(CHAIN_ID),
