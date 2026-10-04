@@ -1,0 +1,20 @@
+{
+  "name": "abc-demo-suite",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "tsx seed.ts",
+    "verify": "tsx verify.ts",
+    "demo": "tsx seed.ts && tsx verify.ts"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.5",
+    "playwright": "^1.50.0",
+    "viem": "^2.57.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.19.0",
+    "typescript": "^7.0.2"
+  }
+}
