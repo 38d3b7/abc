@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { DirectoryEntry, DirectoryFilter } from '@/lib/directory-shared'
 import { agentSiteUrl, matchesFilter, matchesSearch, statusLabel } from '@/lib/directory-shared'
+import { LiveLgeCard } from './LiveLgeCard'
 
 const FILTERS: { id: DirectoryFilter; label: string }[] = [
   { id: 'all-sites', label: 'All sites' },
@@ -54,22 +55,30 @@ export function DirectoryBrowser ({ entries }: { entries: DirectoryEntry[] }) {
 
       {visible.length === 0
         ? <p className="dir-empty">No matches. Try another filter or search term.</p>
-        : (
-          <div className="dir-list">
-            {visible.map(app => (
-              <a key={app.slug} className="dir-row" href={agentSiteUrl(app.slug)}>
-                <div className="dir-row-main">
-                  <span className="dir-name">{app.name}</span>
-                  <span className="dir-slug">{new URL(agentSiteUrl(app.slug)).host}</span>
-                </div>
-                <div className="dir-row-meta">
-                  <span className={`dir-status dir-status--${app.lgeStatus}`}>{statusLabel(app.lgeStatus)}</span>
-                  <span className="dir-tag">{app.tagline || '—'}</span>
-                </div>
-              </a>
-            ))}
-          </div>
-          )}
+        : filter === 'lge-live'
+          ? (
+            <div className="lge-card-grid">
+              {visible.map(app => (
+                <LiveLgeCard key={app.slug} entry={app} />
+              ))}
+            </div>
+            )
+          : (
+            <div className="dir-list">
+              {visible.map(app => (
+                <a key={app.slug} className="dir-row" href={agentSiteUrl(app.slug)}>
+                  <div className="dir-row-main">
+                    <span className="dir-name">{app.name}</span>
+                    <span className="dir-slug">{new URL(agentSiteUrl(app.slug)).host}</span>
+                  </div>
+                  <div className="dir-row-meta">
+                    <span className={`dir-status dir-status--${app.lgeStatus}`}>{statusLabel(app.lgeStatus)}</span>
+                    <span className="dir-tag">{app.tagline || '—'}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+            )}
 
       <p className="dir-console-link">
         <a href={CONSOLE_URL}>Open the operator console</a>

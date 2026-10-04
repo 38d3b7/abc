@@ -525,3 +525,203 @@ a.board-token-name:hover { color: var(--accent-ink); }
 }
 .board-tape-item:last-child { border-bottom: 0; }
 .board-tape-item:hover { color: var(--ink); }
+
+/* live LGE cards — MemeCoinTile idea, ABC paper style */
+.lge-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.lge-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr 34px;
+  grid-template-rows: 30px 1fr 34px;
+  min-height: 260px;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--ink);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(10, 11, 14, 0.04);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.lge-card:hover {
+  box-shadow: 0 8px 24px rgba(10, 11, 14, 0.08);
+  transform: translateY(-2px);
+}
+
+.lge-card-edge {
+  display: flex;
+  align-items: center;
+  background: var(--paper);
+  border-color: var(--rule);
+}
+
+.lge-card-top {
+  grid-column: 1 / 4;
+  grid-row: 1;
+  border-bottom: 1px solid var(--rule);
+  padding: 0 12px;
+  gap: 10px;
+}
+
+.lge-card-right {
+  grid-column: 3;
+  grid-row: 2 / 4;
+  border-left: 1px solid var(--rule);
+  padding: 12px 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lge-card-bottom {
+  grid-column: 1 / 3;
+  grid-row: 3;
+  border-top: 1px solid var(--rule);
+  padding: 0 12px;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.lge-card-left {
+  grid-column: 1;
+  grid-row: 2;
+  border-right: 1px solid var(--rule);
+  padding: 12px 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.lge-card-body {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px;
+  text-align: center;
+}
+
+.lge-card-track {
+  flex: 1;
+  height: 6px;
+  background: var(--tint-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.lge-card-fill {
+  height: 100%;
+  background: var(--gradient-brand);
+  border-radius: 3px;
+}
+
+.lge-card-track-v {
+  width: 6px;
+  height: 100%;
+  background: var(--tint-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.lge-card-fill-v {
+  width: 100%;
+  background: linear-gradient(180deg, var(--brand-hi) 0%, var(--brand-lo) 100%);
+  border-radius: 3px;
+}
+
+.lge-card-edge-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+
+.lge-card-edge-label-v {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.lge-card-token {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-lo);
+  letter-spacing: 0.02em;
+}
+
+.lge-card-name-v {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.lge-card-name {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.lge-card-tagline {
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.45;
+  padding: 0 12px;
+}
+
+.lge-card-note {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.lge-card-price {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.lge-card-price-sub {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3);
+  margin-left: 5px;
+}
+
+.lge-card-stat {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.lge-card-cta {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-lo);
+}
+
+@media (max-width: 640px) {
+  .lge-card-grid { grid-template-columns: 1fr; }
+}

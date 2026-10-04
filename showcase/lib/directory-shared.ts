@@ -1,4 +1,5 @@
 import type { ShowcaseApp } from './db'
+import type { LiveLgeMetrics } from './lge-live'
 
 export type LgeDirectoryStatus = 'none' | 'live' | 'successful' | 'failed' | 'unknown'
 
@@ -11,6 +12,7 @@ export type DirectoryFilter =
 
 export interface DirectoryEntry extends ShowcaseApp {
   lgeStatus: LgeDirectoryStatus
+  liveMetrics: LiveLgeMetrics | null
 }
 
 const NEW_AGENT_MS = 14 * 24 * 60 * 60 * 1000
