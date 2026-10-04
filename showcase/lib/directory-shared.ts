@@ -48,3 +48,11 @@ export function statusLabel (status: LgeDirectoryStatus): string {
     case 'unknown': return 'Status unknown'
   }
 }
+
+/** An agent's site on its subdomain. NEXT_PUBLIC_APEX_DOMAIN exists for
+ *  local dev (slug.localhost:3000 resolves in Chrome); production default. */
+export function agentSiteUrl (slug: string): string {
+  const domain = process.env.NEXT_PUBLIC_APEX_DOMAIN ?? 'agenticbusinessconsole.com'
+  const proto = domain.endsWith('localhost') || domain.includes('localhost:') ? 'http' : 'https'
+  return `${proto}://${slug}.${domain}`
+}

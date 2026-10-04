@@ -9,7 +9,7 @@ import type { State, StateChange } from '../pipeline/states.js'
 import type {
   Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, LedgerRow, IdempotencyRecord, AgentRow,
   AutomationRow, NewAutomation, NewCampaign, CampaignRow, MessageRow, NewMessage, AgentSkillRow,
-  AppRow, AppBlocks, InferencePaymentRow, NewInferencePayment
+  AppRow, AppBlocks, InferencePaymentRow, NewInferencePayment, LgeBoardToken, LgeActivityRow
 } from './store.js'
 import { joinUsd } from '../ledger/usd.js'
 
@@ -479,6 +479,49 @@ export class MemoryStore implements Store {
     const n = (this.rateLimits.get(key) ?? 0) + 1
     this.rateLimits.set(key, n)
     return Promise.resolve(n)
+  }
+
+  // ---- token board (in-memory mirror of the pg read queries) ----
+
+  private lgeTokens = new Map<string, LgeBoardToken & { totalSupply?: number; decimals?: number }>()
+  private lgeSwaps: (LgeActivityRow & { agentSlug?: string | null; agentName?: string | null })[] = []
+
+  /** Test seed: register a board token (the worker's discovery upsert). */
+  seedLgeToken (t: LgeBoardToken): void {
+    this.lgeTokens.set(t.hookAddress.toLowerCase(), { ...t })
+  }
+
+  /** Test seed: append a swap (the worker's idempotent insert). */
+  seedLgeSwap (s: LgeActivityRow): void {
+    if (this.lgeSwaps.some(x => x.txHash === s.txHash && x.logIndex === s.logIndex)) return
+    this.lgeSwaps.push({ ...s })
+  }
+
+  listLgeBoard (): Promise<LgeBoardToken[]> {
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000
+    const rows = [...this.lgeTokens.values()].map(t => {
+      const recent = this.lgeSwaps.filter(s =>
+        s.hookAddress.toLowerCase() === t.hookAddress.toLowerCase() &&
+        s.blockTs != null && new Date(s.blockTs).getTime() > dayAgo)
+      const buys = recent.filter(s => s.isBuy).length
+      return {
+        ...t,
+        volume24hUsdc: recent.reduce((a, s) => a + s.usdcAmount, 0),
+        trades24h: recent.length,
+        buys24h: buys,
+        sells24h: recent.length - buys,
+        traders24h: new Set(recent.map(s => s.trader?.toLowerCase()).filter(Boolean)).size,
+        totalTrades: this.lgeSwaps.filter(s => s.hookAddress.toLowerCase() === t.hookAddress.toLowerCase()).length
+      }
+    })
+    rows.sort((a, b) => b.volume24hUsdc - a.volume24hUsdc)
+    return Promise.resolve(structuredClone(rows))
+  }
+
+  listLgeActivity (limit = 50): Promise<LgeActivityRow[]> {
+    const sorted = [...this.lgeSwaps].sort((a, b) =>
+      Number(BigInt(b.blockNumber) - BigInt(a.blockNumber)) || b.logIndex - a.logIndex)
+    return Promise.resolve(structuredClone(sorted.slice(0, Math.min(Math.max(1, limit), 200))))
   }
 
   close (): Promise<void> {

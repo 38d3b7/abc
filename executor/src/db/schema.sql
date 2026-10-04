@@ -231,3 +231,45 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   count        integer NOT NULL DEFAULT 0,
   PRIMARY KEY (scope, address, window_start)
 );
+
+-- Migration 0008: the public token board (apex site). The worker discovers
+-- campaigns from manager TokenCreated logs, resolves each hook's v4 pool
+-- (poolKey()/getPoolId()), and indexes PoolManager.Swap events per pool —
+-- one row per swap, idempotent on (tx_hash, log_index). 24h windows are
+-- derived from lge_swaps at query time (one source of truth); lge_tokens
+-- carries statics, LGE state, and launch/last price. No FK to campaigns:
+-- the board also covers campaigns launched outside the executor.
+CREATE TABLE IF NOT EXISTS lge_tokens (
+  hook_address       text PRIMARY KEY,
+  token_address      text NOT NULL,
+  created_block      numeric NOT NULL DEFAULT 0,
+  pool_id            text,
+  name               text,
+  symbol             text,
+  decimals           integer,
+  total_supply       numeric,
+  token_is_currency0 boolean,
+  usdc_decimals      integer,
+  lge_finished       boolean NOT NULL DEFAULT false,
+  lge_successful     boolean NOT NULL DEFAULT false,
+  launch_price_usdc  numeric,
+  last_price_usdc    numeric,
+  updated_at         timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS lge_swaps (
+  tx_hash      text NOT NULL,
+  log_index    integer NOT NULL,
+  hook_address text NOT NULL REFERENCES lge_tokens(hook_address),
+  block_number numeric NOT NULL,
+  block_ts     timestamptz,
+  trader       text,
+  is_buy       boolean NOT NULL,
+  token_amount numeric NOT NULL,
+  usdc_amount  numeric NOT NULL,
+  price_usdc   numeric,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (tx_hash, log_index)
+);
+CREATE INDEX IF NOT EXISTS lge_swaps_hook_ts ON lge_swaps (hook_address, block_ts DESC);
+CREATE INDEX IF NOT EXISTS lge_swaps_ts ON lge_swaps (block_ts DESC);

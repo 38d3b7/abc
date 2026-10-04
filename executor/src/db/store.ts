@@ -229,6 +229,46 @@ export interface NewMessage {
   state?: 'pending' | 'done' | 'failed'
 }
 
+// ---- public token board (apex site read model; written by the worker's
+// LGE indexer, served unauthenticated at /public/*) ----
+
+export interface LgeBoardToken {
+  hookAddress: string
+  tokenAddress: string
+  poolId: string | null
+  name: string | null
+  symbol: string | null
+  /** USDC per token from the pool's initial sqrtPrice (LGESuccessful). */
+  launchPriceUsdc: number | null
+  /** USDC per token from the latest indexed swap (launch price if none). */
+  priceUsdc: number | null
+  /** priceUsdc × total supply, human units. */
+  mcapUsdc: number | null
+  volume24hUsdc: number
+  trades24h: number
+  buys24h: number
+  sells24h: number
+  traders24h: number
+  totalTrades: number
+  /** Owning agent's showcase site, when an app claims this hook. */
+  agentSlug: string | null
+  agentName: string | null
+}
+
+export interface LgeActivityRow {
+  txHash: string
+  logIndex: number
+  hookAddress: string
+  symbol: string | null
+  blockNumber: string
+  blockTs: string | null
+  trader: string | null
+  isBuy: boolean
+  tokenAmount: number
+  usdcAmount: number
+  priceUsdc: number | null
+}
+
 export interface Store {
   createAgent (name: string, slug: string, ownerAddress?: string | null): Promise<AgentRow>
   getAgent (id: string): Promise<AgentRow | null>
@@ -311,6 +351,12 @@ export interface Store {
    *  count for (scope, address, windowStart); the caller compares to the
    *  limit. */
   hitRateLimit (scope: string, address: string, windowStart: Date): Promise<number>
+
+  /** Live tokens (successful LGEs) with 24h windows derived from lge_swaps,
+   *  ranked by 24h volume. Public board data — no owner scoping. */
+  listLgeBoard (): Promise<LgeBoardToken[]>
+  /** Recent swaps across all board tokens, newest first (the activity tape). */
+  listLgeActivity (limit?: number): Promise<LgeActivityRow[]>
 
   close (): Promise<void>
 }

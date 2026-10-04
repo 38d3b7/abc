@@ -1,5 +1,5 @@
 import { createConnector } from 'wagmi'
-import { createPublicClient, createWalletClient, http, type Address } from 'viem'
+import { createPublicClient, createWalletClient, hexToString, http, isHex, type Address } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { arcTestnet } from './chain'
 
@@ -35,8 +35,14 @@ export function devKeyConnector (pk: `0x${string}`) {
             value: tx.value !== undefined ? BigInt(tx.value) : 0n
           })
         }
-        case 'personal_sign':
-          return wallet.signMessage({ account, message: p[0] as string })
+        case 'personal_sign': {
+          // JSON-RPC personal_sign params are [hexMessage, address]. Signing the
+          // hex string itself makes SIWE verification fail with "invalid login".
+          const [first, second] = p as [string, string]
+          const data = typeof first === 'string' && isHex(first) && first.length > 42 ? first : second
+          const message = isHex(data) ? hexToString(data) : data
+          return wallet.signMessage({ account, message })
+        }
         default:
           return pub.request({ method, params: p } as never)
       }

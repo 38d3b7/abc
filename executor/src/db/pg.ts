@@ -7,7 +7,7 @@ import type { State, StateChange } from '../pipeline/states.js'
 import type {
   Store, IntentRow, NewIntent, QuoteRow, LedgerEntry, LedgerRow, IdempotencyRecord, AgentRow,
   AutomationRow, NewAutomation, NewCampaign, CampaignRow, MessageRow, NewMessage, AgentSkillRow,
-  AppRow, AppBlocks, InferencePaymentRow, NewInferencePayment
+  AppRow, AppBlocks, InferencePaymentRow, NewInferencePayment, LgeBoardToken, LgeActivityRow
 } from './store.js'
 import { joinUsd, partsFromRow } from '../ledger/usd.js'
 
@@ -748,5 +748,197 @@ export class PgStore implements Store {
       ...(log.transactionHash ? { fundingTxHash: log.transactionHash } : {}),
       note: `deposit by ${log.args.user ?? 'unknown'}`
     })
+  }
+
+  // ---- token board (worker write side; not on the Store interface) ----
+
+  /** Discovery upsert: a TokenCreated log registers hook + token. */
+  async upsertLgeToken (hookAddress: string, tokenAddress: string, createdBlock: bigint): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO lge_tokens (hook_address, token_address, created_block) VALUES ($1, $2, $3)
+       ON CONFLICT (hook_address) DO NOTHING`,
+      [hookAddress.toLowerCase(), tokenAddress.toLowerCase(), createdBlock.toString()]
+    )
+  }
+
+  /** State/statics refresh from chain reads. Only the fields the worker
+   *  resolved are patched; unresolved fields keep their last value. */
+  async updateLgeToken (hookAddress: string, patch: {
+    poolId?: string
+    name?: string
+    symbol?: string
+    decimals?: number
+    totalSupply?: bigint
+    tokenIsCurrency0?: boolean
+    usdcDecimals?: number
+    lgeFinished?: boolean
+    lgeSuccessful?: boolean
+    launchPriceUsdc?: number
+    lastPriceUsdc?: number
+  }): Promise<void> {
+    const cols: Record<string, unknown> = {
+      pool_id: patch.poolId,
+      name: patch.name,
+      symbol: patch.symbol,
+      decimals: patch.decimals,
+      total_supply: patch.totalSupply?.toString(),
+      token_is_currency0: patch.tokenIsCurrency0,
+      usdc_decimals: patch.usdcDecimals,
+      lge_finished: patch.lgeFinished,
+      lge_successful: patch.lgeSuccessful,
+      launch_price_usdc: patch.launchPriceUsdc,
+      last_price_usdc: patch.lastPriceUsdc
+    }
+    const sets: string[] = []
+    const vals: unknown[] = [hookAddress.toLowerCase()]
+    for (const [col, v] of Object.entries(cols)) {
+      if (v === undefined) continue
+      vals.push(v)
+      sets.push(`${col} = $${vals.length}`)
+    }
+    if (sets.length === 0) return
+    await this.pool.query(
+      `UPDATE lge_tokens SET ${sets.join(', ')}, updated_at = now() WHERE hook_address = $1`,
+      vals
+    )
+  }
+
+  /** Idempotent swap insert — (tx_hash, log_index) is the natural key. */
+  async recordLgeSwap (row: {
+    txHash: string
+    logIndex: number
+    hookAddress: string
+    blockNumber: bigint
+    blockTs: Date | null
+    trader: string | null
+    isBuy: boolean
+    tokenAmount: number
+    usdcAmount: number
+    priceUsdc: number | null
+  }): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO lge_swaps (tx_hash, log_index, hook_address, block_number, block_ts, trader, is_buy, token_amount, usdc_amount, price_usdc)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       ON CONFLICT (tx_hash, log_index) DO NOTHING`,
+      [row.txHash.toLowerCase(), row.logIndex, row.hookAddress.toLowerCase(), row.blockNumber.toString(),
+        row.blockTs, row.trader?.toLowerCase() ?? null, row.isBuy, row.tokenAmount, row.usdcAmount, row.priceUsdc]
+    )
+  }
+
+  /** Every discovered token row (worker refresh loop). */
+  async listLgeTokenRows (): Promise<{
+    hookAddress: string
+    tokenAddress: string
+    createdBlock: bigint
+    poolId: string | null
+    decimals: number | null
+    totalSupply: bigint | null
+    tokenIsCurrency0: boolean | null
+    usdcDecimals: number | null
+    lgeFinished: boolean
+    lgeSuccessful: boolean
+    launchPriceUsdc: number | null
+  }[]> {
+    const res = await this.pool.query(
+      `SELECT hook_address, token_address, created_block, pool_id, decimals, total_supply,
+              token_is_currency0, usdc_decimals, lge_finished, lge_successful, launch_price_usdc
+       FROM lge_tokens ORDER BY created_block ASC`
+    )
+    return res.rows.map(r => ({
+      hookAddress: r.hook_address as string,
+      tokenAddress: r.token_address as string,
+      createdBlock: BigInt(r.created_block as string),
+      poolId: (r.pool_id as string | null) ?? null,
+      decimals: (r.decimals as number | null) ?? null,
+      totalSupply: r.total_supply != null ? BigInt(r.total_supply as string) : null,
+      tokenIsCurrency0: (r.token_is_currency0 as boolean | null) ?? null,
+      usdcDecimals: (r.usdc_decimals as number | null) ?? null,
+      lgeFinished: r.lge_finished as boolean,
+      lgeSuccessful: r.lge_successful as boolean,
+      launchPriceUsdc: r.launch_price_usdc != null ? Number(r.launch_price_usdc) : null
+    }))
+  }
+
+  // ---- token board (public read side; Store interface) ----
+
+  async listLgeBoard (): Promise<LgeBoardToken[]> {
+    const res = await this.pool.query(
+      `SELECT t.hook_address, t.token_address, t.pool_id, t.name, t.symbol,
+              t.launch_price_usdc, t.last_price_usdc, t.total_supply, t.decimals,
+              a.slug AS agent_slug, a.name AS agent_name,
+              COALESCE(w.trades, 0)::int AS trades_24h,
+              COALESCE(w.buys, 0)::int AS buys_24h,
+              COALESCE(w.traders, 0)::int AS traders_24h,
+              COALESCE(w.volume, 0)::float8 AS volume_24h_usdc,
+              COALESCE(tot.trades, 0)::int AS total_trades
+       FROM lge_tokens t
+       LEFT JOIN apps a ON lower(a.hook_address) = t.hook_address
+       LEFT JOIN LATERAL (
+         SELECT count(*) AS trades,
+                count(*) FILTER (WHERE s.is_buy) AS buys,
+                count(DISTINCT s.trader) AS traders,
+                sum(s.usdc_amount) AS volume
+         FROM lge_swaps s
+         WHERE s.hook_address = t.hook_address
+           AND s.block_ts > now() - interval '24 hours'
+       ) w ON true
+       LEFT JOIN LATERAL (
+         SELECT count(*) AS trades FROM lge_swaps s WHERE s.hook_address = t.hook_address
+       ) tot ON true
+       WHERE t.lge_successful
+       ORDER BY volume_24h_usdc DESC, t.updated_at DESC`
+    )
+    return res.rows.map(r => {
+      const price = r.last_price_usdc != null ? Number(r.last_price_usdc)
+        : r.launch_price_usdc != null ? Number(r.launch_price_usdc) : null
+      const supply = r.total_supply != null && r.decimals != null
+        ? Number(r.total_supply) / 10 ** Number(r.decimals) : null
+      const trades = Number(r.trades_24h)
+      const buys = Number(r.buys_24h)
+      return {
+        hookAddress: r.hook_address as string,
+        tokenAddress: r.token_address as string,
+        poolId: (r.pool_id as string | null) ?? null,
+        name: (r.name as string | null) ?? null,
+        symbol: (r.symbol as string | null) ?? null,
+        launchPriceUsdc: r.launch_price_usdc != null ? Number(r.launch_price_usdc) : null,
+        priceUsdc: price,
+        mcapUsdc: price != null && supply != null ? price * supply : null,
+        volume24hUsdc: Number(r.volume_24h_usdc),
+        trades24h: trades,
+        buys24h: buys,
+        sells24h: trades - buys,
+        traders24h: Number(r.traders_24h),
+        totalTrades: Number(r.total_trades),
+        agentSlug: (r.agent_slug as string | null) ?? null,
+        agentName: (r.agent_name as string | null) ?? null
+      }
+    })
+  }
+
+  async listLgeActivity (limit = 50): Promise<LgeActivityRow[]> {
+    const res = await this.pool.query(
+      `SELECT s.tx_hash, s.log_index, s.hook_address, s.block_number, s.block_ts,
+              s.trader, s.is_buy, s.token_amount, s.usdc_amount, s.price_usdc,
+              t.symbol
+       FROM lge_swaps s
+       JOIN lge_tokens t ON t.hook_address = s.hook_address
+       ORDER BY s.block_number DESC, s.log_index DESC
+       LIMIT $1`,
+      [Math.min(Math.max(1, limit), 200)]
+    )
+    return res.rows.map(r => ({
+      txHash: r.tx_hash as string,
+      logIndex: r.log_index as number,
+      hookAddress: r.hook_address as string,
+      symbol: (r.symbol as string | null) ?? null,
+      blockNumber: (r.block_number as string).toString(),
+      blockTs: r.block_ts instanceof Date ? r.block_ts.toISOString() : null,
+      trader: (r.trader as string | null) ?? null,
+      isBuy: r.is_buy as boolean,
+      tokenAmount: Number(r.token_amount),
+      usdcAmount: Number(r.usdc_amount),
+      priceUsdc: r.price_usdc != null ? Number(r.price_usdc) : null
+    }))
   }
 }

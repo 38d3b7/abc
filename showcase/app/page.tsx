@@ -1,13 +1,22 @@
 import { listPublished } from '@/lib/db'
 import { enrichDirectory } from '@/lib/directory'
+import { listOpenRaises } from '@/lib/lge'
+import { fetchBoard } from '@/lib/board'
 import { DirectoryBrowser } from './components/DirectoryBrowser'
+import { OpenRaises } from './components/OpenRaises'
+import { LiveTokens } from './components/LiveTokens'
 
 export const dynamic = 'force-dynamic'
 
-/** Apex agenticbusinessconsole.com: directory of published agent storefronts. */
+/** Apex agenticbusinessconsole.com: the token market (open raises + live
+ *  tokens) above the directory of published agent storefronts. */
 export default async function Directory () {
   const apps = await listPublished()
-  const entries = await enrichDirectory(apps)
+  const [entries, raises, board] = await Promise.all([
+    enrichDirectory(apps),
+    listOpenRaises().catch(() => []),
+    fetchBoard()
+  ])
 
   return (
     <main className="shell shell--wide">
@@ -28,7 +37,13 @@ export default async function Directory () {
         <div className="masthead-accent-line" aria-hidden="true" />
       </header>
 
-      <DirectoryBrowser entries={entries} />
+      <OpenRaises raises={raises} />
+      <LiveTokens board={board} />
+
+      <section className="section" aria-label="Agent directory">
+        <h2>Agents</h2>
+        <DirectoryBrowser entries={entries} />
+      </section>
 
       <footer className="footer">agenticbusinessconsole.com</footer>
     </main>

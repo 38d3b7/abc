@@ -129,11 +129,13 @@ export function createApp ({
 
   // Auth: SIWE session (console users) or X-ABC-Key (operator backchannel:
   // local dev, scripts). Open paths: /health, /inference/* (the x402 payment
-  // is its own auth), /auth/* (login).
+  // is its own auth), /auth/* (login), /public/* (the apex token board's
+  // read model — no per-user data).
   app.use('*', async (c, next) => {
     if (c.req.path === '/health') return next()
     if (c.req.path.startsWith('/inference/')) return next()
     if (c.req.path.startsWith('/auth/')) return next()
+    if (c.req.path.startsWith('/public/')) return next()
     if (c.req.header('X-ABC-Key') === config.apiKey) {
       c.set('caller', { kind: 'operator' })
       return next()
@@ -174,6 +176,18 @@ export function createApp ({
   }
 
   app.get('/health', c => c.json({ ok: true }))
+
+  // ---- public token board (apex site; open paths, read-only) ----
+  // Live tokens = successful LGEs with indexed pool swaps. Open raises are
+  // NOT here — the showcase reads those from chain state directly.
+  app.get('/public/tokens', async c => {
+    return c.json({ tokens: await store.listLgeBoard() })
+  })
+
+  app.get('/public/activity', async c => {
+    const limit = Number(c.req.query('limit') ?? '50')
+    return c.json({ swaps: await store.listLgeActivity(Number.isFinite(limit) ? limit : 50) })
+  })
 
   // ---- auth (SIWE login; open paths) ----
   app.get('/auth/nonce', async c => {

@@ -5,6 +5,8 @@
  *   automation-fire       — re-validate and fire a due automation
  *   keeper-claim-protocol — hourly permissionless claimProtocol sweep per hook
  *   index-deposits        — system emitter: poll Deposited events into the DB
+ *   index-lge-board       — system emitter: campaigns + PoolManager swaps into
+ *                           the public board tables (apex token board)
  *
  * Runs only against the production PgStore (jobs are operational, not part of
  * the pipeline's testable core).
@@ -22,6 +24,7 @@ import { isSent } from '../signer/types.js'
 import { isDue } from './due.js'
 import { QUEUES } from './queues.js'
 import { handleAgentPrompt, type AgentPromptJob } from './handlers.js'
+import { indexLgeBoard } from './lgeBoard.js'
 import { pushAppToShowcase } from '../apps/push.js'
 import { createInferenceBuyer } from '../inference/client.js'
 
@@ -186,6 +189,19 @@ export async function startWorker (): Promise<void> {
     }
   })
   await boss.schedule(QUEUES.indexDeposits, '*/2 * * * *') // every 2 minutes
+
+  // ---- LGE board indexer (system emitter): campaigns + pool swaps ----
+  await boss.createQueue(QUEUES.indexLgeBoard)
+  await boss.work(QUEUES.indexLgeBoard, async () => {
+    try {
+      await indexLgeBoard(store, chain)
+    } catch (err) {
+      // A failed tick must not kill the worker: the next schedule re-runs
+      // from the same checkpoints.
+      console.error('[lge-board] tick failed:', (err as Error).message)
+    }
+  })
+  await boss.schedule(QUEUES.indexLgeBoard, '*/2 * * * *') // every 2 minutes
 
   console.log('[worker] pg-boss started, queues:', Object.values(QUEUES).join(', '))
 }

@@ -16,8 +16,8 @@ to work — while a human operator supervises through a console built like an au
 | --- | --- |
 | `contracts/` | Uniswap v4 LGE hook + manager (Foundry). Hook v2: fee split, LP lock, vesting, inference escrow. |
 | `executor/` | The agent's back end: Hono API + worker + Postgres ledger + viem transaction pipeline + Circle signer adapter. |
-| `console/` | The operator console: Vite + React + wagmi. The Token section is the LGE home. |
-| `legacy/lge-frontend/` | The original LGE participant frontend, kept for reference. Superseded by `console/`. |
+| `console/` | The operator console: Vite + React + wagmi. Design rubric for every new screen, including token launches (`CONSOLE.md`). |
+| `legacy/lge-frontend/` | The original Hookathon deposit UI, kept for reference. Superseded by `console/`. Do not extend it or reuse its terminal look. |
 
 ## Baseline statement (judging delta)
 

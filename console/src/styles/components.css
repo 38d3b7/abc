@@ -190,6 +190,7 @@ table.table { width: 100%; border-collapse: collapse; }
   color: var(--ink);
 }
 
+.ticker,
 .campaign-link .ticker {
   font-weight: 500;
   color: var(--ink-3);
@@ -274,6 +275,10 @@ table.table { width: 100%; border-collapse: collapse; }
 }
 
 .stat-cell .stat-value.small-val { font-size: var(--text-sm); }
+
+.num-up { color: var(--ok-ink); }
+.num-down { color: var(--bad-ink); }
+
 
 /* KeyValue */
 .kv {

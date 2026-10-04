@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import type { DirectoryEntry, DirectoryFilter } from '@/lib/directory-shared'
-import { matchesFilter, matchesSearch, statusLabel } from '@/lib/directory-shared'
+import { agentSiteUrl, matchesFilter, matchesSearch, statusLabel } from '@/lib/directory-shared'
 
 const FILTERS: { id: DirectoryFilter; label: string }[] = [
   { id: 'all-sites', label: 'All sites' },
@@ -57,10 +57,10 @@ export function DirectoryBrowser ({ entries }: { entries: DirectoryEntry[] }) {
         : (
           <div className="dir-list">
             {visible.map(app => (
-              <a key={app.slug} className="dir-row" href={`https://${app.slug}.agenticbusinessconsole.com`}>
+              <a key={app.slug} className="dir-row" href={agentSiteUrl(app.slug)}>
                 <div className="dir-row-main">
                   <span className="dir-name">{app.name}</span>
-                  <span className="dir-slug">{app.slug}.agenticbusinessconsole.com</span>
+                  <span className="dir-slug">{new URL(agentSiteUrl(app.slug)).host}</span>
                 </div>
                 <div className="dir-row-meta">
                   <span className={`dir-status dir-status--${app.lgeStatus}`}>{statusLabel(app.lgeStatus)}</span>

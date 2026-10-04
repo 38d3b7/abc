@@ -2,6 +2,12 @@
 
 Draft 1 Oct 2026. How the console should look and read, positioned against the two products we reverse-engineered. `PRODUCT.md` says what we build; this file says how it presents.
 
+## Design rubric
+
+The operator UI is `console/` in this repo. This file, and that app's styles (`console/src/styles/tokens.css`, `shell.css`, `components.css`), are the rubric for every new screen, including token launches.
+
+`legacy/lge-frontend/` is the inherited Hookathon deposit UI, kept for reference. That look is legacy: black ground, terminal green, matrix scanlines, Orbitron and Chakra Petch, Privy chrome. Do not extend it, skin a new page with it, or treat it as the product frontend. A new launch screen is a console section, using the console's paper, type, tables, and controls.
+
 ## Position
 
 The two incumbents both read as consumer crypto. One leans on saturated, shifting colour and a chat window as the whole interface. The other is a dark, green-tinted terminal aesthetic built for degens launching memecoins. Both put the agent's personality in front and the money behind it.

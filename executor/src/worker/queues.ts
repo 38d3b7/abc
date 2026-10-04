@@ -9,5 +9,6 @@ export const QUEUES = {
   automationTick: 'automation-tick',
   automationFire: 'automation-fire',
   keeperClaimProtocol: 'keeper-claim-protocol',
-  indexDeposits: 'index-deposits'
+  indexDeposits: 'index-deposits',
+  indexLgeBoard: 'index-lge-board'
 } as const
