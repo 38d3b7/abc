@@ -10,10 +10,13 @@ import { fetchLogsSplit } from './log-range'
  * history-derived and comes from the executor's indexer (lib/board.ts).
  */
 
-// Arc testnet deployment (mirrors console/src/config/contracts/addresses.ts,
-// which is generated — this copy is the showcase's own source of truth).
-const LGE_MANAGER = '0x42213058b545625f8be3e80ba086c14e8fd22920' as Address
-const MANAGER_DEPLOY_BLOCK = 64961838n
+// Arc testnet deployments. The console/executor moved to a new manager after
+// the first testnet deploy; the showcase discovers raises from both so early
+// launches (including the current user's active raises) still appear.
+const LGE_MANAGERS: { address: Address; deployBlock: bigint }[] = [
+  { address: '0x47c7abdab6ea18621ba151a0d6d9cc1260997827', deployBlock: 65441802n },
+  { address: '0x42213058b545625f8be3e80ba086c14e8fd22920', deployBlock: 64961838n }
+]
 
 const TOKEN_CREATED_EVENT = parseAbi([
   'event TokenCreated(address indexed msgSender, address indexed tokenAddress, address indexed hookAddress)'
@@ -75,16 +78,26 @@ export async function listOpenRaises (): Promise<OpenRaise[]> {
   // The public RPC refuses wide spans ("requested range too large") — halve
   // until it answers. Always pass toBlock: it silently truncates otherwise
   // (observed 2026-10-01).
-  const logs = await fetchLogsSplit(
-    (f, t) => client.getLogs({
-      address: LGE_MANAGER,
-      event: TOKEN_CREATED_EVENT,
-      fromBlock: f,
-      toBlock: t
-    }),
-    MANAGER_DEPLOY_BLOCK,
-    latestBlock
-  )
+  const seen = new Set<string>()
+  const logs = []
+  for (const mgr of LGE_MANAGERS) {
+    const batch = await fetchLogsSplit(
+      (f, t) => client.getLogs({
+        address: mgr.address,
+        event: TOKEN_CREATED_EVENT,
+        fromBlock: f,
+        toBlock: t
+      }),
+      mgr.deployBlock,
+      latestBlock
+    )
+    for (const l of batch) {
+      const hook = (l.args.hookAddress as Hex).toLowerCase()
+      if (seen.has(hook)) continue
+      seen.add(hook)
+      logs.push(l)
+    }
+  }
 
   const apps = await listPublished()
   const appByHook = new Map(apps.filter(a => a.hookAddress).map(a => [a.hookAddress!.toLowerCase(), a]))

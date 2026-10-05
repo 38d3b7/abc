@@ -10,6 +10,13 @@ import { HashLink } from '../components/HashLink'
 import { ProgressBar } from '../components/ProgressBar'
 import { PageShell, PageStatus } from '../components/PageShell'
 import { executorUnreachableMessage } from '../lib/executorError'
+import { useCampaign, campaignChip } from './Token'
+
+function TokenStatus ({ hook }: { hook: `0x${string}` }) {
+  const c = useCampaign(hook)
+  if (!c.data) return null
+  return campaignChip(c.data)
+}
 
 function parseBalance (json: string | undefined): bigint {
   if (!json) return 0n
@@ -82,7 +89,13 @@ export function Overview () {
             label: 'Agent USDC balance',
             value: balance.data ? `${fmtUsdc(balance.data.value)} USDC` : (a.walletAddress ? '…' : 'wallet not provisioned'),
           },
-          { label: 'Token', value: a.tokenAddress ? <HashLink hash={a.tokenAddress} /> : 'not launched', small: true },
+          {
+            label: 'Token',
+            value: a.tokenAddress
+              ? <span className="inline-flex items-center gap-2"><HashLink hash={a.tokenAddress} />{a.hookAddress ? <TokenStatus hook={a.hookAddress as `0x${string}`} /> : null}</span>
+              : 'not launched',
+            small: true
+          },
           { label: 'Hook', value: a.hookAddress ? <HashLink hash={a.hookAddress} /> : '—', small: true },
           { label: 'Policy', value: a.policy.paused ? 'paused' : 'active', small: true }
         ]} />

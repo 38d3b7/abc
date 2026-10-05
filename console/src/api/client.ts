@@ -142,6 +142,22 @@ export interface AgentSite {
   updatedAt: string
 }
 
+export interface AgentCampaign {
+  id: string
+  agentId: string
+  tokenAddress: string
+  hookAddress: string
+  name: string | null
+  symbol: string | null
+  cap: string
+  startBlock: string
+  streamBlocks: string
+  minTokenPrice: string
+  maxTokenPrice: string
+  feeBps: number
+  createdAt: string
+}
+
 export const api = {
   listAgents: async () => (await req<{ agents: Agent[] }>('GET', '/agents')).agents,
   getAgent: async (id: string) => (await req<{ agent: Agent }>('GET', `/agents/${id}`)).agent,
@@ -206,7 +222,10 @@ export const api = {
     tokenAddress: string; hookAddress: string; name?: string; symbol?: string
     cap: string; startBlock: string; streamBlocks: string
     minTokenPrice: string; maxTokenPrice: string; feeBps: number
-  }) => req<{ ok: true }>('POST', `/agents/${agentId}/campaigns`, c, crypto.randomUUID())
+  }) => req<{ ok: true }>('POST', `/agents/${agentId}/campaigns`, c, crypto.randomUUID()),
+
+  listAgentCampaigns: async (agentId: string) =>
+    (await req<{ campaigns: AgentCampaign[] }>('GET', `/agents/${agentId}/campaigns`)).campaigns
 }
 
 export { BASE as EXECUTOR_BASE }

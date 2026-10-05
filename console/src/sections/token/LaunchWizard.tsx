@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi'
 import { parseEther } from 'viem'
+import { useQueryClient } from '@tanstack/react-query'
 import { mineLaunch } from '../../lib/lge'
 import { BLOCKS_PER_HOUR } from '../../lib/chain'
 import { LGEManagerAbi } from '../../config/contracts/abis/LGEManagerAbi'
 import { LGE_MANAGER_ARC_TESTNET } from '../../config/contracts/addresses'
+import { api } from '../../api/client'
+import { useAgent } from '../../App'
 import { Drawer } from '../../components/Drawer'
 import { Button } from '../../components/Button'
 
@@ -16,6 +19,8 @@ export function LaunchWizard ({ onClose, onLaunched }: { onClose: () => void; on
   const { address } = useAccount()
   const client = usePublicClient()
   const { writeContractAsync } = useWriteContract()
+  const agent = useAgent()
+  const qc = useQueryClient()
 
   const [name, setName] = useState('')
   const [symbol, setSymbol] = useState('')
@@ -89,6 +94,26 @@ export function LaunchWizard ({ onClose, onLaunched }: { onClose: () => void; on
       })
       setBusy('Waiting for confirmation…')
       await client.waitForTransactionReceipt({ hash })
+
+      if (agent.data?.id) {
+        setBusy('Recording launch…')
+        await api.registerCampaign(agent.data.id, {
+          tokenAddress: mined.tokenAddress,
+          hookAddress: mined.hookAddress,
+          name: params.name,
+          symbol: params.symbol,
+          cap: params.cap.toString(),
+          startBlock: params.startBlock.toString(),
+          streamBlocks: params.streamBlocks.toString(),
+          minTokenPrice: params.minTokenPrice.toString(),
+          maxTokenPrice: params.maxTokenPrice.toString(),
+          feeBps: params.feeBps
+        })
+        await qc.invalidateQueries({ queryKey: ['agents'] })
+        // ensure the Token list (and homepage) pick up the new launch without a manual refresh
+        await qc.invalidateQueries({ queryKey: ['campaigns'] })
+      }
+
       onLaunched(mined.hookAddress)
     } catch (e) {
       setError((e as Error).message.split('\n')[0])

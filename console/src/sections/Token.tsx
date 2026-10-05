@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePublicClient, useWatchBlockNumber } from 'wagmi'
 import { useQueries, useQuery, keepPreviousData } from '@tanstack/react-query'
-import { listCampaigns, readCampaign, type CampaignState } from '../lib/lge'
+import { readCampaign, type CampaignState } from '../lib/lge'
+import { api } from '../api/client'
+import { useAgent } from '../App'
 import { fmtTokens, fmtUsdc, fmtBlocks } from '../lib/format'
 import { Table } from '../components/Table'
 import { Button } from '../components/Button'
@@ -50,15 +52,23 @@ function matchesLaunchState (s: CampaignState, filter: string): boolean {
 export function Token () {
   const { hookAddress } = useParams()
   const client = usePublicClient()
+  const agent = useAgent()
   const [wizardOpen, setWizardOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [stateFilter, setStateFilter] = useState('all')
   const navigate = useNavigate()
 
   const campaigns = useQuery({
-    queryKey: ['campaigns'],
-    queryFn: () => listCampaigns(client!),
-    enabled: Boolean(client)
+    queryKey: ['campaigns', agent.data?.id],
+    queryFn: async () => {
+      const rows = await api.listAgentCampaigns(agent.data!.id)
+      return rows.map(r => ({
+        creator: (agent.data!.walletAddress ?? '0x') as `0x${string}`,
+        token: r.tokenAddress as `0x${string}`,
+        hook: r.hookAddress as `0x${string}`
+      }))
+    },
+    enabled: Boolean(agent.data?.id)
   })
 
   if (hookAddress) {

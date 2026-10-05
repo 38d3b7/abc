@@ -31,28 +31,38 @@ export interface CampaignRef {
   hook: Address
 }
 
+const LOG_RANGE = 4000n // Arc testnet rejects ranges >~5000 blocks; keep a margin
+
 export async function listCampaigns (client: PublicClient): Promise<CampaignRef[]> {
-  const logs = await client.getLogs({
-    address: MANAGER,
-    event: {
-      type: 'event',
-      name: 'TokenCreated',
-      inputs: [
-        { name: 'msgSender', type: 'address', indexed: true },
-        { name: 'tokenAddress', type: 'address', indexed: true },
-        { name: 'hookAddress', type: 'address', indexed: true }
-      ]
-    },
-    fromBlock: DEPLOY_BLOCK,
-    // Arc's public RPC silently truncates eth_getLogs when toBlock is omitted
-    // (observed 2026-10-01: 2 logs on-chain, 1 returned). Always pass it.
-    toBlock: 'latest'
-  })
-  return logs.map(l => ({
-    creator: l.args.msgSender as Address,
-    token: l.args.tokenAddress as Address,
-    hook: l.args.hookAddress as Address
-  }))
+  const event = {
+    type: 'event' as const,
+    name: 'TokenCreated' as const,
+    inputs: [
+      { name: 'msgSender', type: 'address' as const, indexed: true },
+      { name: 'tokenAddress', type: 'address' as const, indexed: true },
+      { name: 'hookAddress', type: 'address' as const, indexed: true }
+    ]
+  }
+  const head = await client.getBlockNumber()
+  const out: CampaignRef[] = []
+  for (let from = DEPLOY_BLOCK; from <= head; from += LOG_RANGE) {
+    const to = from + LOG_RANGE - 1n > head ? head : from + LOG_RANGE - 1n
+    const logs = await client.getLogs({
+      address: MANAGER,
+      event,
+      fromBlock: from,
+      toBlock: to
+    })
+    for (const l of logs) {
+      const a = l.args as { msgSender: Address; tokenAddress: Address; hookAddress: Address }
+      out.push({
+        creator: a.msgSender,
+        token: a.tokenAddress,
+        hook: a.hookAddress
+      })
+    }
+  }
+  return out
 }
 
 // ------------------------------------------------------------------
