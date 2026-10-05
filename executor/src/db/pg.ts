@@ -216,6 +216,12 @@ export class PgStore implements Store {
       'UPDATE agents SET token_address = $2, hook_address = $3 WHERE id = $1',
       [c.agentId, c.tokenAddress, c.hookAddress]
     )
+    // Keep the published showcase app in sync so the public directory and
+    // open-raises board pick up the new hook/token without a separate publish.
+    await this.pool.query(
+      'UPDATE apps SET token_address = $2, hook_address = $3, updated_at = now() WHERE agent_id = $1',
+      [c.agentId, c.tokenAddress, c.hookAddress]
+    )
   }
 
   async listCampaigns (agentId: string): Promise<CampaignRow[]> {

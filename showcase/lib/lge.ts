@@ -1,6 +1,6 @@
 import { type Address, type Hex, parseAbi } from 'viem'
 import { publicClient } from './chain'
-import { listPublished } from './db'
+import { listPublished, getPublishedCampaignSlugsByHook } from './db'
 import { fetchLogsSplit } from './log-range'
 
 /**
@@ -101,6 +101,7 @@ export async function listOpenRaises (): Promise<OpenRaise[]> {
 
   const apps = await listPublished()
   const appByHook = new Map(apps.filter(a => a.hookAddress).map(a => [a.hookAddress!.toLowerCase(), a]))
+  const slugByHook = await getPublishedCampaignSlugsByHook([...seen])
 
   const secsPerBlock = await secondsPerBlock().catch(() => 0.3)
 
@@ -134,6 +135,7 @@ export async function listOpenRaises (): Promise<OpenRaise[]> {
       const raisedUsdc = Number(raised) / 1e18
       const capUsdc = Number(cap) / 1e18
       const app = appByHook.get(hook.toLowerCase())
+      const campaign = slugByHook.get(hook.toLowerCase())
       return {
         hook,
         token,
@@ -147,8 +149,8 @@ export async function listOpenRaises (): Promise<OpenRaise[]> {
         tokensPerUsdc: Number(currentPrice),
         blocksLeft,
         secondsLeft: blocksLeft * secsPerBlock,
-        agentSlug: app?.slug ?? null,
-        agentName: app?.name ?? null
+        agentSlug: app?.slug ?? campaign?.slug ?? null,
+        agentName: app?.name ?? campaign?.name ?? null
       }
     } catch {
       return null // a hook that doesn't answer is not a raise we can show

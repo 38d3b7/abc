@@ -4,22 +4,35 @@ Audience: senior dev replicating the 2026-10-01 deployment by hand. Every step
 below is the one that actually worked; each "watch out" is a real failure hit
 during the first pass.
 
-Resulting deployment (final, 2026-10-01; machine-readable in
-`contracts/deployments/5042002.json`):
+Current live deployment (2026-10-04, deploy block 65441802; machine-readable
+and canonical in `contracts/deployments/5042002.json` — if this table and that
+file ever disagree, the JSON wins and this table is stale):
 
 | Contract | Address |
 |---|---|
-| LGEManager | `0x42213058B545625f8bE3e80bA086C14e8fd22920` |
-| HookCreationCode | `0xB2607DD5d2bCf4C6F26D36A32F3Fd1Df9D3a5c75` |
+| LGEManager | `0x47c7abdab6ea18621ba151a0d6d9cc1260997827` |
+| HookCreationCode | `0x11caa4dd5d3cb961cf471d5f05b7c467cd8fabd8` |
 | LGECalculationsLibrary | `0xA6C7f398122707Bd10f917A091D3BC7C2C95d53b` |
-| HookMinerWrapper | `0x768956E0207f9902f11a4E209eF4353a3EC1D7E0` |
-| VestingVault | `0x191FD96343b41A13F679dcC87423070E1782438a` |
-| InferenceEscrow | `0xe43226c234B0f425E564e909ae383EB734e74811` |
+| HookMinerWrapper | `0xcbadcc1521ae32013f57b3283e78b25238cd0a87` |
+| VestingVault | `0x7fd401719ece5b4025f934d7d924164bfb4a79e6` |
+| InferenceEscrow | `0x988e6c553b8224a0373433b8b7ab7dd7a3aaf18a` |
+| Protocol (treasury EOA) | `0x8fC24CbF442bE3D749981977e27105cb274c4DEc` |
 
-Live campaigns on this manager (hook addresses are mined per launch, flags
-`0x22CC`): E2ES (successful) hook `0x50FA93893fAc68eDc4aA2D4665f90aC6E78DeaCc`;
-WLK3 (successful, full console walkthrough) hook
-`0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC`.
+Superseded managers — still live on-chain, still emitting `TokenCreated`, but
+nothing should deploy to or read from them except historical discovery:
+`0x42213058B545625f8bE3e80bA086C14e8fd22920` (2026-10-03/04, deploy block
+64961838; the E2ES and WLK3 walkthrough campaigns live here) and
+`0x0aa1421add6b810a0d99541fb13501948bdcdb7a` (2026-10-01 Hookathon-era, from
+`alenarc/lge-contracts`; the legacy `lge-frontend/.env` still points here).
+
+After ANY redeploy, in order: `contracts/script/sync-console.mjs` (regenerates
+`console/src/config/contracts/addresses.ts` from the broadcast JSON), then
+**rebuild the console and showcase bundles** — a stale `dist/` keeps the old
+manager address and silently launches to it (this happened 2026-10-05:
+console bundle built 11:30, manager redeployed 14:34, launches went to the
+old manager for a day) — then reindex the executor
+(`executor/script/trigger-lge-index.ts`) and mirror the manager address +
+deploy block into `showcase/lib/lge.ts` (`LGE_MANAGERS`).
 
 Arc v4 infrastructure (official Uniswap deployment, not ours to deploy):
 PoolManager `0x8366a39CC670B4001A1121B8F6A443A643e40951`,

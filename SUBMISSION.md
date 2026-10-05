@@ -20,8 +20,8 @@ Public monorepo: https://github.com/38d3b7/abc
 |---|---|
 | Repo | https://github.com/38d3b7/abc |
 | Console (local) | `cd console && npm run dev` — Vite, needs executor on :8787 |
-| LGEManager | [`0x42213058B545625f8bE3e80bA086C14e8fd22920`](https://explorer.testnet.arc.io/address/0x42213058B545625f8bE3e80bA086C14e8fd22920) |
-| Walkthrough campaign (WLK3) | [`0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC`](https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC) |
+| LGEManager | [`0x47c7abdab6ea18621ba151a0d6d9cc1260997827`](https://explorer.testnet.arc.io/address/0x47c7abdab6ea18621ba151a0d6d9cc1260997827) (canonical: `contracts/deployments/5042002.json`) |
+| Walkthrough campaign (WLK3) | [`0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC`](https://explorer.testnet.arc.io/address/0xD110BC51cE240f110D9f26AFFB745eb51E80AAcC) (ran on the previous manager, `0x4221…2920`) |
 | Pipeline tx | [`0x1d4103b2428d42ff538d63fe3375fcc16350975e00cf10922cb16733f3059868`](https://explorer.testnet.arc.io/tx/0x1d4103b2428d42ff538d63fe3375fcc16350975e00cf10922cb16733f3059868) |
 | Demo | `demo/abc-demo.mp4` (~90s) |
 

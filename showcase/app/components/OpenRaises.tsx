@@ -1,3 +1,5 @@
+'use client'
+
 import type { OpenRaise } from '@/lib/lge'
 import { agentSiteUrl } from '@/lib/directory-shared'
 import { fmtCount, fmtDuration, fmtUsd } from '@/lib/format'
@@ -26,33 +28,42 @@ export function OpenRaises ({ raises }: { raises: OpenRaise[] }) {
                 </tr>
               </thead>
               <tbody>
-                {raises.map(r => (
-                  <tr key={r.hook}>
-                    <td>
-                      <div className="board-token">
-                        <span className="board-token-name">{r.name || '—'}</span>
-                        <span className="board-token-sub">
-                          {r.symbol || '—'}
-                          {r.agentName ? ` · ${r.agentName}` : ''}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="num">{fmtUsd(r.raisedUsdc)} <span className="board-dim">/ {fmtUsd(r.capUsdc)}</span></td>
-                    <td className="num">
-                      <div className="board-progress" role="progressbar" aria-valuenow={Math.round(r.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
-                        <div className="board-progress-fill" style={{ width: `${Math.round(r.progress * 100)}%` }} />
-                      </div>
-                      <span className="board-dim">{Math.round(r.progress * 100)}%</span>
-                    </td>
-                    <td className="num">{fmtCount(r.tokensPerUsdc)} <span className="board-dim">/ USDC</span></td>
-                    <td className="num">{fmtDuration(r.secondsLeft)}</td>
-                    <td className="num">
-                      {r.agentSlug
-                        ? <a className="board-cta" href={agentSiteUrl(r.agentSlug)}>Deposit</a>
-                        : <span className="board-dim">—</span>}
-                    </td>
-                  </tr>
-                ))}
+                {raises.map(r => {
+                  const href = r.agentSlug ? agentSiteUrl(r.agentSlug) : undefined
+                  return (
+                    <tr
+                      key={r.hook}
+                      onClick={() => { if (href) window.location.href = href }}
+                      style={href ? { cursor: 'pointer' } : undefined}
+                    >
+                      <td>
+                        <div className="board-token">
+                          {href
+                            ? <a className="board-token-name" href={href} onClick={e => e.stopPropagation()}>{r.name || '—'}</a>
+                            : <span className="board-token-name">{r.name || '—'}</span>}
+                          <span className="board-token-sub">
+                            {r.symbol || '—'}
+                            {r.agentName ? ` · ${r.agentName}` : ''}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="num">{fmtUsd(r.raisedUsdc)} <span className="board-dim">/ {fmtUsd(r.capUsdc)}</span></td>
+                      <td className="num">
+                        <div className="board-progress" role="progressbar" aria-valuenow={Math.round(r.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
+                          <div className="board-progress-fill" style={{ width: `${Math.round(r.progress * 100)}%` }} />
+                        </div>
+                        <span className="board-dim">{Math.round(r.progress * 100)}%</span>
+                      </td>
+                      <td className="num">{fmtCount(r.tokensPerUsdc)} <span className="board-dim">/ USDC</span></td>
+                      <td className="num">{fmtDuration(r.secondsLeft)}</td>
+                      <td className="num">
+                        {href
+                          ? <a className="board-cta" href={href} onClick={e => e.stopPropagation()}>Deposit</a>
+                          : <span className="board-dim">—</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

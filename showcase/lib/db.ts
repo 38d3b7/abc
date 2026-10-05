@@ -89,6 +89,30 @@ export async function listPublished (): Promise<ShowcaseApp[]> {
   return rows.map(toApp)
 }
 
+/** Map hook addresses to published agent slugs via the executor's campaigns
+ *  table. This catches launches whose app record was published before the
+ *  hook address was written, or where the hook address lives on the agent
+ *  rather than the app row. */
+export async function getPublishedCampaignSlugsByHook (hooks: string[]): Promise<Map<string, { slug: string; name: string }>> {
+  if (hooks.length === 0) return new Map()
+  const normalized = hooks.map(h => h.toLowerCase())
+  try {
+    const rows = await client()`
+      SELECT DISTINCT ON (c.hook_address) c.hook_address, a.slug, a.name
+      FROM campaigns c
+      JOIN apps a ON a.agent_id = c.agent_id
+      WHERE c.hook_address = ANY(${normalized}::text[])
+        AND a.published
+      ORDER BY c.hook_address, a.updated_at DESC
+    ` as { hook_address: string; slug: string; name: string }[]
+    return new Map(rows.map(r => [r.hook_address.toLowerCase(), { slug: r.slug, name: r.name }]))
+  } catch {
+    // The showcase_writer role may not have SELECT on campaigns; fall back
+    // to the app.hook_address mapping already loaded above.
+    return new Map()
+  }
+}
+
 /** The write API's upsert. Caller has already authenticated. */
 export async function upsertApp (app: ShowcaseApp): Promise<void> {
   const db = client()
