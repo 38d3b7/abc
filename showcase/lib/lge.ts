@@ -98,14 +98,16 @@ export async function listOpenRaises (): Promise<OpenRaise[]> {
       logs.push(l)
     }
   }
-
   const apps = await listPublished()
   const appByHook = new Map(apps.filter(a => a.hookAddress).map(a => [a.hookAddress!.toLowerCase(), a]))
   const slugByHook = await getPublishedCampaignSlugsByHook([...seen])
 
   const secsPerBlock = await secondsPerBlock().catch(() => 0.3)
 
-  const raises = await Promise.all(logs.map(async (log): Promise<OpenRaise | null> => {
+  // Process hooks serially: the Arc RPC rejects bursts of parallel
+  // multicalls, and a failed read drops the raise from the board.
+  const raises: OpenRaise[] = []
+  for (const log of logs) {
     const hook = log.args.hookAddress as Hex
     try {
       const token = await client.readContract({ address: hook, abi: HOOK_VIEWS, functionName: 'token' })
@@ -131,12 +133,12 @@ export async function listOpenRaises (): Promise<OpenRaise[]> {
       // Open = not finalized AND inside the window. isLgeFinished lags:
       // expired-but-unsettled campaigns still read false (observed
       // 2026-10-04: WLK2/TEST windows ended, isLgeFinished false).
-      if (finished || blocksLeft === 0) return null
+      if (finished || blocksLeft === 0) continue
       const raisedUsdc = Number(raised) / 1e18
       const capUsdc = Number(cap) / 1e18
       const app = appByHook.get(hook.toLowerCase())
       const campaign = slugByHook.get(hook.toLowerCase())
-      return {
+      raises.push({
         hook,
         token,
         name,
@@ -151,13 +153,11 @@ export async function listOpenRaises (): Promise<OpenRaise[]> {
         secondsLeft: blocksLeft * secsPerBlock,
         agentSlug: app?.slug ?? campaign?.slug ?? null,
         agentName: app?.name ?? campaign?.name ?? null
-      }
+      })
     } catch {
-      return null // a hook that doesn't answer is not a raise we can show
+      // a hook that doesn't answer is not a raise we can show
     }
-  }))
+  }
 
-  return raises
-    .filter((r): r is OpenRaise => r != null)
-    .sort((a, b) => b.progress - a.progress || a.secondsLeft - b.secondsLeft)
+  return raises.sort((a, b) => b.progress - a.progress || a.secondsLeft - b.secondsLeft)
 }

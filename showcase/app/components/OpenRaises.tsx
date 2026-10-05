@@ -8,7 +8,7 @@ import { fmtCount, fmtDuration, fmtUsd } from '@/lib/format'
  * Open raises — LGEs in progress, read from chain state. The deposit CTA
  * lives on the agent's own site (PRODUCT.md); the row links there.
  */
-export function OpenRaises ({ raises }: { raises: OpenRaise[] }) {
+export function OpenRaises ({ raises, consoleUrl }: { raises: OpenRaise[]; consoleUrl: string }) {
   return (
     <section className="section board-section" aria-label="Open raises">
       <h2>Open raises</h2>
@@ -29,18 +29,18 @@ export function OpenRaises ({ raises }: { raises: OpenRaise[] }) {
               </thead>
               <tbody>
                 {raises.map(r => {
-                  const href = r.agentSlug ? agentSiteUrl(r.agentSlug) : undefined
+                  const href = r.agentSlug
+                    ? agentSiteUrl(r.agentSlug)
+                    : `${consoleUrl}/token/${r.hook}`
                   return (
                     <tr
                       key={r.hook}
-                      onClick={() => { if (href) window.location.href = href }}
-                      style={href ? { cursor: 'pointer' } : undefined}
+                      onClick={() => { window.location.href = href }}
+                      style={{ cursor: 'pointer' }}
                     >
                       <td>
                         <div className="board-token">
-                          {href
-                            ? <a className="board-token-name" href={href} onClick={e => e.stopPropagation()}>{r.name || '—'}</a>
-                            : <span className="board-token-name">{r.name || '—'}</span>}
+                          <a className="board-token-name" href={href} onClick={e => e.stopPropagation()}>{r.name || '—'}</a>
                           <span className="board-token-sub">
                             {r.symbol || '—'}
                             {r.agentName ? ` · ${r.agentName}` : ''}
@@ -57,9 +57,7 @@ export function OpenRaises ({ raises }: { raises: OpenRaise[] }) {
                       <td className="num">{fmtCount(r.tokensPerUsdc)} <span className="board-dim">/ USDC</span></td>
                       <td className="num">{fmtDuration(r.secondsLeft)}</td>
                       <td className="num">
-                        {href
-                          ? <a className="board-cta" href={href} onClick={e => e.stopPropagation()}>Deposit</a>
-                          : <span className="board-dim">—</span>}
+                        <a className="board-cta" href={href} onClick={e => e.stopPropagation()}>Deposit</a>
                       </td>
                     </tr>
                   )

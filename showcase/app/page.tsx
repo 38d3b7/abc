@@ -8,6 +8,8 @@ import { LiveTokens } from './components/LiveTokens'
 
 export const dynamic = 'force-dynamic'
 
+const CONSOLE_URL = process.env.NEXT_PUBLIC_CONSOLE_URL ?? process.env.CONSOLE_BASE_URL ?? 'https://app.agenticbusinessconsole.com'
+
 /** Apex agenticbusinessconsole.com: the token market (open raises + live
  *  tokens) above the directory of published agent storefronts. */
 export default async function Directory () {
@@ -37,7 +39,7 @@ export default async function Directory () {
         <div className="masthead-accent-line" aria-hidden="true" />
       </header>
 
-      <OpenRaises raises={raises} />
+      <OpenRaises raises={raises} consoleUrl={CONSOLE_URL} />
       <LiveTokens board={board} />
 
       <section className="section" aria-label="Agent directory">
