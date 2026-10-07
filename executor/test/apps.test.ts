@@ -274,7 +274,7 @@ describe('lge_launch', () => {
 
   it('runs end to end: FINAL with the campaign registered', async () => {
     const { store, agent, runner } = await setup()
-    await store.upsertApp(agent.id, 'atlas', { name: 'Atlas', tagline: '', idea: '', roadmap: [], links: [] }, { tokenAddress: null, hookAddress: null })
+    await store.upsertApp(agent.id, 'atlas', { name: 'Atlas', tagline: '', idea: '', roadmap: [], links: [], xHandle: null }, { tokenAddress: null, hookAddress: null })
     const prepared = await runner.prepareLaunch(WALLET, {
       name: 'Atlas Token',
       symbol: 'ATLAS',
@@ -332,7 +332,7 @@ describe('lge_launch retry guard', () => {
     const store = new MemoryStore()
     const created = await store.createAgent('Test', 'test')
     await store.registerWallet(created.id, WALLET, 'local_dev', 'fake')
-    await store.upsertApp(created.id, 'test', { name: 'Test', tagline: '', idea: '', roadmap: [], links: [] }, { tokenAddress: null, hookAddress: null })
+    await store.upsertApp(created.id, 'test', { name: 'Test', tagline: '', idea: '', roadmap: [], links: [], xHandle: null }, { tokenAddress: null, hookAddress: null })
     await store.registerCampaign({ agentId: created.id, ...PRIOR })
     const quoteSigner = await QuoteSigner.create()
     const runner = new PipelineRunner({
