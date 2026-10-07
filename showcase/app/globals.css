@@ -221,6 +221,37 @@ a { color: var(--accent-ink); }
 .cta:hover { background: var(--accent-ink); }
 .cta-note { color: var(--ink-3); font-size: 13px; margin-top: 10px; }
 
+.raise-card {
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.raise-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.raise-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.raise-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .token-facts {
   font-family: var(--mono);
   font-size: 12px;

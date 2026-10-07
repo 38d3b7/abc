@@ -1,6 +1,7 @@
 /**
  * Enrichment for agents with live LGEs: a single multicall per hook gives us
- * the progress metrics needed by the square tile.
+ * the progress metrics needed by the square tile and the storefront raise
+ * section.
  */
 import { type Hex, parseAbi } from 'viem'
 import { publicClient } from './chain'
@@ -40,26 +41,24 @@ export interface LiveLgeMetrics {
   currentTokensPerUsdc: number
 }
 
-export async function readLiveLgeMetrics (app: ShowcaseApp): Promise<LiveLgeMetrics | null> {
-  if (!app.hookAddress) return null
-  const hook = app.hookAddress as Hex
+/** Read live LGE metrics straight from a hook address. */
+export async function readLiveLgeMetricsByHook (hook: string): Promise<LiveLgeMetrics | null> {
+  const addr = hook as Hex
   const client = publicClient()
   try {
-    const [token] = await Promise.all([
-      client.readContract({ address: hook, abi: LGE_ABI, functionName: 'token' })
-    ])
+    const token = await client.readContract({ address: addr, abi: LGE_ABI, functionName: 'token' })
     const results = await client.multicall({
       contracts: [
         { address: token, abi: TOKEN_ABI, functionName: 'name' },
         { address: token, abi: TOKEN_ABI, functionName: 'symbol' },
         { address: token, abi: parseAbi(['function cap() view returns (uint256)']), functionName: 'cap' },
-        { address: hook, abi: LGE_ABI, functionName: 'totalUsdcRaised' },
-        { address: hook, abi: LGE_ABI, functionName: 'totalTokensClaimed' },
-        { address: hook, abi: LGE_ABI, functionName: 'startBlock' },
-        { address: hook, abi: LGE_ABI, functionName: 'streamBlocks' },
-        { address: hook, abi: LGE_ABI, functionName: 'minTokenPrice' },
-        { address: hook, abi: LGE_ABI, functionName: 'maxTokenPrice' },
-        { address: hook, abi: LGE_ABI, functionName: 'currentTokenPrice' }
+        { address: addr, abi: LGE_ABI, functionName: 'totalUsdcRaised' },
+        { address: addr, abi: LGE_ABI, functionName: 'totalTokensClaimed' },
+        { address: addr, abi: LGE_ABI, functionName: 'startBlock' },
+        { address: addr, abi: LGE_ABI, functionName: 'streamBlocks' },
+        { address: addr, abi: LGE_ABI, functionName: 'minTokenPrice' },
+        { address: addr, abi: LGE_ABI, functionName: 'maxTokenPrice' },
+        { address: addr, abi: LGE_ABI, functionName: 'currentTokenPrice' }
       ],
       allowFailure: false
     })
@@ -92,4 +91,9 @@ export async function readLiveLgeMetrics (app: ShowcaseApp): Promise<LiveLgeMetr
   } catch {
     return null
   }
+}
+
+export async function readLiveLgeMetrics (app: ShowcaseApp): Promise<LiveLgeMetrics | null> {
+  if (!app.hookAddress) return null
+  return readLiveLgeMetricsByHook(app.hookAddress)
 }

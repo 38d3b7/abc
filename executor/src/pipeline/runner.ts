@@ -176,6 +176,14 @@ export class PipelineRunner {
 
   private async quoteStage (row: IntentRow): Promise<{ intent: IntentRow; quote?: QuotePayload; signature?: string }> {
     const intent = parseIntent(row.type, row.params)
+
+    if (intent.type === 'lge_launch') {
+      const app = await this.d.store.getApp(row.agentId)
+      if (!app?.published || !app?.slug) {
+        throw new PolicyViolation('agent site must be published before launching an LGE')
+      }
+    }
+
     let valueWei: bigint
     let gasEstimate: bigint
     try {

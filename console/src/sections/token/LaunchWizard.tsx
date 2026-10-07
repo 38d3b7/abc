@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi'
 import { parseEther } from 'viem'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { mineLaunch } from '../../lib/lge'
 import { BLOCKS_PER_HOUR } from '../../lib/chain'
 import { LGEManagerAbi } from '../../config/contracts/abis/LGEManagerAbi'
@@ -32,9 +32,16 @@ export function LaunchWizard ({ onClose, onLaunched }: { onClose: () => void; on
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const site = useQuery({
+    queryKey: ['agent-app', agent.data?.id],
+    queryFn: () => api.getApp(agent.data!.id),
+    enabled: Boolean(agent.data?.id)
+  })
+
+  const siteReady = Boolean(site.data?.published && site.data?.slug)
   const valid = name.trim() !== '' && symbol.trim() !== '' && Number(cap) > 0 &&
     Number(windowHours) > 0 && Number(minPrice) > 0 && Number(maxPrice) > Number(minPrice) &&
-    Number(feeBps) >= 0 && Number(feeBps) <= 300 && Boolean(address)
+    Number(feeBps) >= 0 && Number(feeBps) <= 300 && Boolean(address) && siteReady
 
   async function submit () {
     if (!address || !client) return
@@ -146,6 +153,18 @@ export function LaunchWizard ({ onClose, onLaunched }: { onClose: () => void; on
           into a 12-month vesting grant for the agent and funds its inference escrow. 25% of trading fees go to
           LGE participants in perpetuity; a participant's LP locks once their booked fees equal their spend.
         </p>
+        {site.isLoading ? (
+          <p className="small muted">Checking agent site…</p>
+        ) : !site.data?.published ? (
+          <p className="small" style={{ color: 'var(--bad-ink)' }}>
+            This agent needs a published subdomain before launching.
+            Go to <strong>Chat</strong> and tell the agent to publish its site first.
+          </p>
+        ) : (
+          <p className="small muted">
+            Public site: <strong>{site.data.slug}.agenticbusinessconsole.com</strong>
+          </p>
+        )}
         {error ? <p className="small" style={{ color: 'var(--bad-ink)' }}>{error}</p> : null}
         <Button variant="primary" disabled={!valid || busy !== null} onClick={() => void submit()}>
           {busy ?? 'Launch'}
